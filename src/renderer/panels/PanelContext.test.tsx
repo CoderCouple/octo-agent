@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
+import { allowConsoleError } from '../../test/console-guard'
 import { PanelProvider, usePanelRegistry, usePanelContext, usePanelVisibility, usePanelToggle, useToolbarPanels } from './PanelContext'
+
+// Suppress jsdom printing thrown errors to stderr
+const suppressJsdomErrors = () => {
+  const handler = (e: Event) => e.preventDefault()
+  window.addEventListener('error', handler)
+  return () => window.removeEventListener('error', handler)
+}
 import { PANEL_IDS } from './types'
 import type { ReactNode } from 'react'
 
@@ -19,9 +27,12 @@ function createWrapper(toolbarPanels: string[] = ['sidebar', 'explorer', 'agentT
 describe('PanelContext', () => {
   describe('usePanelRegistry', () => {
     it('throws when used outside PanelProvider', () => {
+      allowConsoleError()
+      const cleanup = suppressJsdomErrors()
       expect(() => {
         renderHook(() => usePanelRegistry())
       }).toThrow('usePanelRegistry must be used within a PanelProvider')
+      cleanup()
     })
 
     it('returns registry within PanelProvider', () => {
@@ -33,9 +44,12 @@ describe('PanelContext', () => {
 
   describe('usePanelContext', () => {
     it('throws when used outside PanelProvider', () => {
+      allowConsoleError()
+      const cleanup = suppressJsdomErrors()
       expect(() => {
         renderHook(() => usePanelContext())
       }).toThrow('usePanelContext must be used within a PanelProvider')
+      cleanup()
     })
 
     it('returns context within PanelProvider', () => {

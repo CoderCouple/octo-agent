@@ -11,7 +11,8 @@
  * If the preload type changes (e.g. a sync property becomes an async function),
  * TypeScript will flag the mismatch here at compile time.
  */
-import { vi, type Mock } from 'vitest'
+import { vi, afterEach, type Mock } from 'vitest'
+import { checkAndReset } from './console-guard'
 import type { PtyApi } from '../preload/apis/pty'
 import type { FsApi } from '../preload/apis/fs'
 import type { GitApi } from '../preload/apis/git'
@@ -217,3 +218,10 @@ if (typeof globalThis.window !== 'undefined' && typeof globalThis.document !== '
     writable: true,
   })
 }
+
+// Fail tests that produce unexpected console.error or console.warn output.
+// Tests that intentionally trigger these should call allowConsoleError() or
+// allowConsoleWarn() from '../test/console-guard'.
+afterEach(() => {
+  checkAndReset()
+})
