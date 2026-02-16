@@ -18,6 +18,7 @@ export type GitStatusResult = {
   behind: number
   tracking: string | null
   current: string | null
+  isMerging?: boolean
 }
 
 export type SearchResult = {
