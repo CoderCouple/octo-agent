@@ -40,7 +40,6 @@ export const PANEL_IDS = {
   SIDEBAR: 'sidebar',
   EXPLORER: 'explorer',
   FILE_VIEWER: 'fileViewer',
-  REVIEW: 'review',
   AGENT_TERMINAL: 'agentTerminal',
   USER_TERMINAL: 'userTerminal',
   SETTINGS: 'settings',
@@ -53,7 +52,6 @@ export type PanelId = typeof PANEL_IDS[keyof typeof PANEL_IDS]
 export const DEFAULT_TOOLBAR_PANELS: string[] = [
   PANEL_IDS.SIDEBAR,
   PANEL_IDS.EXPLORER,
-  PANEL_IDS.REVIEW,
   PANEL_IDS.FILE_VIEWER,
   PANEL_IDS.AGENT_TERMINAL,
   PANEL_IDS.USER_TERMINAL,

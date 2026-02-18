@@ -76,8 +76,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'used-review',
-    title: 'Use review pane',
-    description: 'The Review panel lets you review pull requests with AI assistance — see diffs, leave comments, and get summaries. You can also review your current branch to better understand all the code your agent wrote. Create a review session from the New Session dialog by selecting "Review" mode.',
+    title: 'Use review tab',
+    description: 'The Review tab in the Explorer lets you review pull requests with AI assistance — see diffs, leave comments, and get summaries. You can also review your current branch to better understand all the code your agent wrote. Switch to the Review tab in the Explorer, or create a review session from the New Session dialog by selecting "Review" mode.',
   },
   {
     id: 'viewed-settings',

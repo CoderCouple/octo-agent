@@ -12,8 +12,8 @@ describe('PANEL_IDS', () => {
     expect(PANEL_IDS.TUTORIAL).toBe('tutorial')
   })
 
-  it('has 8 panel IDs', () => {
-    expect(Object.keys(PANEL_IDS)).toHaveLength(8)
+  it('has 7 panel IDs', () => {
+    expect(Object.keys(PANEL_IDS)).toHaveLength(7)
   })
 })
 
@@ -22,7 +22,6 @@ describe('DEFAULT_TOOLBAR_PANELS', () => {
     expect(DEFAULT_TOOLBAR_PANELS).toEqual([
       'sidebar',
       'explorer',
-      'review',
       'fileViewer',
       'agentTerminal',
       'userTerminal',

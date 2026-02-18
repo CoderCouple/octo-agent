@@ -43,7 +43,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
       fileViewerSize: 300,
       userTerminalHeight: 192,
       diffPanelWidth: 320,
-      reviewPanelWidth: 320,
       tutorialPanelWidth: 320,
     },
     explorerFilter: 'files',

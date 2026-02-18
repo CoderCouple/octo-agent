@@ -3,12 +3,11 @@ import Terminal from '../components/Terminal'
 import TabbedTerminal from '../components/TabbedTerminal'
 import Explorer from '../components/explorer'
 import FileViewer from '../components/FileViewer'
-import ReviewPanel from '../components/review'
 import AgentSettings from '../components/AgentSettings'
 import SessionList from '../components/SessionList'
 import WelcomeScreen from '../components/WelcomeScreen'
 import TutorialPanel from '../components/TutorialPanel'
-import { useSessionStore, type Session } from '../store/sessions'
+import { type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
 import { useIssuePlanDetection } from './useIssuePlanDetection'
 import type { FileStatus } from '../components/FileViewer'
@@ -59,7 +58,7 @@ function useExplorerPanel(config: PanelsMapConfig) {
   const {
     activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult,
     navigateToFile, fetchGitStatus, setExplorerFilter,
-    recordPushToMain, clearPushToMain, updatePrState, setPanelVisibility, setToolbarPanels,
+    recordPushToMain, clearPushToMain, updatePrState, repos,
   } = config
 
   const issuePlanExists = useIssuePlanDetection(activeSessionId, activeSession?.directory)
@@ -89,24 +88,13 @@ function useExplorerPanel(config: PanelsMapConfig) {
         onUpdatePrState={(prState, prNumber, prUrl) => activeSessionId && updatePrState(activeSessionId, prState, prNumber, prUrl)}
         repoId={activeSession.repoId}
         agentPtyId={activeSession.agentPtyId}
+        session={activeSession}
+        repo={repos.find(r => r.id === activeSession.repoId)}
         issueNumber={activeSession.issueNumber}
         issuePlanExists={issuePlanExists}
-        onOpenReview={() => {
-          if (activeSessionId) {
-            setPanelVisibility(activeSessionId, PANEL_IDS.REVIEW, true)
-            const { toolbarPanels } = useSessionStore.getState()
-            if (!toolbarPanels.includes(PANEL_IDS.REVIEW)) {
-              const explorerIdx = toolbarPanels.indexOf(PANEL_IDS.EXPLORER)
-              const updated = [...toolbarPanels]
-              if (explorerIdx >= 0) updated.splice(explorerIdx + 1, 0, PANEL_IDS.REVIEW)
-              else updated.push(PANEL_IDS.REVIEW)
-              setToolbarPanels(updated)
-            }
-          }
-        }}
       />
     )
-  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, issuePlanExists])
+  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, repos, issuePlanExists])
 }
 
 function useFileViewerPanel(config: PanelsMapConfig) {
@@ -155,7 +143,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
     archiveSession, unarchiveSession,
     getAgentCommand, getAgentEnv,
     globalPanelVisibility, toggleGlobalPanel,
-    navigateToFile, repos,
+    repos,
   } = config
 
   const agentTerminalPanel = useMemo(() => (
@@ -219,15 +207,6 @@ export function usePanelsMap(config: PanelsMapConfig) {
     [PANEL_IDS.USER_TERMINAL]: userTerminalPanel,
     [PANEL_IDS.EXPLORER]: explorerPanel,
     [PANEL_IDS.FILE_VIEWER]: fileViewerPanel,
-    [PANEL_IDS.REVIEW]: activeSession ? (
-      <ReviewPanel
-        session={activeSession}
-        repo={repos.find(r => r.id === activeSession.repoId)}
-        onSelectFile={(filePath, openInDiffMode, scrollToLine, diffBaseRef) => {
-          navigateToFile({ filePath, openInDiffMode, scrollToLine, diffBaseRef })
-        }}
-      />
-    ) : null,
     [PANEL_IDS.SETTINGS]: globalPanelVisibility[PANEL_IDS.SETTINGS] ? (
       <AgentSettings onClose={() => {
         toggleGlobalPanel(PANEL_IDS.SETTINGS)
@@ -241,7 +220,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
     agentTerminalPanel, userTerminalPanel,
     explorerPanel, fileViewerPanel,
     globalPanelVisibility,
-    navigateToFile, repos,
+    repos,
   ])
 
   return panelsMap

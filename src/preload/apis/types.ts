@@ -106,7 +106,6 @@ export type LayoutSizesData = {
   fileViewerSize: number
   userTerminalHeight: number
   diffPanelWidth: number
-  reviewPanelWidth: number
   tutorialPanelWidth: number
 }
 
@@ -136,7 +135,7 @@ export type SessionData = {
   showDiff?: boolean
   fileViewerPosition?: 'top' | 'left'
   layoutSizes?: LayoutSizesData
-  explorerFilter?: 'all' | 'changed' | 'files' | 'source-control' | 'search' | 'recent'
+  explorerFilter?: 'all' | 'changed' | 'files' | 'source-control' | 'search' | 'recent' | 'review'
   terminalTabs?: unknown
   // Push to main tracking
   pushedToMainAt?: number

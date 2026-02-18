@@ -2,7 +2,7 @@
  * Main application layout with a toolbar, sidebar, and drag-to-resize panel regions.
  *
  * Renders a title bar with configurable toolbar buttons (mapped from the panel registry),
- * then a horizontal arrangement of sidebar, explorer, review panel, and a center area that
+ * then a horizontal arrangement of sidebar, explorer, and a center area that
  * stacks the file viewer and terminals. Each boundary between panels is a draggable divider
  * that updates persisted layout sizes via mouse events. Keyboard shortcuts (Cmd+1-6) toggle
  * panels, and Ctrl+Tab cycles focus between visible panels.
@@ -103,7 +103,6 @@ export default function Layout({
   const showSidebar = isPanelVisible(PANEL_IDS.SIDEBAR)
   const showExplorer = isPanelVisible(PANEL_IDS.EXPLORER)
   const showFileViewer = isPanelVisible(PANEL_IDS.FILE_VIEWER)
-  const showReview = isPanelVisible(PANEL_IDS.REVIEW)
   const showAgentTerminal = isPanelVisible(PANEL_IDS.AGENT_TERMINAL)
   const showUserTerminal = isPanelVisible(PANEL_IDS.USER_TERMINAL)
   const showSettings = isPanelVisible(PANEL_IDS.SETTINGS)
@@ -125,8 +124,6 @@ export default function Layout({
     fileViewerPosition,
     sidebarWidth,
     showSidebar,
-    showExplorer,
-    layoutSizes,
     onSidebarWidthChange,
     onLayoutSizeChange,
   })
@@ -221,22 +218,6 @@ export default function Layout({
                   {panels[PANEL_IDS.EXPLORER]}
                 </div>
                 <Divider type="explorer" direction="vertical" draggingDivider={draggingDivider} onMouseDown={handleMouseDown} />
-              </>
-            )}
-
-            {/* Review panel - hidden when error */}
-            {!errorMessage && showReview && panels[PANEL_IDS.REVIEW] && (
-              <>
-                <div
-                  data-panel-id={PANEL_IDS.REVIEW}
-                  tabIndex={-1}
-                  className="relative flex-shrink-0 bg-bg-secondary overflow-y-auto outline-none"
-                  style={{ width: layoutSizes.reviewPanelWidth }}
-                >
-                  <FlashOverlay panelId={PANEL_IDS.REVIEW} />
-                  {panels[PANEL_IDS.REVIEW]}
-                </div>
-                <Divider type="review" direction="vertical" draggingDivider={draggingDivider} onMouseDown={handleMouseDown} />
               </>
             )}
 

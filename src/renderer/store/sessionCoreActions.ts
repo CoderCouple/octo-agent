@@ -18,7 +18,6 @@ const DEFAULT_LAYOUT_SIZES = {
   fileViewerSize: 300,
   userTerminalHeight: 192, // 12rem = 192px
   diffPanelWidth: 320, // 20rem = 320px
-  reviewPanelWidth: 320,
   tutorialPanelWidth: 320,
 }
 
@@ -34,9 +33,8 @@ const DEFAULT_PANEL_VISIBILITY: PanelVisibility = {
 const REVIEW_PANEL_VISIBILITY: PanelVisibility = {
   [PANEL_IDS.AGENT_TERMINAL]: true,
   [PANEL_IDS.USER_TERMINAL]: false,
-  [PANEL_IDS.EXPLORER]: false,
+  [PANEL_IDS.EXPLORER]: true,
   [PANEL_IDS.FILE_VIEWER]: false,
-  [PANEL_IDS.REVIEW]: true,
 }
 
 // Default terminal tabs - starts with one tab
@@ -260,7 +258,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         planFilePath: null,
         fileViewerPosition: 'top',
         layoutSizes: { ...DEFAULT_LAYOUT_SIZES },
-        explorerFilter: 'files',
+        explorerFilter: isReview ? 'review' : 'files',
         lastMessage: null,
         lastMessageTime: null,
         isUnread: false,
@@ -274,24 +272,12 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
       const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
       const updatedSessions = [...sessions, newSession]
 
-      let updatedToolbarPanels = toolbarPanels
-      if (extra?.sessionType === 'review' && !toolbarPanels.includes(PANEL_IDS.REVIEW)) {
-        const settingsIdx = toolbarPanels.indexOf(PANEL_IDS.SETTINGS)
-        updatedToolbarPanels = [...toolbarPanels]
-        if (settingsIdx >= 0) {
-          updatedToolbarPanels.splice(settingsIdx, 0, PANEL_IDS.REVIEW)
-        } else {
-          updatedToolbarPanels.push(PANEL_IDS.REVIEW)
-        }
-        set({ toolbarPanels: updatedToolbarPanels })
-      }
-
       set({
         sessions: updatedSessions,
         activeSessionId: id,
       })
 
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, updatedToolbarPanels)
+      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
     },
 
     removeSession: (id: string) => {

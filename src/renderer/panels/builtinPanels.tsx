@@ -95,17 +95,6 @@ export const BUILTIN_PANELS: PanelDefinition[] = [
     resizable: true,
   },
   {
-    id: PANEL_IDS.REVIEW,
-    name: 'Review',
-    icon: <ReviewIcon />,
-    position: 'center-left',
-    defaultVisible: false,
-    defaultInToolbar: true,
-    resizable: true,
-    minSize: 250,
-    maxSize: 600,
-  },
-  {
     id: PANEL_IDS.AGENT_TERMINAL,
     name: 'Agent',
     icon: <TerminalIcon />,

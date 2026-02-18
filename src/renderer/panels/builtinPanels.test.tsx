@@ -9,15 +9,14 @@ describe('builtinPanels', () => {
     expect(ids).toContain(PANEL_IDS.SIDEBAR)
     expect(ids).toContain(PANEL_IDS.EXPLORER)
     expect(ids).toContain(PANEL_IDS.FILE_VIEWER)
-    expect(ids).toContain(PANEL_IDS.REVIEW)
     expect(ids).toContain(PANEL_IDS.AGENT_TERMINAL)
     expect(ids).toContain(PANEL_IDS.USER_TERMINAL)
     expect(ids).toContain(PANEL_IDS.SETTINGS)
     expect(ids).toContain(PANEL_IDS.TUTORIAL)
   })
 
-  it('has 8 built-in panels', () => {
-    expect(BUILTIN_PANELS).toHaveLength(8)
+  it('has 7 built-in panels', () => {
+    expect(BUILTIN_PANELS).toHaveLength(7)
   })
 
   it('has unique IDs', () => {

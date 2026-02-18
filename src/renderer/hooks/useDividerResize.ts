@@ -1,14 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type { LayoutSizes, FileViewerPosition } from '../store/sessions'
 
-type DividerType = 'sidebar' | 'explorer' | 'review' | 'fileViewer' | 'userTerminal' | 'tutorial' | null
+type DividerType = 'sidebar' | 'explorer' | 'fileViewer' | 'userTerminal' | 'tutorial' | null
 
 interface UseDividerResizeParams {
   fileViewerPosition: FileViewerPosition
   sidebarWidth: number
   showSidebar: boolean
-  showExplorer: boolean
-  layoutSizes: LayoutSizes
   onSidebarWidthChange: (width: number) => void
   onLayoutSizeChange: (key: keyof LayoutSizes, value: number) => void
 }
@@ -17,8 +15,6 @@ export function useDividerResize({
   fileViewerPosition,
   sidebarWidth,
   showSidebar,
-  showExplorer,
-  layoutSizes,
   onSidebarWidthChange,
   onLayoutSizeChange,
 }: UseDividerResizeParams) {
@@ -51,14 +47,6 @@ export function useDividerResize({
           const offset = showSidebar ? sidebarWidth : 0
           const newWidth = e.clientX - mainRect.left - offset
           onLayoutSizeChange('explorerWidth', Math.max(150, Math.min(newWidth, 500)))
-          break
-        }
-        case 'review': {
-          if (!mainRect) return
-          let reviewOffset = showSidebar ? sidebarWidth : 0
-          if (showExplorer) reviewOffset += layoutSizes.explorerWidth
-          const newReviewWidth = e.clientX - mainRect.left - reviewOffset
-          onLayoutSizeChange('reviewPanelWidth', Math.max(250, Math.min(newReviewWidth, 600)))
           break
         }
         case 'fileViewer': {

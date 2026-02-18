@@ -42,11 +42,10 @@ export interface LayoutSizes {
   fileViewerSize: number // height when top, width when left
   userTerminalHeight: number
   diffPanelWidth: number
-  reviewPanelWidth: number
   tutorialPanelWidth: number
 }
 
-export type ExplorerFilter = 'files' | 'source-control' | 'search' | 'recent'
+export type ExplorerFilter = 'files' | 'source-control' | 'search' | 'recent' | 'review'
 
 // Panel visibility map type
 export type PanelVisibility = Record<string, boolean>

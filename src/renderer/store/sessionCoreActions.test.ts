@@ -92,8 +92,9 @@ describe('sessionCoreActions', () => {
 
       const session = useSessionStore.getState().sessions[0]
       expect(session.sessionType).toBe('review')
-      expect(session.panelVisibility[PANEL_IDS.REVIEW]).toBe(true)
+      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
       expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(false)
+      expect(session.explorerFilter).toBe('review')
     })
 
     it('returns existing session info for active duplicate by directory', async () => {
@@ -166,20 +167,6 @@ describe('sessionCoreActions', () => {
       expect(useSessionStore.getState().activeSessionId).toBe(existingSession.id)
     })
 
-    it('adds review panel to toolbar for review sessions', async () => {
-      vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
-
-      // Start with toolbar that doesn't include review
-      useSessionStore.setState({
-        toolbarPanels: DEFAULT_TOOLBAR_PANELS.filter((p) => p !== PANEL_IDS.REVIEW),
-      })
-
-      await useSessionStore.getState().addSession('/test/repo', 'claude', {
-        sessionType: 'review',
-      })
-
-      expect(useSessionStore.getState().toolbarPanels).toContain(PANEL_IDS.REVIEW)
-    })
   })
 
   describe('removeSession', () => {

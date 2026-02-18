@@ -15,7 +15,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
       fileViewerSize: 400,
       userTerminalHeight: 200,
       diffPanelWidth: 400,
-      reviewPanelWidth: 350,
     },
     ...overrides,
   } as Session

@@ -164,7 +164,8 @@ describe('Session lifecycle integration', () => {
     expect(session.prNumber).toBe(42)
     expect(session.panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(true)
     expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(false)
-    expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
+    expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
+    expect(session.explorerFilter).toBe('review')
   })
 
   it('loadSessions hydrates from config', async () => {

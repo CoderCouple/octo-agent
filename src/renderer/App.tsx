@@ -36,7 +36,6 @@ const DEFAULT_LAYOUT_SIZES: LayoutSizes = {
   fileViewerSize: 300,
   userTerminalHeight: 192,
   diffPanelWidth: 320,
-  reviewPanelWidth: 320,
   tutorialPanelWidth: 320,
 }
 
