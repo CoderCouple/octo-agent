@@ -28,6 +28,8 @@
     "test:unit:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
+    "check:workers": "node scripts/check-workers.cjs",
+    "check:all": "node scripts/check-all.cjs",
     "website": "pnpm --filter broomy-website dev",
     "version:bump": "node scripts/bump-version.cjs",
     "release": "bash scripts/release.sh",
