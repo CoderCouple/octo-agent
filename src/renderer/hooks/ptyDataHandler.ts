@@ -78,7 +78,7 @@ export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHan
     const hasEraseInLine = /\x1b\[\d*K/.test(data)
 
     // Detect screen clear sequences: \x1b[2J (erase display) + \x1b[3J (erase scrollback)
-    const hasScreenClear = /\x1b\[2J/.test(data) || /\x1b\[3J/.test(data)
+    const hasScreenClear = data.includes('\x1b[2J') || data.includes('\x1b[3J')
 
     terminal.write(data, () => {
       const postViewportY = terminal.buffer.active.viewportY
@@ -126,7 +126,7 @@ export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHan
         // Skip sync checks when the terminal is not visible (zero dimensions).
         // Running forceViewportSync on invisible terminals causes bogus resize
         // toggles that can corrupt state when the terminal becomes visible.
-        if (viewportEl && viewportEl.clientHeight === 0) return
+        if (viewportEl?.clientHeight === 0) return
         if (helpers.isViewportDesynced() || helpers.isScrollStuck(1) || helpers.isScrollStuck(-1)) {
           scrollTracking.logScrollDiag?.('sync check: forcing viewport sync', {
             desynced: helpers.isViewportDesynced(),
