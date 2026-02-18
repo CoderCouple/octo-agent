@@ -4,7 +4,6 @@ import { renderHook, act } from '@testing-library/react'
 import { useSessionLifecycle } from './useSessionLifecycle'
 import type { Session } from '../store/sessions'
 import type { ProfileData } from '../store/profiles'
-import { PANEL_IDS } from '../panels'
 
 // Mock terminalBufferRegistry
 vi.mock('../utils/terminalBufferRegistry', () => ({
@@ -29,9 +28,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     branch: 'main',
     status: 'idle',
     agentId: null,
-    panelVisibility: { [PANEL_IDS.AGENT_TERMINAL]: true },
-    showAgentTerminal: true,
-    showUserTerminal: false,
+    panelVisibility: {},
     showExplorer: false,
     showFileViewer: false,
     showDiff: false,

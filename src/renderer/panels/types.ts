@@ -40,8 +40,6 @@ export const PANEL_IDS = {
   SIDEBAR: 'sidebar',
   EXPLORER: 'explorer',
   FILE_VIEWER: 'fileViewer',
-  AGENT_TERMINAL: 'agentTerminal',
-  USER_TERMINAL: 'userTerminal',
   SETTINGS: 'settings',
   TUTORIAL: 'tutorial',
 } as const
@@ -53,11 +51,9 @@ export const DEFAULT_TOOLBAR_PANELS: string[] = [
   PANEL_IDS.SIDEBAR,
   PANEL_IDS.EXPLORER,
   PANEL_IDS.FILE_VIEWER,
-  PANEL_IDS.AGENT_TERMINAL,
-  PANEL_IDS.USER_TERMINAL,
   PANEL_IDS.TUTORIAL,
   PANEL_IDS.SETTINGS,
 ]
 
 // Max panels that can have keyboard shortcuts
-export const MAX_SHORTCUT_PANELS = 6
+export const MAX_SHORTCUT_PANELS = 5

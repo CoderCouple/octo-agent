@@ -198,47 +198,6 @@ describe('useDividerResize', () => {
     expect(params.onLayoutSizeChange).toHaveBeenCalledWith('fileViewerSize', 400)
   })
 
-  // --- userTerminal drag ---
-  it('userTerminal drag adjusts height from bottom', () => {
-    const params = makeParams()
-    const { result } = renderHook(() => useDividerResize(params))
-
-    Object.defineProperty(result.current.containerRef, 'current', {
-      value: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 1000, bottom: 800, width: 1000, height: 800 }) },
-      writable: true,
-    })
-
-    act(() => {
-      result.current.handleMouseDown('userTerminal')({ preventDefault: vi.fn() } as unknown as React.MouseEvent)
-    })
-
-    // bottom = 800, clientY = 500, newHeight = 300
-    act(() => fireMouseEvent('mousemove', 0, 500))
-    expect(params.onLayoutSizeChange).toHaveBeenCalledWith('userTerminalHeight', 300)
-  })
-
-  it('userTerminal drag clamps height 100..500', () => {
-    const params = makeParams()
-    const { result } = renderHook(() => useDividerResize(params))
-
-    Object.defineProperty(result.current.containerRef, 'current', {
-      value: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 1000, bottom: 800, width: 1000, height: 800 }) },
-      writable: true,
-    })
-
-    act(() => {
-      result.current.handleMouseDown('userTerminal')({ preventDefault: vi.fn() } as unknown as React.MouseEvent)
-    })
-
-    // Below min: bottom=800, clientY=750, height=50 -> clamped to 100
-    act(() => fireMouseEvent('mousemove', 0, 750))
-    expect(params.onLayoutSizeChange).toHaveBeenCalledWith('userTerminalHeight', 100)
-
-    // Above max: bottom=800, clientY=100, height=700 -> clamped to 500
-    act(() => fireMouseEvent('mousemove', 0, 100))
-    expect(params.onLayoutSizeChange).toHaveBeenCalledWith('userTerminalHeight', 500)
-  })
-
   // --- no ref available ---
   it('mousemove does nothing when mainContentRef is null for sidebar', () => {
     const params = makeParams()

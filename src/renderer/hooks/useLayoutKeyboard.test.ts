@@ -10,13 +10,10 @@ vi.mock('../panels', () => ({
     SIDEBAR: 'sidebar',
     EXPLORER: 'explorer',
     FILE_VIEWER: 'fileViewer',
-    REVIEW: 'review',
-    AGENT_TERMINAL: 'agentTerminal',
-    USER_TERMINAL: 'userTerminal',
     SETTINGS: 'settings',
     TUTORIAL: 'tutorial',
   },
-  MAX_SHORTCUT_PANELS: 6,
+  MAX_SHORTCUT_PANELS: 5,
 }))
 
 describe('useLayoutKeyboard', () => {
@@ -24,14 +21,13 @@ describe('useLayoutKeyboard', () => {
   const onSearchFiles = vi.fn()
 
   const defaultProps = {
-    toolbarPanels: ['sidebar', 'explorer', 'fileViewer', 'agentTerminal', 'userTerminal', 'settings'],
+    toolbarPanels: ['sidebar', 'explorer', 'fileViewer', 'tutorial', 'settings'],
     isPanelVisible: vi.fn().mockReturnValue(true) as (panelId: string) => boolean,
     panels: {
       sidebar: 'sidebar-content' as ReactNode,
       explorer: 'explorer-content' as ReactNode,
       fileViewer: 'fileViewer-content' as ReactNode,
-      agentTerminal: 'agentTerminal-content' as ReactNode,
-      userTerminal: 'userTerminal-content' as ReactNode,
+      tutorial: 'tutorial-content' as ReactNode,
       settings: null as ReactNode,
     } as Record<string, ReactNode>,
     handleToggle: handleToggle as (panelId: string) => void,
@@ -97,7 +93,7 @@ describe('useLayoutKeyboard', () => {
         window.dispatchEvent(event)
       })
 
-      expect(handleToggle).toHaveBeenCalledWith('userTerminal')
+      expect(handleToggle).toHaveBeenCalledWith('settings')
     })
 
     it('toggles panel on Ctrl+number', () => {
@@ -123,17 +119,17 @@ describe('useLayoutKeyboard', () => {
 
       renderHook(() => useLayoutKeyboard(propsWithMany))
 
-      // Key 6 (index 5) is the max
+      // Key 5 (index 4) is the max
       act(() => {
         const event = new KeyboardEvent('keydown', {
-          key: '6',
+          key: '5',
           metaKey: true,
           bubbles: true,
         })
         window.dispatchEvent(event)
       })
 
-      expect(handleToggle).toHaveBeenCalledWith('f')
+      expect(handleToggle).toHaveBeenCalledWith('e')
     })
 
     it('ignores key presses in input fields', () => {
@@ -313,11 +309,11 @@ describe('useLayoutKeyboard', () => {
       const props = {
         ...defaultProps,
         isPanelVisible: vi.fn().mockReturnValue(true) as (panelId: string) => boolean,
-        toolbarPanels: ['explorer', 'settings', 'agentTerminal'],
+        toolbarPanels: ['explorer', 'settings', 'fileViewer'],
         panels: {
           explorer: 'explorer-content' as ReactNode,
           settings: 'settings-content' as ReactNode,
-          agentTerminal: 'agentTerminal-content' as ReactNode,
+          fileViewer: 'fileViewer-content' as ReactNode,
         } as Record<string, ReactNode>,
       }
 

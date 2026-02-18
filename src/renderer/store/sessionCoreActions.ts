@@ -23,26 +23,22 @@ const DEFAULT_LAYOUT_SIZES = {
 
 // Default panel visibility for new sessions
 const DEFAULT_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: true,
   [PANEL_IDS.EXPLORER]: true,
   [PANEL_IDS.FILE_VIEWER]: false,
 }
 
 // Panel visibility for review sessions
 const REVIEW_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: false,
   [PANEL_IDS.EXPLORER]: true,
   [PANEL_IDS.FILE_VIEWER]: false,
 }
 
-// Default terminal tabs - starts with one tab
+// Default terminal tabs - starts with one user tab, agent tab selected by default (null → agent)
 const createDefaultTerminalTabs = (): TerminalTabsState => {
   const id = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
   return {
     tabs: [{ id, name: 'Terminal' }],
-    activeTabId: id,
+    activeTabId: null,
   }
 }
 
@@ -153,8 +149,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             prUrl: sessionData.prUrl,
             prBaseBranch: sessionData.prBaseBranch,
             panelVisibility,
-            showAgentTerminal: panelVisibility[PANEL_IDS.AGENT_TERMINAL] ?? true,
-            showUserTerminal: panelVisibility[PANEL_IDS.USER_TERMINAL] ?? false,
             showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
             showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
             showDiff: sessionData.showDiff ?? false,
@@ -249,8 +243,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         agentId,
         ...extra,
         panelVisibility,
-        showAgentTerminal: panelVisibility[PANEL_IDS.AGENT_TERMINAL] ?? true,
-        showUserTerminal: panelVisibility[PANEL_IDS.USER_TERMINAL] ?? false,
         showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
         showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
         showDiff: false,

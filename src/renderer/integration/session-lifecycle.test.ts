@@ -12,7 +12,7 @@ beforeEach(() => {
     showSidebar: true,
     showSettings: false,
     sidebarWidth: 224,
-    toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER, PANEL_IDS.FILE_VIEWER, PANEL_IDS.AGENT_TERMINAL, PANEL_IDS.USER_TERMINAL, PANEL_IDS.SETTINGS],
+    toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER, PANEL_IDS.FILE_VIEWER, PANEL_IDS.TUTORIAL, PANEL_IDS.SETTINGS],
     globalPanelVisibility: { [PANEL_IDS.SIDEBAR]: true, [PANEL_IDS.SETTINGS]: false },
   })
   vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
@@ -32,8 +32,6 @@ describe('Session lifecycle integration', () => {
     expect(state.sessions[0].name).toBe('my-project')
     expect(state.sessions[0].branch).toBe('feature/test')
     expect(state.sessions[0].status).toBe('idle')
-    expect(state.sessions[0].panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(true)
-    expect(state.sessions[0].panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(true)
     expect(state.sessions[0].panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
     expect(state.sessions[0].panelVisibility[PANEL_IDS.FILE_VIEWER]).toBe(false)
   })
@@ -162,8 +160,6 @@ describe('Session lifecycle integration', () => {
     const session = useSessionStore.getState().sessions[0]
     expect(session.sessionType).toBe('review')
     expect(session.prNumber).toBe(42)
-    expect(session.panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(true)
-    expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(false)
     expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
     expect(session.explorerFilter).toBe('review')
   })
@@ -179,8 +175,6 @@ describe('Session lifecycle integration', () => {
           directory: '/repos/my-repo',
           agentId: 'agent-1',
           panelVisibility: {
-            [PANEL_IDS.AGENT_TERMINAL]: true,
-            [PANEL_IDS.USER_TERMINAL]: false,
             [PANEL_IDS.EXPLORER]: true,
             [PANEL_IDS.FILE_VIEWER]: false,
           },

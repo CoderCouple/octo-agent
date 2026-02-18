@@ -103,8 +103,6 @@ export default function Layout({
   const showSidebar = isPanelVisible(PANEL_IDS.SIDEBAR)
   const showExplorer = isPanelVisible(PANEL_IDS.EXPLORER)
   const showFileViewer = isPanelVisible(PANEL_IDS.FILE_VIEWER)
-  const showAgentTerminal = isPanelVisible(PANEL_IDS.AGENT_TERMINAL)
-  const showUserTerminal = isPanelVisible(PANEL_IDS.USER_TERMINAL)
   const showSettings = isPanelVisible(PANEL_IDS.SETTINGS)
   const showTutorial = isPanelVisible(PANEL_IDS.TUTORIAL)
 
@@ -226,15 +224,12 @@ export default function Layout({
               containerRef={containerRef}
               showSettings={showSettings}
               showFileViewer={showFileViewer}
-              showAgentTerminal={showAgentTerminal}
-              showUserTerminal={showUserTerminal}
               fileViewerPosition={fileViewerPosition}
               layoutSizes={layoutSizes}
               errorMessage={errorMessage}
               settingsPanel={panels[PANEL_IDS.SETTINGS]}
               fileViewer={panels[PANEL_IDS.FILE_VIEWER]}
-              agentTerminal={panels[PANEL_IDS.AGENT_TERMINAL]}
-              userTerminal={panels[PANEL_IDS.USER_TERMINAL]}
+              terminal={panels.terminal}
               flashedPanel={flashedPanel}
               draggingDivider={draggingDivider}
               handleMouseDown={handleMouseDown}

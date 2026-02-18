@@ -14,8 +14,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'idle',
     agentId: 'agent-1',
     panelVisibility: {},
-    showAgentTerminal: true,
-    showUserTerminal: true,
     showExplorer: true,
     showFileViewer: false,
     showDiff: false,

@@ -127,7 +127,7 @@ export function useLayoutKeyboard({
         return
       }
 
-      if (['1', '2', '3', '4', '5', '6'].includes(e.key)) {
+      if (['1', '2', '3', '4', '5'].includes(e.key)) {
         e.preventDefault()
         e.stopPropagation()
         handleToggleByKey(e.key)

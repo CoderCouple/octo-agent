@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type { LayoutSizes, FileViewerPosition } from '../store/sessions'
 
-type DividerType = 'sidebar' | 'explorer' | 'fileViewer' | 'userTerminal' | 'tutorial' | null
+type DividerType = 'sidebar' | 'explorer' | 'fileViewer' | 'tutorial' | null
 
 interface UseDividerResizeParams {
   fileViewerPosition: FileViewerPosition
@@ -60,12 +60,6 @@ export function useDividerResize({
             const maxWidth = centerRect.width - 200
             onLayoutSizeChange('fileViewerSize', Math.max(200, Math.min(newWidth, maxWidth)))
           }
-          break
-        }
-        case 'userTerminal': {
-          if (!centerRect) return
-          const newHeight = centerRect.bottom - e.clientY
-          onLayoutSizeChange('userTerminalHeight', Math.max(100, Math.min(newHeight, 500)))
           break
         }
       }

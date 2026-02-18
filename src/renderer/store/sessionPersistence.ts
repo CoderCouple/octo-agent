@@ -14,8 +14,6 @@ export {
 export function syncLegacyFields(session: Session): Session {
   return {
     ...session,
-    showAgentTerminal: session.panelVisibility[PANEL_IDS.AGENT_TERMINAL] ?? true,
-    showUserTerminal: session.panelVisibility[PANEL_IDS.USER_TERMINAL] ?? false,
     showExplorer: session.panelVisibility[PANEL_IDS.EXPLORER] ?? false,
     showFileViewer: session.panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
   }
@@ -23,8 +21,6 @@ export function syncLegacyFields(session: Session): Session {
 
 // Helper to create panelVisibility from legacy fields
 export function createPanelVisibilityFromLegacy(data: {
-  showAgentTerminal?: boolean
-  showUserTerminal?: boolean
   showExplorer?: boolean
   showFileViewer?: boolean
   panelVisibility?: PanelVisibility
@@ -35,8 +31,6 @@ export function createPanelVisibilityFromLegacy(data: {
   }
   // Otherwise, create from legacy fields
   return {
-    [PANEL_IDS.AGENT_TERMINAL]: data.showAgentTerminal ?? true,
-    [PANEL_IDS.USER_TERMINAL]: data.showUserTerminal ?? false,
     [PANEL_IDS.EXPLORER]: data.showExplorer ?? false,
     [PANEL_IDS.FILE_VIEWER]: data.showFileViewer ?? false,
   }
