@@ -16,6 +16,7 @@ import { existsSync, readFileSync, FSWatcher } from 'fs'
 import * as pty from 'node-pty'
 import { isWindows, isMac } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
+import { resolveShellEnv } from './shellEnv'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
 app.name = 'Broomy'
@@ -264,7 +265,9 @@ function buildAppMenu() {
 }
 
 // App lifecycle
-  void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
+    await resolveShellEnv()
+
     // Build the application menu
     buildAppMenu()
   // Determine the initial profile to open
