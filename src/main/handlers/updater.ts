@@ -1,5 +1,7 @@
 import { BrowserWindow, IpcMain } from 'electron'
-import { autoUpdater, UpdateInfo } from 'electron-updater'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
+type UpdateInfo = import('electron-updater').UpdateInfo
 import { HandlerContext } from './types'
 
 export type UpdateCheckResult = {

@@ -11,7 +11,8 @@
  * config files are touched.
  */
 import { app, BrowserWindow, ipcMain, Menu, shell, dialog } from 'electron'
-import { autoUpdater } from 'electron-updater'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
 import { join } from 'path'
 import { existsSync, readFileSync, FSWatcher } from 'fs'
 import * as pty from 'node-pty'
