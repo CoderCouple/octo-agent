@@ -39,6 +39,9 @@ export interface ExplorerProps {
   repoId?: string
   agentPtyId?: string
   onOpenReview?: () => void
+  // Issue plan
+  issueNumber?: number
+  issuePlanExists?: boolean
 }
 
 export interface TreeNode extends FileEntry {

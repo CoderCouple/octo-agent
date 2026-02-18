@@ -10,6 +10,7 @@ import WelcomeScreen from '../components/WelcomeScreen'
 import TutorialPanel from '../components/TutorialPanel'
 import { useSessionStore, type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
+import { useIssuePlanDetection } from './useIssuePlanDetection'
 import type { FileStatus } from '../components/FileViewer'
 import type { GitFileStatus, GitStatusResult, ManagedRepo } from '../../preload/index'
 import type { ExplorerFilter, PrState } from '../store/sessions'
@@ -61,6 +62,8 @@ function useExplorerPanel(config: PanelsMapConfig) {
     recordPushToMain, clearPushToMain, updatePrState, setPanelVisibility, setToolbarPanels,
   } = config
 
+  const issuePlanExists = useIssuePlanDetection(activeSessionId, activeSession?.directory)
+
   return useMemo(() => {
     if (!activeSession?.showExplorer) return null
     return (
@@ -86,6 +89,8 @@ function useExplorerPanel(config: PanelsMapConfig) {
         onUpdatePrState={(prState, prNumber, prUrl) => activeSessionId && updatePrState(activeSessionId, prState, prNumber, prUrl)}
         repoId={activeSession.repoId}
         agentPtyId={activeSession.agentPtyId}
+        issueNumber={activeSession.issueNumber}
+        issuePlanExists={issuePlanExists}
         onOpenReview={() => {
           if (activeSessionId) {
             setPanelVisibility(activeSessionId, PANEL_IDS.REVIEW, true)
@@ -101,7 +106,7 @@ function useExplorerPanel(config: PanelsMapConfig) {
         }}
       />
     )
-  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus])
+  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, issuePlanExists])
 }
 
 function useFileViewerPanel(config: PanelsMapConfig) {
