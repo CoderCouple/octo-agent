@@ -9,14 +9,12 @@ describe('builtinPanels', () => {
     expect(ids).toContain(PANEL_IDS.SIDEBAR)
     expect(ids).toContain(PANEL_IDS.EXPLORER)
     expect(ids).toContain(PANEL_IDS.FILE_VIEWER)
-    expect(ids).toContain(PANEL_IDS.AGENT_TERMINAL)
-    expect(ids).toContain(PANEL_IDS.USER_TERMINAL)
     expect(ids).toContain(PANEL_IDS.SETTINGS)
     expect(ids).toContain(PANEL_IDS.TUTORIAL)
   })
 
-  it('has 7 built-in panels', () => {
-    expect(BUILTIN_PANELS).toHaveLength(7)
+  it('has 5 built-in panels', () => {
+    expect(BUILTIN_PANELS).toHaveLength(5)
   })
 
   it('has unique IDs', () => {
@@ -71,11 +69,6 @@ describe('builtinPanels', () => {
     expect(PanelIcons.terminal).toBeDefined()
     expect(PanelIcons.settings).toBeDefined()
     expect(PanelIcons.guide).toBeDefined()
-  })
-
-  it('agent terminal is default visible', () => {
-    const agent = BUILTIN_PANELS.find((p) => p.id === PANEL_IDS.AGENT_TERMINAL)
-    expect(agent?.defaultVisible).toBe(true)
   })
 
   it('sidebar is default visible', () => {

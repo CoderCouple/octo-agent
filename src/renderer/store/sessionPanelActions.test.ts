@@ -36,13 +36,9 @@ describe('sessionPanelActions', () => {
       status: 'idle' as const,
       agentId: null,
       panelVisibility: {
-        [PANEL_IDS.AGENT_TERMINAL]: true,
-        [PANEL_IDS.USER_TERMINAL]: false,
         [PANEL_IDS.EXPLORER]: false,
         [PANEL_IDS.FILE_VIEWER]: false,
       },
-      showAgentTerminal: true,
-      showUserTerminal: false,
       showExplorer: false,
       showFileViewer: false,
       showDiff: false,
@@ -67,18 +63,20 @@ describe('sessionPanelActions', () => {
   describe('togglePanel', () => {
     it('toggles a panel from hidden to visible', () => {
       addTestSession()
-      useSessionStore.getState().togglePanel('test-session', PANEL_IDS.USER_TERMINAL)
+      useSessionStore.getState().togglePanel('test-session', PANEL_IDS.EXPLORER)
       const session = useSessionStore.getState().sessions[0]
-      expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(true)
-      expect(session.showUserTerminal).toBe(true)
+      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
+      expect(session.showExplorer).toBe(true)
     })
 
     it('toggles a panel from visible to hidden', () => {
       addTestSession()
-      useSessionStore.getState().togglePanel('test-session', PANEL_IDS.AGENT_TERMINAL)
+      // First toggle explorer on, then toggle it off
+      useSessionStore.getState().togglePanel('test-session', PANEL_IDS.EXPLORER)
+      useSessionStore.getState().togglePanel('test-session', PANEL_IDS.EXPLORER)
       const session = useSessionStore.getState().sessions[0]
-      expect(session.panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(false)
-      expect(session.showAgentTerminal).toBe(false)
+      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
+      expect(session.showExplorer).toBe(false)
     })
 
     it('does not affect other sessions', () => {
@@ -86,8 +84,8 @@ describe('sessionPanelActions', () => {
       const s2 = { ...useSessionStore.getState().sessions[0], id: 's2' }
       useSessionStore.setState({ sessions: [...useSessionStore.getState().sessions, s2] })
 
-      useSessionStore.getState().togglePanel('s1', PANEL_IDS.USER_TERMINAL)
-      expect(useSessionStore.getState().sessions[1].panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(false)
+      useSessionStore.getState().togglePanel('s1', PANEL_IDS.EXPLORER)
+      expect(useSessionStore.getState().sessions[1].panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
     })
   })
 
@@ -118,10 +116,10 @@ describe('sessionPanelActions', () => {
 
     it('sets a panel to hidden', () => {
       addTestSession()
-      useSessionStore.getState().setPanelVisibility('test-session', PANEL_IDS.AGENT_TERMINAL, false)
+      useSessionStore.getState().setPanelVisibility('test-session', PANEL_IDS.EXPLORER, false)
       const session = useSessionStore.getState().sessions[0]
-      expect(session.panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(false)
-      expect(session.showAgentTerminal).toBe(false)
+      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
+      expect(session.showExplorer).toBe(false)
     })
   })
 
@@ -143,18 +141,6 @@ describe('sessionPanelActions', () => {
   })
 
   describe('legacy toggle helpers', () => {
-    it('toggleAgentTerminal delegates to togglePanel', () => {
-      addTestSession()
-      useSessionStore.getState().toggleAgentTerminal('test-session')
-      expect(useSessionStore.getState().sessions[0].panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(false)
-    })
-
-    it('toggleUserTerminal delegates to togglePanel', () => {
-      addTestSession()
-      useSessionStore.getState().toggleUserTerminal('test-session')
-      expect(useSessionStore.getState().sessions[0].panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(true)
-    })
-
     it('toggleExplorer delegates to togglePanel', () => {
       addTestSession()
       useSessionStore.getState().toggleExplorer('test-session')

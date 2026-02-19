@@ -13,14 +13,24 @@ interface ShortcutGroup {
 
 const shortcutGroups: ShortcutGroup[] = [
   {
+    title: 'Session Management',
+    shortcuts: [
+      { label: 'New Session', keys: `${modKey}+N` },
+      { label: 'Focus Session List', keys: `${modKey}+J` },
+      { label: 'Session Search', keys: `${modKey}+Shift+F` },
+      { label: 'Next Session', keys: 'Alt+Down' },
+      { label: 'Previous Session', keys: 'Alt+Up' },
+      { label: 'Archive/Unarchive Session', keys: `${modKey}+Shift+A` },
+    ],
+  },
+  {
     title: 'Panel Shortcuts',
     shortcuts: [
       { label: 'Toggle Sessions', keys: `${modKey}+1` },
       { label: 'Toggle Explorer', keys: `${modKey}+2` },
       { label: 'Toggle File Viewer', keys: `${modKey}+3` },
-      { label: 'Toggle Agent', keys: `${modKey}+4` },
-      { label: 'Toggle Terminal', keys: `${modKey}+5` },
-      { label: 'Toggle Guide', keys: `${modKey}+6` },
+      { label: 'Toggle Guide', keys: `${modKey}+4` },
+      { label: 'Toggle Settings', keys: `${modKey}+5` },
     ],
   },
   {
@@ -28,6 +38,18 @@ const shortcutGroups: ShortcutGroup[] = [
     shortcuts: [
       { label: 'Cycle Panels Forward', keys: 'Ctrl+Tab' },
       { label: 'Cycle Panels Backward', keys: 'Ctrl+Shift+Tab' },
+      { label: 'Toggle Settings', keys: `${modKey}+,` },
+      { label: 'Show Shortcuts', keys: `${modKey}+/` },
+    ],
+  },
+  {
+    title: 'Explorer Tabs',
+    shortcuts: [
+      { label: 'Files', keys: `${modKey}+${isMac ? 'Option' : 'Alt'}+1` },
+      { label: 'Source Control', keys: `${modKey}+${isMac ? 'Option' : 'Alt'}+2` },
+      { label: 'Search', keys: `${modKey}+${isMac ? 'Option' : 'Alt'}+3` },
+      { label: 'Recent Files', keys: `${modKey}+${isMac ? 'Option' : 'Alt'}+4` },
+      { label: 'Review', keys: `${modKey}+${isMac ? 'Option' : 'Alt'}+5` },
     ],
   },
   {
@@ -40,9 +62,26 @@ const shortcutGroups: ShortcutGroup[] = [
   {
     title: 'Terminal & Agent',
     shortcuts: [
+      { label: 'Next Terminal Tab', keys: `${modKey}+Shift+]` },
+      { label: 'Previous Terminal Tab', keys: `${modKey}+Shift+[` },
       { label: 'New Line (without submitting)', keys: 'Shift+Enter' },
       { label: 'Move to Start/End of Line', keys: `${modKey}+Left / ${modKey}+Right` },
       { label: 'Delete to Start of Line', keys: `${modKey}+Delete` },
+    ],
+  },
+  {
+    title: 'New Session Dialog',
+    shortcuts: [
+      { label: 'Clone', keys: 'C' },
+      { label: 'Add Repo', keys: 'A' },
+      { label: 'Open Folder', keys: 'F' },
+      { label: 'New Branch', keys: 'N' },
+      { label: 'Existing Branch', keys: 'E' },
+      { label: 'Issues', keys: 'I' },
+      { label: 'Review PRs', keys: 'R' },
+      { label: 'Open Main', keys: 'O' },
+      { label: 'Navigate Repos', keys: 'Arrow Up/Down' },
+      { label: 'Close / Back', keys: 'Escape' },
     ],
   },
   {

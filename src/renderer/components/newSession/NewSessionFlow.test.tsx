@@ -25,17 +25,22 @@ beforeEach(() => {
   })
 })
 
+/** Find a button by title attribute or text content substring */
+function findButton(container: HTMLElement, opts: { title?: string; textIncludes?: string }) {
+  if (opts.title) return container.querySelector(`[title="${opts.title}"]`)!
+  return [...container.querySelectorAll('button')].find(b => b.textContent?.includes(opts.textIncludes!))!
+}
+
 describe('NewSessionDialog', () => {
   it('renders home view by default', () => {
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
     expect(screen.getByText('New Session')).toBeTruthy()
-    expect(screen.getByText('Clone')).toBeTruthy()
+    expect(findButton(container, { textIncludes: 'lone' })).toBeTruthy()
   })
 
   it('calls onCancel when backdrop is clicked', () => {
     const onCancel = vi.fn()
     const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={onCancel} />)
-    // Click the backdrop (the outer fixed div)
     const backdrop = container.querySelector('.fixed.inset-0')!
     fireEvent.click(backdrop)
     expect(onCancel).toHaveBeenCalled()
@@ -44,27 +49,26 @@ describe('NewSessionDialog', () => {
   it('does not call onCancel when dialog content is clicked', () => {
     const onCancel = vi.fn()
     render(<NewSessionDialog onComplete={vi.fn()} onCancel={onCancel} />)
-    // Click the inner dialog
     fireEvent.click(screen.getByText('New Session'))
     expect(onCancel).not.toHaveBeenCalled()
   })
 
   it('navigates to clone view', () => {
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Clone'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { textIncludes: 'lone' }))
     expect(screen.getByText('Clone Repository')).toBeTruthy()
   })
 
   it('navigates to add existing repo view', () => {
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Add Repo'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { textIncludes: 'dd Repo' }))
     expect(screen.getByText('Add Existing Repository')).toBeTruthy()
   })
 
   it('navigates to folder picker via Folder button', async () => {
     vi.mocked(window.dialog.openFolder).mockResolvedValue('/my/folder')
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Folder'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { textIncludes: 'older' }))
 
     await waitFor(() => {
       expect(screen.getByText('Select Agent')).toBeTruthy()
@@ -72,8 +76,8 @@ describe('NewSessionDialog', () => {
   })
 
   it('navigates back from clone to home', () => {
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Clone'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { textIncludes: 'lone' }))
     expect(screen.getByText('Clone Repository')).toBeTruthy()
     fireEvent.click(screen.getByText('Cancel'))
     expect(screen.getByText('New Session')).toBeTruthy()
@@ -82,16 +86,16 @@ describe('NewSessionDialog', () => {
   it('navigates to new branch view when New is clicked on a repo', () => {
     const repo = { id: 'repo-1', name: 'My Project', remoteUrl: '', rootDir: '/repos/my-project', defaultBranch: 'main' }
     useRepoStore.setState({ repos: [repo], ghAvailable: true })
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('New'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { title: 'Create a new branch worktree' }))
     expect(screen.getByText('New Branch')).toBeTruthy()
   })
 
   it('navigates to existing branch view when Existing is clicked on a repo', () => {
     const repo = { id: 'repo-1', name: 'My Project', remoteUrl: '', rootDir: '/repos/my-project', defaultBranch: 'main' }
     useRepoStore.setState({ repos: [repo], ghAvailable: true })
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Existing'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { title: 'Open an existing branch' }))
     expect(screen.getByText('Existing Branches')).toBeTruthy()
   })
 
@@ -99,14 +103,8 @@ describe('NewSessionDialog', () => {
     const repo = { id: 'repo-1', name: 'My Project', remoteUrl: '', rootDir: '/repos/my-project', defaultBranch: 'main' }
     useRepoStore.setState({ repos: [repo], ghAvailable: true, updateRepo: vi.fn(), removeRepo: vi.fn() })
     vi.mocked(window.repos.getInitScript).mockResolvedValue('')
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    // Click settings button (the last button-like element for the repo)
-    const settingsBtn = document.querySelector('[title="Repository settings"]') || (() => {
-      // Find repo card and get the settings button (cog icon)
-      const repoCard = screen.getByText('My Project').closest('.group')!
-      return repoCard.querySelectorAll('button')[repoCard.querySelectorAll('button').length - 1]
-    })()
-    fireEvent.click(settingsBtn as HTMLElement)
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { title: 'Repository settings' }))
     expect(screen.getByText('Repository Settings')).toBeTruthy()
   })
 
@@ -114,8 +112,8 @@ describe('NewSessionDialog', () => {
     const repo = { id: 'repo-1', name: 'My Project', remoteUrl: '', rootDir: '/repos/my-project', defaultBranch: 'main' }
     useRepoStore.setState({ repos: [repo], ghAvailable: true })
     vi.mocked(window.gh.issues).mockReturnValue(new Promise(() => {}))
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Issues'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { title: 'Browse GitHub issues' }))
     expect(screen.getByText(/Issues/)).toBeTruthy()
   })
 
@@ -123,16 +121,16 @@ describe('NewSessionDialog', () => {
     const repo = { id: 'repo-1', name: 'My Project', remoteUrl: '', rootDir: '/repos/my-project', defaultBranch: 'main' }
     useRepoStore.setState({ repos: [repo], ghAvailable: true })
     vi.mocked(window.gh.prsToReview).mockReturnValue(new Promise(() => {}))
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Review'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { title: 'Review pull requests' }))
     expect(screen.getByText('PRs to Review')).toBeTruthy()
   })
 
   it('navigates to agent picker via Open button', () => {
     const repo = { id: 'repo-1', name: 'My Project', remoteUrl: '', rootDir: '/repos/my-project', defaultBranch: 'main' }
     useRepoStore.setState({ repos: [repo], ghAvailable: true })
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.click(screen.getByText('Open'))
+    const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(findButton(container, { title: 'Open main branch' }))
     expect(screen.getByText('Select Agent')).toBeTruthy()
   })
 })

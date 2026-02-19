@@ -105,7 +105,7 @@ export function useAppCallbacks({
   const handleSelectSession = useCallback((id: string) => {
     setActiveSession(id)
     requestAnimationFrame(() => {
-      const container = document.querySelector(`[data-panel-id="${PANEL_IDS.AGENT_TERMINAL}"]`)
+      const container = document.querySelector('[data-panel-id="terminal"]')
       if (!container) return
       const xtermTextarea = container.querySelector<HTMLElement>('.xterm-helper-textarea')
       if (xtermTextarea) {

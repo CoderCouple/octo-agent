@@ -128,8 +128,6 @@ export type SessionData = {
   // New generic panel visibility
   panelVisibility?: PanelVisibility
   // Legacy fields for backwards compat
-  showAgentTerminal?: boolean
-  showUserTerminal?: boolean
   showExplorer?: boolean
   showFileViewer?: boolean
   showDiff?: boolean

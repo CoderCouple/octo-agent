@@ -58,12 +58,14 @@ export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHan
       scrollToBottomRAF = 0
       if (!state.isFollowingRef.current) return
       terminal.scrollToBottom()
-      // If still not at bottom (DOM desync), try once more next frame
+      // If still not at bottom after scrollToBottom(), the DOM scroll area
+      // is desynced from the buffer (cursor-movement-heavy output like
+      // Claude's TUI can cause this). Force a viewport sync so that when
+      // the user eventually scrolls up, scrollTop maps correctly to
+      // viewportY and doesn't cause a massive jump.
       if (!helpers.isAtBottom()) {
-        scrollToBottomRAF = requestAnimationFrame(() => {
-          scrollToBottomRAF = 0
-          if (state.isFollowingRef.current) terminal.scrollToBottom()
-        })
+        helpers.forceViewportSync()
+        terminal.scrollToBottom()
       }
     })
   }

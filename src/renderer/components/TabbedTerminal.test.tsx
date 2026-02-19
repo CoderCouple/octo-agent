@@ -63,8 +63,6 @@ beforeEach(() => {
         status: 'idle' as const,
         agentId: null,
         panelVisibility: {},
-        showAgentTerminal: true,
-        showUserTerminal: true,
         showExplorer: true,
         showFileViewer: false,
         showDiff: false,

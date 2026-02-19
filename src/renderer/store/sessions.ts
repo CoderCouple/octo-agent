@@ -69,8 +69,6 @@ export interface Session {
   // Per-session UI state (persisted) - generic panel visibility
   panelVisibility: PanelVisibility
   // Legacy fields kept for backwards compat - computed from panelVisibility
-  showAgentTerminal: boolean
-  showUserTerminal: boolean
   showExplorer: boolean
   showFileViewer: boolean
   showDiff: boolean
@@ -138,8 +136,6 @@ interface SessionStore {
   // UI state actions (backwards compat aliases)
   toggleSidebar: () => void
   setSidebarWidth: (width: number) => void
-  toggleAgentTerminal: (id: string) => void
-  toggleUserTerminal: (id: string) => void
   toggleExplorer: (id: string) => void
   toggleFileViewer: (id: string) => void
   setPlanFile: (id: string, path: string | null) => void

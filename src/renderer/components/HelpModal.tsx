@@ -11,16 +11,35 @@ const isMac = typeof navigator !== 'undefined' && navigator.userAgent.toUpperCas
 const modKey = isMac ? 'Cmd' : 'Ctrl'
 
 const shortcutSections = [
+  { title: 'Session Management', items: [
+    ['New Session', `${modKey}+N`], ['Focus Session List', `${modKey}+J`], ['Session Search', `${modKey}+Shift+F`],
+    ['Next Session', 'Alt+Down'], ['Previous Session', 'Alt+Up'], ['Archive/Unarchive', `${modKey}+Shift+A`],
+  ]},
   { title: 'Panel Shortcuts', items: [
     ['Toggle Sessions', `${modKey}+1`], ['Toggle Explorer', `${modKey}+2`], ['Toggle File Viewer', `${modKey}+3`],
-    ['Toggle Agent', `${modKey}+4`], ['Toggle Terminal', `${modKey}+5`], ['Toggle Guide', `${modKey}+6`],
+    ['Toggle Guide', `${modKey}+4`], ['Toggle Settings', `${modKey}+5`],
   ]},
-  { title: 'Navigation', items: [['Cycle Panels Forward', 'Ctrl+Tab'], ['Cycle Panels Backward', 'Ctrl+Shift+Tab']] },
+  { title: 'Navigation', items: [
+    ['Cycle Panels Forward', 'Ctrl+Tab'], ['Cycle Panels Backward', 'Ctrl+Shift+Tab'],
+    ['Toggle Settings', `${modKey}+,`], ['Show Shortcuts', `${modKey}+/`],
+  ]},
+  { title: 'Explorer Tabs', items: [
+    ['Files', `${modKey}+${isMac ? 'Option' : 'Alt'}+1`], ['Source Control', `${modKey}+${isMac ? 'Option' : 'Alt'}+2`],
+    ['Search', `${modKey}+${isMac ? 'Option' : 'Alt'}+3`], ['Recent Files', `${modKey}+${isMac ? 'Option' : 'Alt'}+4`],
+    ['Review', `${modKey}+${isMac ? 'Option' : 'Alt'}+5`],
+  ]},
   { title: 'File Operations', items: [['Save File', `${modKey}+S`], ['Search Files', `${modKey}+P`]] },
   { title: 'Terminal & Agent', items: [
+    ['Next Terminal Tab', `${modKey}+Shift+]`],
+    ['Previous Terminal Tab', `${modKey}+Shift+[`],
     ['New Line (without submitting)', 'Shift+Enter'],
     ['Move to Start/End of Line', `${modKey}+Left / ${modKey}+Right`],
     ['Delete to Start of Line', `${modKey}+Delete`],
+  ]},
+  { title: 'New Session Dialog', items: [
+    ['Clone', 'C'], ['Add Repo', 'A'], ['Open Folder', 'F'], ['New Branch', 'N'],
+    ['Existing Branch', 'E'], ['Issues', 'I'], ['Review PRs', 'R'], ['Open Main', 'O'],
+    ['Navigate Repos', 'Arrow Up/Down'], ['Close / Back', 'Escape'],
   ]},
   { title: 'Debug', items: [['Copy Terminal + Info', `${modKey}+Shift+C`]] },
 ]

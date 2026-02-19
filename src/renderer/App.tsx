@@ -27,6 +27,7 @@ import { useSessionLifecycle } from './hooks/useSessionLifecycle'
 import { useAppCallbacks } from './hooks/useAppCallbacks'
 import { usePanelsMap } from './hooks/usePanelsMap'
 import { useHelpMenu } from './hooks/useHelpMenu'
+import { useSessionKeyboardCallbacks } from './hooks/useSessionKeyboardCallbacks'
 
 // Re-export types for backwards compatibility
 export type { Session, SessionStatus }
@@ -98,34 +99,12 @@ function GitMissingBanner() {
 
 function AppContent() {
   const {
-    sessions,
-    activeSessionId,
-    isLoading,
-    sidebarWidth,
-    toolbarPanels,
-    globalPanelVisibility,
-    loadSessions,
-    addSession,
-    removeSession,
-    setActiveSession,
-    refreshAllBranches,
-    togglePanel,
-    toggleGlobalPanel,
-    setSidebarWidth,
-    setToolbarPanels,
-    selectFile,
-    setExplorerFilter,
-    setFileViewerPosition,
-    updateLayoutSize,
-    markSessionRead,
-    recordPushToMain,
-    clearPushToMain,
-    markHasHadCommits,
-    updateBranchStatus,
-    updatePrState,
-    archiveSession,
-    unarchiveSession,
-    setPanelVisibility,
+    sessions, activeSessionId, isLoading, sidebarWidth, toolbarPanels, globalPanelVisibility,
+    loadSessions, addSession, removeSession, setActiveSession, refreshAllBranches,
+    togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
+    selectFile, setExplorerFilter, setFileViewerPosition, updateLayoutSize,
+    markSessionRead, recordPushToMain, clearPushToMain, markHasHadCommits,
+    updateBranchStatus, updatePrState, archiveSession, unarchiveSession, setPanelVisibility,
   } = useSessionStore()
 
   const { agents, loadAgents } = useAgentStore()
@@ -133,42 +112,20 @@ function AppContent() {
   const { currentProfileId, profiles, loadProfiles, switchProfile } = useProfileStore()
   const { showHelpModal, setShowHelpModal, showShortcutsModal, setShowShortcutsModal } = useHelpMenu(currentProfileId)
   const currentProfile = profiles.find((p) => p.id === currentProfileId)
-
   const activeSession = sessions.find((s) => s.id === activeSessionId)
 
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false)
   const [showPanelPicker, setShowPanelPicker] = useState(false)
   const [duplicateSessionInfo, setDuplicateSessionInfo] = useState<{ name: string; wasArchived: boolean } | null>(null)
 
-  // Git polling hook
   const {
-    activeSessionGitStatus,
-    activeSessionGitStatusResult,
-    selectedFileStatus,
-    fetchGitStatus,
-  } = useGitPolling({
-    sessions,
-    activeSession,
-    repos,
-    markHasHadCommits,
-    updateBranchStatus,
-  })
+    activeSessionGitStatus, activeSessionGitStatusResult, selectedFileStatus, fetchGitStatus,
+  } = useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus })
 
-  // File navigation hook
   const {
-    openFileInDiffMode,
-    scrollToLine,
-    searchHighlight,
-    diffBaseRef,
-    diffCurrentRef,
-    diffLabel,
-    setIsFileViewerDirty,
-    pendingNavigation,
-    saveCurrentFileRef,
-    navigateToFile,
-    handlePendingSave,
-    handlePendingDiscard,
-    handlePendingCancel,
+    openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel,
+    setIsFileViewerDirty, pendingNavigation, saveCurrentFileRef, navigateToFile,
+    handlePendingSave, handlePendingDiscard, handlePendingCancel,
   } = useFileNavigation({
     activeSessionId: activeSessionId ?? null,
     activeSessionSelectedFilePath: activeSession?.selectedFilePath ?? null,
@@ -226,10 +183,34 @@ function AppContent() {
     onSessionAlreadyExists: setDuplicateSessionInfo,
   })
 
+  const setActiveTerminalTab = useSessionStore((state) => state.setActiveTerminalTab)
+  const {
+    handleNextSession, handlePrevSession, handleFocusSessionList,
+    handleFocusSessionSearch, handleArchiveSession, handleToggleSettings, handleShowShortcuts,
+    handleNextTerminalTab, handlePrevTerminalTab,
+  } = useSessionKeyboardCallbacks({
+    sessions, activeSessionId: activeSessionId ?? null, globalPanelVisibility,
+    toggleGlobalPanel, archiveSession, unarchiveSession, handleSelectSession, setShowShortcutsModal,
+    setActiveTerminalTab,
+  })
+
   const handleSearchFiles = useCallback(() => {
     if (!activeSessionId) return
     if (!activeSession?.panelVisibility[PANEL_IDS.EXPLORER]) togglePanel(activeSessionId, PANEL_IDS.EXPLORER)
     setExplorerFilter(activeSessionId, 'search')
+  }, [activeSessionId, activeSession, togglePanel, setExplorerFilter])
+
+  const handleExplorerTab = useCallback((filter: string) => {
+    if (!activeSessionId) return
+    if (!activeSession?.panelVisibility[PANEL_IDS.EXPLORER]) togglePanel(activeSessionId, PANEL_IDS.EXPLORER)
+    setExplorerFilter(activeSessionId, filter as Parameters<typeof setExplorerFilter>[1])
+    // Auto-focus search input when switching to search tab
+    if (filter === 'search') {
+      requestAnimationFrame(() => {
+        const input = document.querySelector<HTMLInputElement>('[data-explorer-search]')
+        input?.focus()
+      })
+    }
   }, [activeSessionId, activeSession, togglePanel, setExplorerFilter])
 
   const handleToggleGlobalPanel = useCallback((panelId: string) => {
@@ -279,6 +260,17 @@ function AppContent() {
         onToggleGlobalPanel={handleToggleGlobalPanel}
         onOpenPanelPicker={() => setShowPanelPicker(true)}
         onSearchFiles={handleSearchFiles}
+        onNewSession={handleNewSession}
+        onNextSession={handleNextSession}
+        onPrevSession={handlePrevSession}
+        onFocusSessionList={handleFocusSessionList}
+        onFocusSessionSearch={handleFocusSessionSearch}
+        onArchiveSession={handleArchiveSession}
+        onToggleSettings={handleToggleSettings}
+        onShowShortcuts={handleShowShortcuts}
+        onNextTerminalTab={handleNextTerminalTab}
+        onPrevTerminalTab={handlePrevTerminalTab}
+        onExplorerTab={handleExplorerTab}
       />
 
       {/* New Session Dialog */}

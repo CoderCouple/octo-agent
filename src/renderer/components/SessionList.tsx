@@ -212,6 +212,42 @@ function SessionCard({
   )
 }
 
+function DeleteSessionDialog({ session, repos, deleteWorktree, setDeleteWorktree, onConfirm, onCancel }: {
+  session: Session; repos: ManagedRepo[]
+  deleteWorktree: boolean; setDeleteWorktree: (v: boolean) => void
+  onConfirm: () => void; onCancel: () => void
+}) {
+  const repo = repos.find(r => r.id === session.repoId)
+  const isManagedWorktree = !!session.repoId && !!repo && session.branch !== repo.defaultBranch
+  const isSafeToDelete = ['closed', 'merged', 'empty'].includes(session.branchStatus) || session.sessionType === 'review'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-bg-secondary border border-border rounded-lg shadow-xl p-4 max-w-sm mx-4">
+        <h3 className="text-sm font-medium text-text-primary mb-2">Delete Session</h3>
+        <p className="text-xs text-text-secondary mb-3">
+          Delete session &quot;{session.branch}&quot; ({session.name})?
+        </p>
+        {isManagedWorktree && (
+          <label className="flex items-start gap-2 mb-3 cursor-pointer">
+            <input type="checkbox" checked={deleteWorktree} onChange={(e) => setDeleteWorktree(e.target.checked)} className="mt-0.5 accent-accent" />
+            <span className="text-xs text-text-primary">Delete worktree and folder</span>
+          </label>
+        )}
+        {isManagedWorktree && deleteWorktree && !isSafeToDelete && (
+          <div className="text-xs text-yellow-400 bg-yellow-400/10 rounded px-3 py-2 mb-3">
+            This session has work in progress. The worktree folder and local branch will be permanently deleted.
+          </div>
+        )}
+        <div className="flex gap-2 justify-end">
+          <button onClick={onCancel} className="px-3 py-1.5 text-xs rounded bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
+          <button onClick={onConfirm} className="px-3 py-1.5 text-xs rounded bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors">Delete</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SessionList({
   sessions,
   activeSessionId,
@@ -225,9 +261,20 @@ export default function SessionList({
 }: SessionListProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const activeSessions = sessions.filter((s) => !s.isArchived)
-  const archivedSessions = sessions.filter((s) => s.isArchived)
+  const matchesSearch = (session: Session) => {
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      session.branch.toLowerCase().includes(q) ||
+      session.name.toLowerCase().includes(q) ||
+      (session.lastMessage?.toLowerCase().includes(q) ?? false)
+    )
+  }
+
+  const activeSessions = sessions.filter((s) => !s.isArchived && matchesSearch(s))
+  const archivedSessions = sessions.filter((s) => s.isArchived && matchesSearch(s))
 
   const handleRefresh = async () => {
     if (!onRefreshPrStatus || isRefreshing) return
@@ -300,6 +347,24 @@ export default function SessionList({
         )}
       </div>
 
+      {/* Search */}
+      <div className="px-2 pt-2">
+        <input
+          data-session-search
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSearchQuery('')
+              ;(e.target as HTMLInputElement).blur()
+            }
+          }}
+          placeholder="Search sessions..."
+          className="w-full px-2 py-1.5 text-xs rounded bg-bg-primary border border-border text-text-primary placeholder-text-secondary/50 outline-none focus:border-accent/50"
+        />
+      </div>
+
       {/* Session list */}
       <div className="flex-1 overflow-y-auto p-2">
         {activeSessions.map((session) => (
@@ -313,11 +378,17 @@ export default function SessionList({
           />
         ))}
 
-        {activeSessions.length === 0 && archivedSessions.length === 0 && (
+        {activeSessions.length === 0 && archivedSessions.length === 0 && !searchQuery && (
           <div className="text-center text-text-secondary text-sm py-8">
             No sessions yet.
             <br />
             Click "+ New Session" to start.
+          </div>
+        )}
+
+        {activeSessions.length === 0 && archivedSessions.length === 0 && searchQuery && (
+          <div className="text-center text-text-secondary text-sm py-8">
+            No matching sessions.
           </div>
         )}
 
@@ -358,59 +429,21 @@ export default function SessionList({
         )}
       </div>
 
-      {/* Delete confirmation dialog */}
-      {pendingDeleteSession && (() => {
-        const repo = repos.find(r => r.id === pendingDeleteSession.repoId)
-        const isManagedWorktree = !!pendingDeleteSession.repoId && !!repo && pendingDeleteSession.branch !== repo.defaultBranch
-        const isSafeToDelete = ['closed', 'merged', 'empty'].includes(pendingDeleteSession.branchStatus) || pendingDeleteSession.sessionType === 'review'
-
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-bg-secondary border border-border rounded-lg shadow-xl p-4 max-w-sm mx-4">
-              <h3 className="text-sm font-medium text-text-primary mb-2">Delete Session</h3>
-              <p className="text-xs text-text-secondary mb-3">
-                Delete session "{pendingDeleteSession.branch}" ({pendingDeleteSession.name})?
-              </p>
-
-              {isManagedWorktree && (
-                <label className="flex items-start gap-2 mb-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={deleteWorktree}
-                    onChange={(e) => setDeleteWorktree(e.target.checked)}
-                    className="mt-0.5 accent-accent"
-                  />
-                  <span className="text-xs text-text-primary">Delete worktree and folder</span>
-                </label>
-              )}
-
-              {isManagedWorktree && deleteWorktree && !isSafeToDelete && (
-                <div className="text-xs text-yellow-400 bg-yellow-400/10 rounded px-3 py-2 mb-3">
-                  This session has work in progress. The worktree folder and local branch will be permanently deleted.
-                </div>
-              )}
-
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setPendingDeleteSession(null)}
-                  className="px-3 py-1.5 text-xs rounded bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    onDeleteSession(pendingDeleteSession.id, isManagedWorktree && deleteWorktree)
-                    setPendingDeleteSession(null)
-                  }}
-                  className="px-3 py-1.5 text-xs rounded bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      {pendingDeleteSession && (
+        <DeleteSessionDialog
+          session={pendingDeleteSession}
+          repos={repos}
+          deleteWorktree={deleteWorktree}
+          setDeleteWorktree={setDeleteWorktree}
+          onConfirm={() => {
+            const repo = repos.find(r => r.id === pendingDeleteSession.repoId)
+            const isManagedWorktree = !!pendingDeleteSession.repoId && !!repo && pendingDeleteSession.branch !== repo.defaultBranch
+            onDeleteSession(pendingDeleteSession.id, isManagedWorktree && deleteWorktree)
+            setPendingDeleteSession(null)
+          }}
+          onCancel={() => setPendingDeleteSession(null)}
+        />
+      )}
     </div>
   )
 }

@@ -27,8 +27,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     agentId: 'agent-1',
     repoId: 'repo-1',
     panelVisibility: {},
-    showAgentTerminal: true,
-    showUserTerminal: false,
     showExplorer: true,
     showFileViewer: false,
     showDiff: false,

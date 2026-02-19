@@ -6,14 +6,12 @@ describe('PANEL_IDS', () => {
     expect(PANEL_IDS.SIDEBAR).toBe('sidebar')
     expect(PANEL_IDS.EXPLORER).toBe('explorer')
     expect(PANEL_IDS.FILE_VIEWER).toBe('fileViewer')
-    expect(PANEL_IDS.AGENT_TERMINAL).toBe('agentTerminal')
-    expect(PANEL_IDS.USER_TERMINAL).toBe('userTerminal')
     expect(PANEL_IDS.SETTINGS).toBe('settings')
     expect(PANEL_IDS.TUTORIAL).toBe('tutorial')
   })
 
-  it('has 7 panel IDs', () => {
-    expect(Object.keys(PANEL_IDS)).toHaveLength(7)
+  it('has 5 panel IDs', () => {
+    expect(Object.keys(PANEL_IDS)).toHaveLength(5)
   })
 })
 
@@ -23,8 +21,6 @@ describe('DEFAULT_TOOLBAR_PANELS', () => {
       'sidebar',
       'explorer',
       'fileViewer',
-      'agentTerminal',
-      'userTerminal',
       'tutorial',
       'settings',
     ])
@@ -32,7 +28,7 @@ describe('DEFAULT_TOOLBAR_PANELS', () => {
 })
 
 describe('MAX_SHORTCUT_PANELS', () => {
-  it('equals 6', () => {
-    expect(MAX_SHORTCUT_PANELS).toBe(6)
+  it('equals 5', () => {
+    expect(MAX_SHORTCUT_PANELS).toBe(5)
   })
 })

@@ -93,7 +93,7 @@ describe('sessionCoreActions', () => {
       const session = useSessionStore.getState().sessions[0]
       expect(session.sessionType).toBe('review')
       expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
-      expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(false)
+      expect(session.panelVisibility[PANEL_IDS.FILE_VIEWER]).toBe(false)
       expect(session.explorerFilter).toBe('review')
     })
 

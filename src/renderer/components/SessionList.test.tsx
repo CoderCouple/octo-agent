@@ -14,8 +14,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'idle',
     agentId: 'agent-1',
     panelVisibility: {},
-    showAgentTerminal: true,
-    showUserTerminal: true,
     showExplorer: true,
     showFileViewer: false,
     showDiff: false,
@@ -182,5 +180,90 @@ describe('SessionList', () => {
     const sessions = [makeSession({ id: 's1', branch: 'b1', sessionType: 'review' })]
     render(<SessionList {...makeProps({ sessions })} />)
     expect(screen.getByText('Review')).toBeTruthy()
+  })
+
+  describe('session search', () => {
+    it('renders search input', () => {
+      render(<SessionList {...makeProps()} />)
+      expect(screen.getByPlaceholderText('Search sessions...')).toBeTruthy()
+    })
+
+    it('filters sessions by branch name', () => {
+      const sessions = [
+        makeSession({ id: 's1', branch: 'feature/auth' }),
+        makeSession({ id: 's2', branch: 'fix/bug-42' }),
+      ]
+      render(<SessionList {...makeProps({ sessions })} />)
+      const input = screen.getByPlaceholderText('Search sessions...')
+      fireEvent.change(input, { target: { value: 'auth' } })
+      expect(screen.getByText('feature/auth')).toBeTruthy()
+      expect(screen.queryByText('fix/bug-42')).toBeNull()
+    })
+
+    it('filters sessions by repo name', () => {
+      const sessions = [
+        makeSession({ id: 's1', branch: 'b1', name: 'my-app' }),
+        makeSession({ id: 's2', branch: 'b2', name: 'other-project' }),
+      ]
+      render(<SessionList {...makeProps({ sessions })} />)
+      const input = screen.getByPlaceholderText('Search sessions...')
+      fireEvent.change(input, { target: { value: 'my-app' } })
+      expect(screen.getByText('b1')).toBeTruthy()
+      expect(screen.queryByText('b2')).toBeNull()
+    })
+
+    it('filters sessions by last message', () => {
+      const sessions = [
+        makeSession({ id: 's1', branch: 'b1', lastMessage: 'Implementing auth' }),
+        makeSession({ id: 's2', branch: 'b2', lastMessage: 'Running tests' }),
+      ]
+      render(<SessionList {...makeProps({ sessions })} />)
+      const input = screen.getByPlaceholderText('Search sessions...')
+      fireEvent.change(input, { target: { value: 'tests' } })
+      expect(screen.queryByText('b1')).toBeNull()
+      expect(screen.getByText('b2')).toBeTruthy()
+    })
+
+    it('shows no matching sessions message when search has no results', () => {
+      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
+      render(<SessionList {...makeProps({ sessions })} />)
+      const input = screen.getByPlaceholderText('Search sessions...')
+      fireEvent.change(input, { target: { value: 'nonexistent' } })
+      expect(screen.getByText('No matching sessions.')).toBeTruthy()
+    })
+
+    it('Escape in search clears query and blurs', () => {
+      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
+      render(<SessionList {...makeProps({ sessions })} />)
+      const input = screen.getByPlaceholderText('Search sessions...')
+      fireEvent.change(input, { target: { value: 'test' } })
+      fireEvent.keyDown(input, { key: 'Escape' })
+      expect((input as HTMLInputElement).value).toBe('')
+    })
+
+    it('search is case-insensitive', () => {
+      const sessions = [makeSession({ id: 's1', branch: 'Feature/Auth' })]
+      render(<SessionList {...makeProps({ sessions })} />)
+      const input = screen.getByPlaceholderText('Search sessions...')
+      fireEvent.change(input, { target: { value: 'feature' } })
+      expect(screen.getByText('Feature/Auth')).toBeTruthy()
+    })
+
+    it('also filters archived sessions', () => {
+      const sessions = [
+        makeSession({ id: 's1', branch: 'active-match', isArchived: false }),
+        makeSession({ id: 's2', branch: 'archived-match', isArchived: true }),
+        makeSession({ id: 's3', branch: 'archived-other', isArchived: true }),
+      ]
+      render(<SessionList {...makeProps({ sessions })} />)
+      const input = screen.getByPlaceholderText('Search sessions...')
+      fireEvent.change(input, { target: { value: 'match' } })
+
+      // Active session should show
+      expect(screen.getByText('active-match')).toBeTruthy()
+
+      // Archived count should reflect filtering
+      expect(screen.getByText(/Archived \(1\)/)).toBeTruthy()
+    })
   })
 })

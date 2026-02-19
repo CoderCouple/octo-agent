@@ -35,6 +35,7 @@ interface TerminalTabBarProps {
   dragOverTabId: string | null
   isOverflowing: boolean
   showDropdown: boolean
+  agentTabId?: string
   handleTabClick: (tabId: string) => void
   handleCloseTab: (e: React.MouseEvent, tabId: string) => void
   handleContextMenu: (e: React.MouseEvent, tabId: string) => void
@@ -63,6 +64,7 @@ export default function TerminalTabBar({
   dragOverTabId,
   isOverflowing,
   showDropdown,
+  agentTabId,
   handleTabClick,
   handleCloseTab,
   handleContextMenu,
@@ -86,7 +88,9 @@ export default function TerminalTabBar({
     <div className="flex items-center h-6 flex-shrink-0 bg-bg-primary">
       {/* Tabs container */}
       <div ref={tabsContainerRef} className="flex-1 flex items-center overflow-x-auto scrollbar-thin min-w-0 gap-1 px-1">
-        {tabs.map((tab) => (
+        {tabs.map((tab) => {
+          const isAgent = tab.id === agentTabId
+          return (
           <div
             key={tab.id}
             className={`
@@ -98,15 +102,15 @@ export default function TerminalTabBar({
               }
               ${dragOverTabId === tab.id ? 'border-l-2 border-l-accent' : ''}
             `}
-            draggable={editingTabId !== tab.id}
+            draggable={!isAgent && editingTabId !== tab.id}
             onClick={() => handleTabClick(tab.id)}
-            onContextMenu={(e) => handleContextMenu(e, tab.id)}
-            onDoubleClick={() => handleDoubleClick(tab.id)}
-            onDragStart={(e) => handleDragStart(e, tab.id)}
-            onDragEnd={handleDragEnd}
-            onDragOver={(e) => handleDragOver(e, tab.id)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, tab.id)}
+            onContextMenu={isAgent ? undefined : (e) => handleContextMenu(e, tab.id)}
+            onDoubleClick={isAgent ? undefined : () => handleDoubleClick(tab.id)}
+            onDragStart={isAgent ? undefined : (e) => handleDragStart(e, tab.id)}
+            onDragEnd={isAgent ? undefined : handleDragEnd}
+            onDragOver={isAgent ? undefined : (e) => handleDragOver(e, tab.id)}
+            onDragLeave={isAgent ? undefined : handleDragLeave}
+            onDrop={isAgent ? undefined : (e) => handleDrop(e, tab.id)}
           >
             {editingTabId === tab.id ? (
               <input
@@ -122,7 +126,7 @@ export default function TerminalTabBar({
             ) : (
               <span className={`truncate max-w-32 ${tab.id === activeTabId ? 'border-b-2 border-accent pb-0.5' : ''}`}>{tab.name}</span>
             )}
-            {tabs.length > 1 && editingTabId !== tab.id && (
+            {!isAgent && editingTabId !== tab.id && (
               <button
                 className="opacity-0 group-hover:opacity-100 hover:text-text-primary rounded transition-opacity"
                 onClick={(e) => handleCloseTab(e, tab.id)}
@@ -132,7 +136,8 @@ export default function TerminalTabBar({
               </button>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Add tab button */}

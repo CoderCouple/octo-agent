@@ -125,7 +125,7 @@ interface Session {
   branch: string
 
   // Panel visibility (persisted) -- generic key-value map
-  panelVisibility: PanelVisibility  // e.g., { agentTerminal: true, explorer: false }
+  panelVisibility: PanelVisibility  // e.g., { explorer: true, fileViewer: false }
 
   // Layout sizes (persisted)
   layoutSizes: LayoutSizes
@@ -140,7 +140,7 @@ interface Session {
 
 **Persistence:** The store debounces saves with a 500ms delay to avoid excessive writes during panel drag operations. Only persisted fields are written; runtime state like `status` and `isUnread` is transient.
 
-**Legacy compatibility:** The store maintains both the new `panelVisibility` map and legacy boolean fields (`showAgentTerminal`, `showUserTerminal`, etc.) for backwards compatibility with older config files. The `syncLegacyFields()` helper keeps them in sync.
+**Legacy compatibility:** The store maintains both the new `panelVisibility` map and legacy boolean fields (`showExplorer`, `showFileViewer`, etc.) for backwards compatibility with older config files. The `syncLegacyFields()` helper keeps them in sync.
 
 ### Agent Store (`store/agents.ts`)
 
@@ -226,13 +226,13 @@ interface PanelDefinition {
 │         │        (file viewer)  (file viewer)      │
 │         │                                          │
 │         │               center-main                │
-│         │               (agent terminal)           │
-│  left   │                                          │
-│(explorer│               center-bottom              │
-│         │               (user terminal)            │
-│         │                                          │
+│         │               (tabbed terminal:           │
+│  left   │                agent tab + user tabs)    │
+│(explorer│                                          │
 │         │        overlay (settings -- replaces     │
 │         │                  center content)          │
+│         │                                   right  │
+│         │                              (tutorial)  │
 └─────────┴──────────────────────────────────────────┘
 ```
 
@@ -243,9 +243,10 @@ interface PanelDefinition {
 | `sidebar` | Sessions | sidebar | Yes |
 | `explorer` | Explorer | left | No |
 | `fileViewer` | File | center-top / center-left | No |
-| `agentTerminal` | Agent | center-main | No |
-| `userTerminal` | Terminal | center-bottom | No |
+| `tutorial` | Guide | right | Yes |
 | `settings` | Settings | overlay | Yes |
+
+The terminal area (agent tab + user terminal tabs) is always visible in the center and is not part of the panel toggle system.
 
 Global panels share state across sessions. Per-session panels have independent visibility per session.
 
@@ -254,7 +255,7 @@ Global panels share state across sessions. Per-session panels have independent v
 The `PanelProvider` wraps the app and provides:
 - Access to the panel registry
 - The current toolbar panel order
-- Keyboard shortcut mapping (`Cmd+1` through `Cmd+6`)
+- Keyboard shortcut mapping (`Cmd+1` through `Cmd+5`)
 
 Hooks: `usePanelRegistry()`, `usePanelContext()`, `usePanelVisibility()`, `usePanelToggle()`, `useToolbarPanels()`
 
@@ -408,7 +409,7 @@ The flow:
 
 ### Terminal Tabs
 
-User terminals support multiple tabs per session. Each tab gets its own PTY. Tab state (list, active tab) is persisted. The `TabbedTerminal` component manages the tab bar UI and routes to individual `Terminal` instances.
+The terminal area combines agent and user terminals into a single tabbed interface. The first tab is always the "Agent" tab — it runs the configured AI agent command and cannot be closed, renamed, or reordered. Additional user terminal tabs can be added alongside it. Each tab gets its own PTY. Tab state (list, active tab) is persisted. The `TabbedTerminal` component manages the tab bar UI and routes to individual `Terminal` instances.
 
 ### Terminal Buffer Registry
 

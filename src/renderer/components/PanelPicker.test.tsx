@@ -15,7 +15,7 @@ beforeEach(() => {
 
 function renderPanelPicker(overrides: Record<string, unknown> = {}) {
   const defaultProps = {
-    toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.AGENT_TERMINAL, PANEL_IDS.USER_TERMINAL],
+    toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER, PANEL_IDS.FILE_VIEWER],
     onToolbarPanelsChange: vi.fn(),
     onClose: vi.fn(),
     ...overrides,
@@ -39,8 +39,8 @@ describe('PanelPicker', () => {
     expect(screen.getByText('In Toolbar')).toBeTruthy()
     // Should show the names of panels in toolbar
     expect(screen.getByText('Sessions')).toBeTruthy()
-    expect(screen.getByText('Agent')).toBeTruthy()
-    expect(screen.getByText('Terminal')).toBeTruthy()
+    expect(screen.getByText('Explorer')).toBeTruthy()
+    expect(screen.getByText('File')).toBeTruthy()
   })
 
   it('renders "Available" section with panels not in toolbar', () => {
@@ -76,13 +76,13 @@ describe('PanelPicker', () => {
   it('removes a panel from toolbar when remove button clicked', () => {
     const onToolbarPanelsChange = vi.fn()
     renderPanelPicker({
-      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.AGENT_TERMINAL],
+      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER],
       onToolbarPanelsChange,
     })
     // Click the remove button (x icon) for the first panel
     const removeButtons = screen.getAllByTitle('Remove from toolbar')
     fireEvent.click(removeButtons[0])
-    expect(onToolbarPanelsChange).toHaveBeenCalledWith([PANEL_IDS.AGENT_TERMINAL])
+    expect(onToolbarPanelsChange).toHaveBeenCalledWith([PANEL_IDS.EXPLORER])
   })
 
   it('adds a panel to toolbar when available panel is clicked', () => {
@@ -104,30 +104,30 @@ describe('PanelPicker', () => {
   it('moves a panel up when move up button is clicked', () => {
     const onToolbarPanelsChange = vi.fn()
     renderPanelPicker({
-      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.AGENT_TERMINAL],
+      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER],
       onToolbarPanelsChange,
     })
     const moveUpButtons = screen.getAllByTitle('Move up')
     // Click move up on the second panel
     fireEvent.click(moveUpButtons[1])
-    expect(onToolbarPanelsChange).toHaveBeenCalledWith([PANEL_IDS.AGENT_TERMINAL, PANEL_IDS.SIDEBAR])
+    expect(onToolbarPanelsChange).toHaveBeenCalledWith([PANEL_IDS.EXPLORER, PANEL_IDS.SIDEBAR])
   })
 
   it('moves a panel down when move down button is clicked', () => {
     const onToolbarPanelsChange = vi.fn()
     renderPanelPicker({
-      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.AGENT_TERMINAL],
+      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER],
       onToolbarPanelsChange,
     })
     const moveDownButtons = screen.getAllByTitle('Move down')
     // Click move down on the first panel
     fireEvent.click(moveDownButtons[0])
-    expect(onToolbarPanelsChange).toHaveBeenCalledWith([PANEL_IDS.AGENT_TERMINAL, PANEL_IDS.SIDEBAR])
+    expect(onToolbarPanelsChange).toHaveBeenCalledWith([PANEL_IDS.EXPLORER, PANEL_IDS.SIDEBAR])
   })
 
   it('shows shortcut badges for panels within MAX_SHORTCUT_PANELS limit', () => {
     renderPanelPicker({
-      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.AGENT_TERMINAL],
+      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER],
     })
     // First panel should show shortcut 1, second should show shortcut 2
     const isMac = navigator.userAgent.includes('Mac')
@@ -143,7 +143,7 @@ describe('PanelPicker', () => {
 
   it('disables move up on first panel', () => {
     renderPanelPicker({
-      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.AGENT_TERMINAL],
+      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER],
     })
     const moveUpButtons = screen.getAllByTitle('Move up')
     expect(moveUpButtons[0]).toBeDisabled()
@@ -151,7 +151,7 @@ describe('PanelPicker', () => {
 
   it('disables move down on last panel', () => {
     renderPanelPicker({
-      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.AGENT_TERMINAL],
+      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER],
     })
     const moveDownButtons = screen.getAllByTitle('Move down')
     expect(moveDownButtons[moveDownButtons.length - 1]).toBeDisabled()
