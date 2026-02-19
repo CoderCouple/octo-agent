@@ -23,35 +23,35 @@ const DEFAULT_LAYOUT_SIZES = {
 
 // Default panel visibility for new sessions
 const DEFAULT_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: true,
   [PANEL_IDS.EXPLORER]: true,
   [PANEL_IDS.FILE_VIEWER]: false,
 }
 
 // Panel visibility for review sessions
 const REVIEW_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: false,
   [PANEL_IDS.EXPLORER]: true,
   [PANEL_IDS.FILE_VIEWER]: false,
 }
 
-// Default terminal tabs - starts with one tab
+// Default terminal tabs - starts with one user tab, agent tab selected by default (null → agent)
 const createDefaultTerminalTabs = (): TerminalTabsState => {
   const id = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
   return {
     tabs: [{ id, name: 'Terminal' }],
-    activeTabId: id,
+    activeTabId: null,
   }
 }
 
 // Ensure saved toolbar panels include all known panels (e.g. 'review' added later).
 function migrateToolbarPanels(saved: string[] | undefined): string[] {
   if (!saved || saved.length === 0) return [...DEFAULT_TOOLBAR_PANELS]
-  const missing = DEFAULT_TOOLBAR_PANELS.filter((p) => !saved.includes(p))
-  if (missing.length === 0) return saved
-  const result = [...saved]
+  const knownIds = new Set(DEFAULT_TOOLBAR_PANELS)
+  // Remove stale panel IDs that no longer exist (e.g. agentTerminal, userTerminal)
+  const filtered = saved.filter((p) => knownIds.has(p))
+  if (filtered.length === 0) return [...DEFAULT_TOOLBAR_PANELS]
+  const missing = DEFAULT_TOOLBAR_PANELS.filter((p) => !filtered.includes(p))
+  if (missing.length === 0) return filtered
+  const result = [...filtered]
   const settingsIdx = result.indexOf(PANEL_IDS.SETTINGS)
   for (const p of missing) {
     if (settingsIdx >= 0) {
@@ -153,8 +153,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             prUrl: sessionData.prUrl,
             prBaseBranch: sessionData.prBaseBranch,
             panelVisibility,
-            showAgentTerminal: panelVisibility[PANEL_IDS.AGENT_TERMINAL] ?? true,
-            showUserTerminal: panelVisibility[PANEL_IDS.USER_TERMINAL] ?? false,
             showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
             showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
             showDiff: sessionData.showDiff ?? false,
@@ -249,8 +247,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         agentId,
         ...extra,
         panelVisibility,
-        showAgentTerminal: panelVisibility[PANEL_IDS.AGENT_TERMINAL] ?? true,
-        showUserTerminal: panelVisibility[PANEL_IDS.USER_TERMINAL] ?? false,
         showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
         showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
         showDiff: false,

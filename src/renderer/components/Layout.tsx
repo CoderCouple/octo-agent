@@ -61,6 +61,17 @@ interface LayoutProps {
   onToggleGlobalPanel: (panelId: string) => void
   onOpenPanelPicker?: () => void
   onSearchFiles?: () => void
+  onNewSession?: () => void
+  onNextSession?: () => void
+  onPrevSession?: () => void
+  onFocusSessionList?: () => void
+  onFocusSessionSearch?: () => void
+  onArchiveSession?: () => void
+  onToggleSettings?: () => void
+  onShowShortcuts?: () => void
+  onNextTerminalTab?: () => void
+  onPrevTerminalTab?: () => void
+  onExplorerTab?: (filter: string) => void
 }
 
 export default function Layout({
@@ -79,6 +90,17 @@ export default function Layout({
   onToggleGlobalPanel,
   onOpenPanelPicker,
   onSearchFiles,
+  onNewSession,
+  onNextSession,
+  onPrevSession,
+  onFocusSessionList,
+  onFocusSessionSearch,
+  onArchiveSession,
+  onToggleSettings,
+  onShowShortcuts,
+  onNextTerminalTab,
+  onPrevTerminalTab,
+  onExplorerTab,
 }: LayoutProps) {
   const [isDev, setIsDev] = useState(false)
   const { registry, toolbarPanels, getShortcutKey } = usePanelContext()
@@ -103,8 +125,6 @@ export default function Layout({
   const showSidebar = isPanelVisible(PANEL_IDS.SIDEBAR)
   const showExplorer = isPanelVisible(PANEL_IDS.EXPLORER)
   const showFileViewer = isPanelVisible(PANEL_IDS.FILE_VIEWER)
-  const showAgentTerminal = isPanelVisible(PANEL_IDS.AGENT_TERMINAL)
-  const showUserTerminal = isPanelVisible(PANEL_IDS.USER_TERMINAL)
   const showSettings = isPanelVisible(PANEL_IDS.SETTINGS)
   const showTutorial = isPanelVisible(PANEL_IDS.TUTORIAL)
 
@@ -135,6 +155,17 @@ export default function Layout({
     panels,
     handleToggle,
     onSearchFiles,
+    onNewSession,
+    onNextSession,
+    onPrevSession,
+    onFocusSessionList,
+    onFocusSessionSearch,
+    onArchiveSession,
+    onToggleSettings,
+    onShowShortcuts,
+    onNextTerminalTab,
+    onPrevTerminalTab,
+    onExplorerTab,
   })
 
   // Get toolbar panels info with visibility status
@@ -226,15 +257,12 @@ export default function Layout({
               containerRef={containerRef}
               showSettings={showSettings}
               showFileViewer={showFileViewer}
-              showAgentTerminal={showAgentTerminal}
-              showUserTerminal={showUserTerminal}
               fileViewerPosition={fileViewerPosition}
               layoutSizes={layoutSizes}
               errorMessage={errorMessage}
               settingsPanel={panels[PANEL_IDS.SETTINGS]}
               fileViewer={panels[PANEL_IDS.FILE_VIEWER]}
-              agentTerminal={panels[PANEL_IDS.AGENT_TERMINAL]}
-              userTerminal={panels[PANEL_IDS.USER_TERMINAL]}
+              terminal={panels.terminal}
               flashedPanel={flashedPanel}
               draggingDivider={draggingDivider}
               handleMouseDown={handleMouseDown}

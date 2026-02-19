@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { View, NewSessionDialogProps } from './types'
 import { HomeView } from './HomeView'
 import { CloneView } from './CloneView'
@@ -12,6 +12,19 @@ import { AgentPickerView } from './AgentPickerView'
 
 export function NewSessionDialog({ onComplete, onCancel }: NewSessionDialogProps) {
   const [view, setView] = useState<View>({ type: 'home' })
+
+  // Escape key: go back to home from sub-views (home view handles its own Escape)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && view.type !== 'home') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setView({ type: 'home' })
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [view.type])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onCancel}>

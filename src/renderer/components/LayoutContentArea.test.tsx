@@ -19,8 +19,6 @@ function renderContentArea(overrides: Record<string, unknown> = {}) {
     containerRef: createRef<HTMLDivElement>(),
     showSettings: false,
     showFileViewer: false,
-    showAgentTerminal: true,
-    showUserTerminal: true,
     fileViewerPosition: 'top' as const,
     layoutSizes: {
       explorerWidth: 256,
@@ -32,8 +30,7 @@ function renderContentArea(overrides: Record<string, unknown> = {}) {
     errorMessage: null as string | null,
     settingsPanel: <div data-testid="settings">Settings</div>,
     fileViewer: <div data-testid="file-viewer">FileViewer</div>,
-    agentTerminal: <div data-testid="agent-terminal">Agent</div>,
-    userTerminal: <div data-testid="user-terminal">User</div>,
+    terminal: <div data-testid="terminal">Terminal</div>,
     flashedPanel: null as string | null,
     draggingDivider: null,
     handleMouseDown: vi.fn(() => vi.fn()),
@@ -44,23 +41,9 @@ function renderContentArea(overrides: Record<string, unknown> = {}) {
 }
 
 describe('LayoutContentArea', () => {
-  it('renders agent and user terminals when both visible', () => {
+  it('renders terminal area', () => {
     renderContentArea()
-    expect(screen.getByTestId('agent-terminal')).toBeTruthy()
-    expect(screen.getByTestId('user-terminal')).toBeTruthy()
-  })
-
-  it('hides agent terminal when showAgentTerminal is false', () => {
-    renderContentArea({ showAgentTerminal: false })
-    // Agent terminal panel is hidden via CSS class
-    const agentPanel = screen.getByTestId('agent-terminal').parentElement!
-    expect(agentPanel.className).toContain('hidden')
-  })
-
-  it('hides user terminal when showUserTerminal is false', () => {
-    renderContentArea({ showUserTerminal: false })
-    const userPanel = screen.getByTestId('user-terminal').parentElement!
-    expect(userPanel.className).toContain('hidden')
+    expect(screen.getByTestId('terminal')).toBeTruthy()
   })
 
   it('shows settings panel when showSettings is true', () => {
@@ -87,24 +70,27 @@ describe('LayoutContentArea', () => {
     expect(screen.queryByTestId('file-viewer')).toBeNull()
   })
 
-  it('shows "No panels visible" placeholder when nothing is visible', () => {
-    renderContentArea({
-      showAgentTerminal: false,
-      showUserTerminal: false,
-      showFileViewer: false,
-      showSettings: false,
-    })
-    expect(screen.getByText('No panels visible')).toBeTruthy()
-  })
-
   it('hides content area when errorMessage is provided', () => {
     const { container } = renderContentArea({ errorMessage: 'Something went wrong' })
     const outerDiv = container.firstElementChild!
     expect(outerDiv.className).toContain('hidden')
   })
 
-  it('shows flash overlay when flashedPanel matches a panel', () => {
-    const { container } = renderContentArea({ flashedPanel: PANEL_IDS.AGENT_TERMINAL })
+  it('shows flash overlay when flashedPanel matches terminal', () => {
+    const { container } = renderContentArea({ flashedPanel: 'terminal' })
+    // Terminal panel doesn't use FlashOverlay in LayoutContentArea,
+    // but file viewer does. Check that no flash overlay appears for unknown panel
+    // The flash overlay is only on FILE_VIEWER in LayoutContentArea
+    const flashOverlay = container.querySelector('.bg-white\\/10')
+    // Terminal doesn't have its own flash overlay in LayoutContentArea
+    expect(flashOverlay).toBeNull()
+  })
+
+  it('shows flash overlay when flashedPanel matches file viewer', () => {
+    const { container } = renderContentArea({
+      showFileViewer: true,
+      flashedPanel: PANEL_IDS.FILE_VIEWER,
+    })
     const flashOverlay = container.querySelector('.bg-white\\/10')
     expect(flashOverlay).toBeTruthy()
   })
@@ -115,11 +101,10 @@ describe('LayoutContentArea', () => {
     expect(flashOverlay).toBeNull()
   })
 
-  it('renders divider between file viewer and terminals when both visible', () => {
+  it('renders divider between file viewer and terminal when both visible', () => {
     const handleMouseDown = vi.fn(() => vi.fn())
     const { container } = renderContentArea({
       showFileViewer: true,
-      showAgentTerminal: true,
       handleMouseDown,
     })
     // Should have divider elements (cursor-row-resize or cursor-col-resize)
@@ -127,19 +112,8 @@ describe('LayoutContentArea', () => {
     expect(dividers.length).toBeGreaterThan(0)
   })
 
-  it('renders divider between agent and user terminal when both visible', () => {
+  it('does not render divider when only terminal visible', () => {
     const { container } = renderContentArea({
-      showAgentTerminal: true,
-      showUserTerminal: true,
-    })
-    const horizontalDividers = container.querySelectorAll('.cursor-row-resize')
-    expect(horizontalDividers.length).toBeGreaterThan(0)
-  })
-
-  it('does not render divider when only agent terminal visible', () => {
-    const { container } = renderContentArea({
-      showAgentTerminal: true,
-      showUserTerminal: false,
       showFileViewer: false,
     })
     const dividers = container.querySelectorAll('.cursor-row-resize, .cursor-col-resize')
@@ -149,7 +123,6 @@ describe('LayoutContentArea', () => {
   it('applies flex-row direction when fileViewerPosition is left', () => {
     const { container } = renderContentArea({
       showFileViewer: true,
-      showAgentTerminal: true,
       fileViewerPosition: 'left',
     })
     // The content div should use flex-row when file viewer is left
@@ -160,7 +133,6 @@ describe('LayoutContentArea', () => {
   it('applies flex-col direction when fileViewerPosition is top', () => {
     const { container } = renderContentArea({
       showFileViewer: true,
-      showAgentTerminal: true,
       fileViewerPosition: 'top',
     })
     const contentDiv = container.querySelector('.flex-col')
@@ -171,8 +143,7 @@ describe('LayoutContentArea', () => {
     const innerFn = vi.fn()
     const handleMouseDown = vi.fn(() => innerFn)
     const { container } = renderContentArea({
-      showAgentTerminal: true,
-      showUserTerminal: true,
+      showFileViewer: true,
       handleMouseDown,
     })
     const divider = container.querySelector('.cursor-row-resize')!

@@ -356,6 +356,17 @@ describe('SCWorkingView', () => {
       expect(screen.getByText(/main has 2 new commits/)).toBeTruthy()
     })
 
+    it('shows behind main banner for open branch status', () => {
+      render(
+        <SCWorkingView
+          {...defaultProps}
+          branchStatus="open"
+          behindMainCount={2}
+        />
+      )
+      expect(screen.getByText(/main has 2 new commits/)).toBeTruthy()
+    })
+
     it('calls onSyncWithMain when Get latest button is clicked', () => {
       const onSyncWithMain = vi.fn()
       render(

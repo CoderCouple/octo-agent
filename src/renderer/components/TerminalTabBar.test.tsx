@@ -80,8 +80,13 @@ describe('TerminalTabBar', () => {
     expect(closeButtons.length).toBe(3) // all tabs get close buttons when > 1
   })
 
-  it('does not show close buttons when there is only one tab', () => {
+  it('always shows close button on non-agent tabs', () => {
     renderTabBar({ tabs: [{ id: 'tab-1', name: 'Terminal 1' }] })
+    expect(screen.queryAllByTitle('Close tab').length).toBe(1)
+  })
+
+  it('does not show close button on agent tab', () => {
+    renderTabBar({ tabs: [{ id: '__agent__', name: 'Agent' }], agentTabId: '__agent__' })
     expect(screen.queryAllByTitle('Close tab').length).toBe(0)
   })
 

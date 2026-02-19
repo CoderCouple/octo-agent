@@ -13,7 +13,7 @@ const suppressJsdomErrors = () => {
 import { PANEL_IDS } from './types'
 import type { ReactNode } from 'react'
 
-function createWrapper(toolbarPanels: string[] = ['sidebar', 'explorer', 'agentTerminal', 'userTerminal', 'settings']) {
+function createWrapper(toolbarPanels: string[] = ['sidebar', 'explorer', 'fileViewer', 'settings']) {
   return ({ children }: { children: ReactNode }) => (
     <PanelProvider
       toolbarPanels={toolbarPanels}
@@ -140,7 +140,7 @@ describe('PanelContext', () => {
     it('returns toolbar panels with shortcut keys', () => {
       const { result } = renderHook(
         () => useToolbarPanels(),
-        { wrapper: createWrapper(['sidebar', 'explorer', 'agentTerminal']) }
+        { wrapper: createWrapper(['sidebar', 'explorer', 'fileViewer']) }
       )
       expect(result.current).toHaveLength(3)
       expect(result.current[0].shortcutKey).toBe('1')

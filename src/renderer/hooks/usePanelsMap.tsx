@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import Terminal from '../components/Terminal'
 import TabbedTerminal from '../components/TabbedTerminal'
 import Explorer from '../components/explorer'
 import FileViewer from '../components/FileViewer'
@@ -9,6 +8,7 @@ import WelcomeScreen from '../components/WelcomeScreen'
 import TutorialPanel from '../components/TutorialPanel'
 import { type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
+import { useIssuePlanDetection } from './useIssuePlanDetection'
 import type { FileStatus } from '../components/FileViewer'
 import type { GitFileStatus, GitStatusResult, ManagedRepo } from '../../preload/index'
 import type { ExplorerFilter, PrState } from '../store/sessions'
@@ -60,6 +60,8 @@ function useExplorerPanel(config: PanelsMapConfig) {
     recordPushToMain, clearPushToMain, updatePrState, repos,
   } = config
 
+  const issuePlanExists = useIssuePlanDetection(activeSessionId, activeSession?.directory)
+
   return useMemo(() => {
     if (!activeSession?.showExplorer) return null
     return (
@@ -87,9 +89,11 @@ function useExplorerPanel(config: PanelsMapConfig) {
         agentPtyId={activeSession.agentPtyId}
         session={activeSession}
         repo={repos.find(r => r.id === activeSession.repoId)}
+        issueNumber={activeSession.issueNumber}
+        issuePlanExists={issuePlanExists}
       />
     )
-  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, repos])
+  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, repos, issuePlanExists])
 }
 
 function useFileViewerPanel(config: PanelsMapConfig) {
@@ -141,20 +145,19 @@ export function usePanelsMap(config: PanelsMapConfig) {
     repos,
   } = config
 
-  const agentTerminalPanel = useMemo(() => (
+  const terminalPanel = useMemo(() => (
     <div className="h-full w-full relative">
       {sessions.map((session) => (
         <div
           key={session.id}
           className={`absolute inset-0 ${session.id === activeSessionId ? '' : 'hidden'}`}
         >
-          <Terminal
+          <TabbedTerminal
             sessionId={session.id}
             cwd={session.directory}
-            command={getAgentCommand(session)}
-            env={getAgentEnv(session)}
-            isAgentTerminal={!!getAgentCommand(session)}
             isActive={session.id === activeSessionId}
+            agentCommand={getAgentCommand(session)}
+            agentEnv={getAgentEnv(session)}
           />
         </div>
       ))}
@@ -163,23 +166,6 @@ export function usePanelsMap(config: PanelsMapConfig) {
       )}
     </div>
   ), [sessions, activeSessionId, getAgentCommand, getAgentEnv, handleNewSession])
-
-  const userTerminalPanel = useMemo(() => (
-    <div className="h-full w-full relative">
-      {sessions.map((session) => (
-        <div
-          key={`user-${session.id}`}
-          className={`absolute inset-0 ${session.id === activeSessionId ? '' : 'hidden'}`}
-        >
-          <TabbedTerminal
-            sessionId={session.id}
-            cwd={session.directory}
-            isActive={session.id === activeSessionId}
-          />
-        </div>
-      ))}
-    </div>
-  ), [sessions, activeSessionId])
 
   const explorerPanel = useExplorerPanel(config)
   const fileViewerPanel = useFileViewerPanel(config)
@@ -198,8 +184,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
         onUnarchiveSession={unarchiveSession}
       />
     ),
-    [PANEL_IDS.AGENT_TERMINAL]: agentTerminalPanel,
-    [PANEL_IDS.USER_TERMINAL]: userTerminalPanel,
+    terminal: terminalPanel,
     [PANEL_IDS.EXPLORER]: explorerPanel,
     [PANEL_IDS.FILE_VIEWER]: fileViewerPanel,
     [PANEL_IDS.SETTINGS]: globalPanelVisibility[PANEL_IDS.SETTINGS] ? (
@@ -212,7 +197,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
     ),
   }), [
     sessions, activeSessionId, activeSession,
-    agentTerminalPanel, userTerminalPanel,
+    terminalPanel,
     explorerPanel, fileViewerPanel,
     globalPanelVisibility,
     repos,

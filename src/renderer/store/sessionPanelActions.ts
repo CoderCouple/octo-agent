@@ -84,16 +84,6 @@ export function createPanelActions(get: StoreGet, set: StoreSet) {
       debouncedSave(sessions, globalPanelVisibility, width, toolbarPanels)
     },
 
-    toggleAgentTerminal: (id: string) => {
-      const store = get() as unknown as { togglePanel: (sessionId: string, panelId: string) => void }
-      store.togglePanel(id, PANEL_IDS.AGENT_TERMINAL)
-    },
-
-    toggleUserTerminal: (id: string) => {
-      const store = get() as unknown as { togglePanel: (sessionId: string, panelId: string) => void }
-      store.togglePanel(id, PANEL_IDS.USER_TERMINAL)
-    },
-
     toggleExplorer: (id: string) => {
       const store = get() as unknown as { togglePanel: (sessionId: string, panelId: string) => void }
       store.togglePanel(id, PANEL_IDS.EXPLORER)

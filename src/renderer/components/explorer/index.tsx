@@ -5,6 +5,7 @@ import { SourceControl } from './SourceControl'
 import { SearchPanel } from './SearchPanel'
 import { RecentFiles } from './RecentFiles'
 import ReviewPanel from '../review'
+import { IssuePlanChip } from './IssuePlanChip'
 
 export default function Explorer({
   directory,
@@ -28,6 +29,8 @@ export default function Explorer({
   agentPtyId,
   session,
   repo,
+  issueNumber,
+  issuePlanExists,
 }: ExplorerProps) {
   if (!directory) {
     return (
@@ -122,6 +125,15 @@ export default function Explorer({
           </button>
         </div>
       )}
+
+      {/* Issue plan chip */}
+      <IssuePlanChip
+        directory={directory}
+        issueNumber={issueNumber}
+        issuePlanExists={issuePlanExists}
+        agentPtyId={agentPtyId}
+        onFileSelect={onFileSelect}
+      />
 
       {/* Tab content - scrollable area below pinned toolbar */}
       <div className="flex-1 min-h-0 overflow-y-auto">

@@ -44,7 +44,7 @@ Broomy is an Electron + React desktop app for managing multiple AI coding agent 
 
 - **Stores** (`store/`): Four Zustand stores -- `sessions.ts` (session state, panel visibility, layout sizes, agent monitoring), `agents.ts` (agent definitions), `repos.ts` (managed repositories), `profiles.ts` (multi-window profiles), `errors.ts` (error tracking).
 - **Components** (`components/`): `Layout.tsx` (main layout with drag-to-resize), `Terminal.tsx` (xterm.js wrapper), `Explorer.tsx` (file tree + source control), `FileViewer.tsx` (Monaco editor + diff), `SessionList.tsx`, `TabbedTerminal.tsx`, `NewSessionDialog.tsx`, `AgentSettings.tsx`, `ProfileChip.tsx`.
-- **Panel system** (`panels/`): Registry-based modular panel system. Panel IDs defined in `types.ts`, registered in `builtinPanels.tsx`, accessed via React context in `PanelContext.tsx`. Six built-in panels: sidebar, explorer, fileViewer, agentTerminal, userTerminal, settings.
+- **Panel system** (`panels/`): Registry-based modular panel system. Panel IDs defined in `types.ts`, registered in `builtinPanels.tsx`, accessed via React context in `PanelContext.tsx`. Five built-in panels: sidebar, explorer, fileViewer, tutorial, settings. The terminal area (agent + user tabs) is always visible and not part of the panel toggle system.
 - **Utils** (`utils/`): `stripAnsi.ts` (ANSI escape removal), `explorerHelpers.ts` (git status display), `terminalBufferRegistry.ts` (cross-component terminal access), `slugify.ts` (issue-to-branch names), `textDetection.ts` (binary vs text), `branchStatus.ts` (branch status computation).
 
 ### Agent Activity Detection

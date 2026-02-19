@@ -144,7 +144,7 @@ describe('useTerminalKeyboard', () => {
     })
   })
 
-  describe('Cmd/Ctrl+1-6 panel toggle shortcuts', () => {
+  describe('Cmd/Ctrl+1-5 panel toggle shortcuts', () => {
     it('dispatches app:toggle-panel event for Cmd+1 and returns false', () => {
       const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
       const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
@@ -177,11 +177,11 @@ describe('useTerminalKeyboard', () => {
       dispatchSpy.mockRestore()
     })
 
-    it('dispatches for each of keys 1-6', () => {
+    it('dispatches for each of keys 1-5', () => {
       const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
       const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
 
-      for (const key of ['1', '2', '3', '4', '5', '6']) {
+      for (const key of ['1', '2', '3', '4', '5']) {
         dispatchSpy.mockClear()
         const event = makeKeyEvent({ key, metaKey: true, type: 'keydown' })
         const handled = result.current(event)
@@ -197,15 +197,129 @@ describe('useTerminalKeyboard', () => {
       dispatchSpy.mockRestore()
     })
 
-    it('does not handle Cmd+7 (outside 1-6 range)', () => {
+    it('does not handle Cmd+6 (outside 1-5 range)', () => {
       const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
       const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
-      const event = makeKeyEvent({ key: '7', metaKey: true, type: 'keydown' })
+      const event = makeKeyEvent({ key: '6', metaKey: true, type: 'keydown' })
       const handled = result.current(event)
 
       expect(handled).toBe(true)
       expect(dispatchSpy).not.toHaveBeenCalledWith(
         expect.objectContaining({ type: 'app:toggle-panel' }),
+      )
+      dispatchSpy.mockRestore()
+    })
+  })
+
+  describe('new app-wide shortcuts from terminal', () => {
+    it('Cmd+N dispatches app:new-session and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: 'n', metaKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:new-session' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+J dispatches app:focus-sessions and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: 'j', metaKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:focus-sessions' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+Shift+F dispatches app:focus-session-search and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: 'f', metaKey: true, shiftKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:focus-session-search' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+Shift+A dispatches app:archive-session and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: 'a', metaKey: true, shiftKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:archive-session' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+, dispatches app:toggle-settings and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: ',', metaKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:toggle-settings' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+/ dispatches app:show-shortcuts and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: '/', metaKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:show-shortcuts' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Alt+Down dispatches app:next-session and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: 'ArrowDown', altKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:next-session' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Alt+Up dispatches app:prev-session and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: 'ArrowUp', altKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:prev-session' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+Shift+] dispatches app:next-terminal-tab and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: ']', metaKey: true, shiftKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:next-terminal-tab' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+Shift+[ dispatches app:prev-terminal-tab and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: '[', metaKey: true, shiftKey: true, type: 'keydown' })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'app:prev-terminal-tab' }))
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+Alt+1 dispatches app:explorer-tab with files and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: '¡', metaKey: true, altKey: true, type: 'keydown', code: 'Digit1' } as Partial<KeyboardEvent> & { key: string })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'app:explorer-tab', detail: { filter: 'files' } }),
+      )
+      dispatchSpy.mockRestore()
+    })
+
+    it('Cmd+Alt+3 dispatches app:explorer-tab with search and returns false', () => {
+      const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+      const { result } = renderHook(() => useTerminalKeyboard(ptyIdRef))
+      const event = makeKeyEvent({ key: '#', metaKey: true, altKey: true, type: 'keydown', code: 'Digit3' } as Partial<KeyboardEvent> & { key: string })
+      expect(result.current(event)).toBe(false)
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'app:explorer-tab', detail: { filter: 'search' } }),
       )
       dispatchSpy.mockRestore()
     })

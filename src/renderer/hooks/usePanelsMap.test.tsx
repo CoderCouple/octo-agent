@@ -29,13 +29,9 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     status: 'idle',
     agentId: null,
     panelVisibility: {
-      [PANEL_IDS.AGENT_TERMINAL]: true,
-      [PANEL_IDS.USER_TERMINAL]: true,
       [PANEL_IDS.EXPLORER]: true,
       [PANEL_IDS.FILE_VIEWER]: false,
     },
-    showAgentTerminal: true,
-    showUserTerminal: true,
     showExplorer: true,
     showFileViewer: false,
     showDiff: false,
@@ -119,8 +115,7 @@ describe('usePanelsMap', () => {
     const { result } = renderHook(() => usePanelsMap(config))
 
     expect(result.current).toHaveProperty(PANEL_IDS.SIDEBAR)
-    expect(result.current).toHaveProperty(PANEL_IDS.AGENT_TERMINAL)
-    expect(result.current).toHaveProperty(PANEL_IDS.USER_TERMINAL)
+    expect(result.current).toHaveProperty('terminal')
     expect(result.current).toHaveProperty(PANEL_IDS.EXPLORER)
     expect(result.current).toHaveProperty(PANEL_IDS.FILE_VIEWER)
     expect(result.current).toHaveProperty(PANEL_IDS.SETTINGS)
@@ -186,26 +181,19 @@ describe('usePanelsMap', () => {
     expect(result.current).toBe(firstResult)
   })
 
-  it('shows WelcomeScreen in agent terminal panel when there are no sessions', () => {
+  it('shows WelcomeScreen in terminal panel when there are no sessions', () => {
     const config = makeConfig({ sessions: [], activeSessionId: null, activeSession: undefined })
     const { result } = renderHook(() => usePanelsMap(config))
 
-    // The agent terminal panel should still be defined (not null)
-    expect(result.current[PANEL_IDS.AGENT_TERMINAL]).not.toBeNull()
+    // The terminal panel should still be defined (not null)
+    expect(result.current.terminal).not.toBeNull()
   })
 
-  it('passes config to agentTerminal onUserInput', () => {
+  it('returns terminal panel element', () => {
     const config = makeConfig()
     const { result } = renderHook(() => usePanelsMap(config))
 
-    expect(result.current[PANEL_IDS.AGENT_TERMINAL]).not.toBeNull()
-  })
-
-  it('passes config to userTerminal onUserInput', () => {
-    const config = makeConfig()
-    const { result } = renderHook(() => usePanelsMap(config))
-
-    expect(result.current[PANEL_IDS.USER_TERMINAL]).not.toBeNull()
+    expect(result.current.terminal).not.toBeNull()
   })
 
   it('renders file viewer with review context for review sessions', () => {
@@ -224,7 +212,7 @@ describe('usePanelsMap', () => {
     expect(result.current[PANEL_IDS.FILE_VIEWER]).not.toBeNull()
   })
 
-  it('renders agent terminal for each session', () => {
+  it('renders terminal panel for each session', () => {
     const session1 = makeSession({ id: 'session-1', name: 'S1' })
     const session2 = makeSession({ id: 'session-2', name: 'S2' })
     const config = makeConfig({
@@ -234,8 +222,7 @@ describe('usePanelsMap', () => {
     })
     const { result } = renderHook(() => usePanelsMap(config))
 
-    expect(result.current[PANEL_IDS.AGENT_TERMINAL]).not.toBeNull()
-    expect(result.current[PANEL_IDS.USER_TERMINAL]).not.toBeNull()
+    expect(result.current.terminal).not.toBeNull()
   })
 
   describe('explorer callbacks', () => {

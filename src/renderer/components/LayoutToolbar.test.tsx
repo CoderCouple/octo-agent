@@ -32,13 +32,13 @@ function makeToolbarPanelInfo(overrides: Partial<{ isVisible: boolean }> = {}) {
       ...overrides,
     },
     {
-      id: PANEL_IDS.AGENT_TERMINAL,
-      name: 'Agent',
-      icon: <span>A</span>,
-      position: 'center-main' as const,
-      defaultVisible: true,
+      id: PANEL_IDS.EXPLORER,
+      name: 'Explorer',
+      icon: <span>E</span>,
+      position: 'left' as const,
+      defaultVisible: false,
       defaultInToolbar: true,
-      shortcutKey: '4',
+      shortcutKey: '2',
       isVisible: false,
       ...overrides,
     },
@@ -100,14 +100,14 @@ describe('LayoutToolbar', () => {
     renderToolbar()
     // Non-icon-only panels show their name
     expect(screen.getByText('Sessions')).toBeTruthy()
-    expect(screen.getByText('Agent')).toBeTruthy()
+    expect(screen.getByText('Explorer')).toBeTruthy()
   })
 
   it('calls onToggle when a panel button is clicked', () => {
     const onToggle = vi.fn()
     renderToolbar({ onToggle })
-    fireEvent.click(screen.getByText('Agent'))
-    expect(onToggle).toHaveBeenCalledWith(PANEL_IDS.AGENT_TERMINAL)
+    fireEvent.click(screen.getByText('Explorer'))
+    expect(onToggle).toHaveBeenCalledWith(PANEL_IDS.EXPLORER)
   })
 
   it('displays shortcut key in button title', () => {
@@ -150,9 +150,9 @@ describe('LayoutToolbar', () => {
 
   it('applies inactive style to hidden panels', () => {
     renderToolbar()
-    // Agent is not visible
-    const agentBtn = screen.getByText('Agent')
-    expect(agentBtn.className).toContain('bg-bg-tertiary')
+    // Explorer is not visible
+    const explorerBtn = screen.getByText('Explorer')
+    expect(explorerBtn.className).toContain('bg-bg-tertiary')
   })
 
   it('renders error indicator', () => {

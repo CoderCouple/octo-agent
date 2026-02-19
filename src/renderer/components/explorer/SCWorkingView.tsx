@@ -233,7 +233,7 @@ function BehindMainBanner({ branchStatus, branchBaseName, behindMainCount, isFet
   onSyncWithMain: () => void
 }) {
   if (isFetchingBehindMain || behindMainCount === 0) return null
-  if (branchStatus !== 'pushed' && branchStatus !== 'empty') return null
+  if (branchStatus !== 'pushed' && branchStatus !== 'empty' && branchStatus !== 'open') return null
 
   return (
     <div className="flex flex-col items-center gap-2 mt-2">

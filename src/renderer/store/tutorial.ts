@@ -50,6 +50,11 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     description: 'Keyboard shortcuts let you quickly show and hide panels to focus on what matters. Press Cmd/Ctrl+1 through 6 to toggle each panel, or use Ctrl+Tab to cycle through visible ones. Experiment with different layouts as you work.',
   },
   {
+    id: 'learned-shortcuts',
+    title: 'Learn keyboard shortcuts',
+    description: 'Broomy is designed for keyboard-driven workflows. Press Cmd/Ctrl+/ to see all available shortcuts. Key ones to learn: Cmd/Ctrl+N opens a new session, Cmd/Ctrl+J jumps to the session list, Alt+Up/Down switches sessions, and Cmd/Ctrl+Shift+F searches sessions. In the new session dialog, single letter keys (N, E, I, R, O) act on the focused repo. Master these and you\'ll rarely need the mouse.',
+  },
+  {
     id: 'used-source-control',
     title: 'Use source control',
     description: 'Once your agent has made changes you like, you\'ll want to commit them. The Explorer\'s Source Control section shows staged and unstaged changes. Stage the files you want, write a commit message, and commit — all without leaving Broomy.',
