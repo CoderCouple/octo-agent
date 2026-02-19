@@ -11,7 +11,7 @@ VERSION=$(node -p "require('./package.json').version")
 TAG="v$VERSION"
 
 FILES=()
-for pattern in dist/*.dmg dist/*.zip dist/*.exe dist/*.AppImage dist/*.deb; do
+for pattern in dist/*.dmg dist/*.zip dist/*.exe dist/*.AppImage dist/*.deb dist/*.yml; do
   for f in $pattern; do
     [ -f "$f" ] && FILES+=("$f")
   done

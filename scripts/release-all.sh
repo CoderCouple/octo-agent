@@ -89,7 +89,7 @@ echo "============================================"
 echo "  Version:  $NEW_VERSION"
 echo "  Tag:      $TAG"
 echo "  Artifacts:"
-for f in dist/*.dmg dist/*.zip; do
+for f in dist/*.dmg dist/*.zip dist/*.yml; do
   [ -f "$f" ] && echo "    $(basename "$f")"
 done
 echo "============================================"
@@ -112,7 +112,7 @@ echo ""
 echo "Creating GitHub release..."
 
 RELEASE_FILES=()
-for f in dist/*.dmg dist/*.zip; do
+for f in dist/*.dmg dist/*.zip dist/*.yml; do
   [ -f "$f" ] && RELEASE_FILES+=("$f")
 done
 
