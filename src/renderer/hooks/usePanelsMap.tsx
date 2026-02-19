@@ -8,6 +8,7 @@ import WelcomeScreen from '../components/WelcomeScreen'
 import TutorialPanel from '../components/TutorialPanel'
 import { type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
+import { useIssuePlanDetection } from './useIssuePlanDetection'
 import type { FileStatus } from '../components/FileViewer'
 import type { GitFileStatus, GitStatusResult, ManagedRepo } from '../../preload/index'
 import type { ExplorerFilter, PrState } from '../store/sessions'
@@ -59,6 +60,8 @@ function useExplorerPanel(config: PanelsMapConfig) {
     recordPushToMain, clearPushToMain, updatePrState, repos,
   } = config
 
+  const issuePlanExists = useIssuePlanDetection(activeSessionId, activeSession?.directory)
+
   return useMemo(() => {
     if (!activeSession?.showExplorer) return null
     return (
@@ -86,9 +89,11 @@ function useExplorerPanel(config: PanelsMapConfig) {
         agentPtyId={activeSession.agentPtyId}
         session={activeSession}
         repo={repos.find(r => r.id === activeSession.repoId)}
+        issueNumber={activeSession.issueNumber}
+        issuePlanExists={issuePlanExists}
       />
     )
-  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, repos])
+  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, repos, issuePlanExists])
 }
 
 function useFileViewerPanel(config: PanelsMapConfig) {

@@ -41,6 +41,9 @@ export interface ExplorerProps {
   // Review tab data
   session?: Session
   repo?: ManagedRepo
+  // Issue plan
+  issueNumber?: number
+  issuePlanExists?: boolean
 }
 
 export interface TreeNode extends FileEntry {
