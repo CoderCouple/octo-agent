@@ -119,6 +119,7 @@ export type SessionData = {
   repoId?: string
   issueNumber?: number
   issueTitle?: string
+  issueUrl?: string
   // Review session fields
   sessionType?: 'default' | 'review'
   prNumber?: number

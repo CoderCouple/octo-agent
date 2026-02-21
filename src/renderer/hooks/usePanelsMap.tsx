@@ -91,6 +91,7 @@ function useExplorerPanel(config: PanelsMapConfig) {
         session={activeSession}
         repo={repos.find(r => r.id === activeSession.repoId)}
         issueNumber={activeSession.issueNumber}
+        issueUrl={activeSession.issueUrl}
         issuePlanExists={issuePlanExists}
       />
     )

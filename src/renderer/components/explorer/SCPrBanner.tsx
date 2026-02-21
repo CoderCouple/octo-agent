@@ -17,6 +17,8 @@ interface SCPrBannerProps {
   onDismissError: () => void
   agentMergeMessage: string | null
   onDismissAgentMerge: () => void
+  issueNumber?: number
+  issueUrl?: string
 }
 
 export function SCPrBanner({
@@ -32,6 +34,8 @@ export function SCPrBanner({
   onDismissError,
   agentMergeMessage,
   onDismissAgentMerge,
+  issueNumber,
+  issueUrl,
 }: SCPrBannerProps) {
   const { showErrorDetail } = useErrorStore()
   return (
@@ -73,6 +77,18 @@ export function SCPrBanner({
             <span className="text-xs text-text-secondary">
               Branch merged to {branchBaseName}
             </span>
+          </div>
+        ) : issueNumber && issueUrl ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-accent/20 text-accent">
+              ISSUE
+            </span>
+            <button
+              onClick={() => window.shell.openExternal(issueUrl)}
+              className="text-xs text-accent hover:underline truncate flex-1 text-left"
+            >
+              #{issueNumber}
+            </button>
           </div>
         ) : null}
       </div>
