@@ -18,42 +18,40 @@ const DEFAULT_LAYOUT_SIZES = {
   fileViewerSize: 300,
   userTerminalHeight: 192, // 12rem = 192px
   diffPanelWidth: 320, // 20rem = 320px
-  reviewPanelWidth: 320,
   tutorialPanelWidth: 320,
 }
 
 // Default panel visibility for new sessions
 const DEFAULT_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: true,
   [PANEL_IDS.EXPLORER]: true,
   [PANEL_IDS.FILE_VIEWER]: false,
 }
 
 // Panel visibility for review sessions
 const REVIEW_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: false,
-  [PANEL_IDS.EXPLORER]: false,
+  [PANEL_IDS.EXPLORER]: true,
   [PANEL_IDS.FILE_VIEWER]: false,
-  [PANEL_IDS.REVIEW]: true,
 }
 
-// Default terminal tabs - starts with one tab
+// Default terminal tabs - starts with one user tab, agent tab selected by default (null → agent)
 const createDefaultTerminalTabs = (): TerminalTabsState => {
   const id = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
   return {
     tabs: [{ id, name: 'Terminal' }],
-    activeTabId: id,
+    activeTabId: null,
   }
 }
 
 // Ensure saved toolbar panels include all known panels (e.g. 'review' added later).
 function migrateToolbarPanels(saved: string[] | undefined): string[] {
   if (!saved || saved.length === 0) return [...DEFAULT_TOOLBAR_PANELS]
-  const missing = DEFAULT_TOOLBAR_PANELS.filter((p) => !saved.includes(p))
-  if (missing.length === 0) return saved
-  const result = [...saved]
+  const knownIds = new Set(DEFAULT_TOOLBAR_PANELS)
+  // Remove stale panel IDs that no longer exist (e.g. agentTerminal, userTerminal)
+  const filtered = saved.filter((p) => knownIds.has(p))
+  if (filtered.length === 0) return [...DEFAULT_TOOLBAR_PANELS]
+  const missing = DEFAULT_TOOLBAR_PANELS.filter((p) => !filtered.includes(p))
+  if (missing.length === 0) return filtered
+  const result = [...filtered]
   const settingsIdx = result.indexOf(PANEL_IDS.SETTINGS)
   for (const p of missing) {
     if (settingsIdx >= 0) {
@@ -83,6 +81,31 @@ type StoreSet = (partial: Partial<{
   toolbarPanels: string[]
   globalPanelVisibility: PanelVisibility
 }>) => void
+
+export type DuplicateSessionResult = {
+  existingSessionId: string
+  existingSessionName: string
+  wasArchived: boolean
+}
+
+function handleDuplicateSession(
+  duplicate: Session,
+  get: StoreGet,
+  set: StoreSet,
+): DuplicateSessionResult {
+  const wasArchived = duplicate.isArchived
+  if (wasArchived) {
+    const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+    const updatedSessions = sessions.map((s) =>
+      s.id === duplicate.id ? { ...s, isArchived: false } : s
+    )
+    set({ sessions: updatedSessions, activeSessionId: duplicate.id })
+    debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+  } else {
+    set({ activeSessionId: duplicate.id })
+  }
+  return { existingSessionId: duplicate.id, existingSessionName: duplicate.name, wasArchived }
+}
 
 export function createCoreActions(get: StoreGet, set: StoreSet) {
   const updateSessionBranch = (id: string, branch: string) => {
@@ -130,8 +153,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             prUrl: sessionData.prUrl,
             prBaseBranch: sessionData.prBaseBranch,
             panelVisibility,
-            showAgentTerminal: panelVisibility[PANEL_IDS.AGENT_TERMINAL] ?? true,
-            showUserTerminal: panelVisibility[PANEL_IDS.USER_TERMINAL] ?? false,
             showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
             showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
             showDiff: sessionData.showDiff ?? false,
@@ -183,13 +204,24 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
       }
     },
 
-    addSession: async (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => {
+    addSession: async (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }): Promise<DuplicateSessionResult | undefined> => {
       const isGitRepo = await window.git.isGitRepo(directory)
       if (!isGitRepo) {
         throw new Error('Selected directory is not a git repository')
       }
 
       const branch = await window.git.getBranch(directory)
+
+      // Check for duplicate sessions (active or archived) for the same branch in the same repo
+      const existingSessions = get().sessions
+      const duplicate = existingSessions.find((s) =>
+        s.branch === branch &&
+        (s.directory === directory || (extra?.repoId && s.repoId === extra.repoId))
+      )
+      if (duplicate) {
+        return handleDuplicateSession(duplicate, get, set)
+      }
+
       let name = extra?.name || basename(directory)
       if (!extra?.name) {
         try {
@@ -215,8 +247,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         agentId,
         ...extra,
         panelVisibility,
-        showAgentTerminal: panelVisibility[PANEL_IDS.AGENT_TERMINAL] ?? true,
-        showUserTerminal: panelVisibility[PANEL_IDS.USER_TERMINAL] ?? false,
         showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
         showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
         showDiff: false,
@@ -224,7 +254,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         planFilePath: null,
         fileViewerPosition: 'top',
         layoutSizes: { ...DEFAULT_LAYOUT_SIZES },
-        explorerFilter: 'files',
+        explorerFilter: isReview ? 'review' : 'files',
         lastMessage: null,
         lastMessageTime: null,
         isUnread: false,
@@ -238,24 +268,12 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
       const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
       const updatedSessions = [...sessions, newSession]
 
-      let updatedToolbarPanels = toolbarPanels
-      if (extra?.sessionType === 'review' && !toolbarPanels.includes(PANEL_IDS.REVIEW)) {
-        const settingsIdx = toolbarPanels.indexOf(PANEL_IDS.SETTINGS)
-        updatedToolbarPanels = [...toolbarPanels]
-        if (settingsIdx >= 0) {
-          updatedToolbarPanels.splice(settingsIdx, 0, PANEL_IDS.REVIEW)
-        } else {
-          updatedToolbarPanels.push(PANEL_IDS.REVIEW)
-        }
-        set({ toolbarPanels: updatedToolbarPanels })
-      }
-
       set({
         sessions: updatedSessions,
         activeSessionId: id,
       })
 
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, updatedToolbarPanels)
+      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
     },
 
     removeSession: (id: string) => {

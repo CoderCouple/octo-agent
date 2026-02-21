@@ -3,6 +3,7 @@ import { useSessionStore } from './sessions'
 import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/types'
 import { getLoadedSessionCount } from './sessionPersistence'
 import { setLoadedCounts } from './configPersistence'
+import { allowConsoleError, allowConsoleWarn } from '../../test/console-guard'
 
 describe('useSessionStore', () => {
   beforeEach(() => {
@@ -46,13 +47,9 @@ describe('useSessionStore', () => {
       status: 'idle' as const,
       agentId: null,
       panelVisibility: {
-        [PANEL_IDS.AGENT_TERMINAL]: true,
-        [PANEL_IDS.USER_TERMINAL]: false,
         [PANEL_IDS.EXPLORER]: false,
         [PANEL_IDS.FILE_VIEWER]: false,
       },
-      showAgentTerminal: true,
-      showUserTerminal: false,
       showExplorer: false,
       showFileViewer: false,
       showDiff: false,
@@ -64,7 +61,7 @@ describe('useSessionStore', () => {
         fileViewerSize: 300,
         userTerminalHeight: 192,
         diffPanelWidth: 320,
-        reviewPanelWidth: 320,
+        tutorialPanelWidth: 320,
       },
       explorerFilter: 'files' as const,
       lastMessage: null,
@@ -131,8 +128,6 @@ describe('useSessionStore', () => {
         sessions: [
           {
             id: 's1', name: 'S', directory: '/d',
-            showAgentTerminal: true,
-            showUserTerminal: true,
             showExplorer: false,
             showFileViewer: true,
           },
@@ -141,14 +136,12 @@ describe('useSessionStore', () => {
 
       await useSessionStore.getState().loadSessions()
       const session = useSessionStore.getState().sessions[0]
-      expect(session.panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(true)
-      expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(true)
       expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
       expect(session.panelVisibility[PANEL_IDS.FILE_VIEWER]).toBe(true)
     })
 
     it('uses existing panelVisibility if present', async () => {
-      const pv = { [PANEL_IDS.AGENT_TERMINAL]: false, [PANEL_IDS.USER_TERMINAL]: true }
+      const pv = { [PANEL_IDS.EXPLORER]: false, [PANEL_IDS.FILE_VIEWER]: true }
       vi.mocked(window.config.load).mockResolvedValue({
         agents: [],
         sessions: [
@@ -158,8 +151,8 @@ describe('useSessionStore', () => {
 
       await useSessionStore.getState().loadSessions()
       const session = useSessionStore.getState().sessions[0]
-      expect(session.panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(false)
-      expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(true)
+      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
+      expect(session.panelVisibility[PANEL_IDS.FILE_VIEWER]).toBe(true)
     })
 
     it('loads global panel state from config', async () => {
@@ -182,6 +175,8 @@ describe('useSessionStore', () => {
     })
 
     it('sets empty UI state on config.load failure without updating loadedSessionCount', async () => {
+      allowConsoleError()
+      allowConsoleWarn()
       // First load some sessions so loadedSessionCount > 0
       vi.mocked(window.config.load).mockResolvedValue({
         agents: [],
@@ -204,6 +199,7 @@ describe('useSessionStore', () => {
     })
 
     it('loads remaining sessions when git.getBranch fails for one session', async () => {
+      allowConsoleWarn()
       vi.mocked(window.config.load).mockResolvedValue({
         agents: [],
         sessions: [
@@ -370,22 +366,6 @@ describe('useSessionStore', () => {
       expect(useSessionStore.getState().showSidebar).toBe(false)
     })
 
-    it('toggleAgentTerminal toggles agent terminal', () => {
-      const s1 = createTestSession({ id: 's1' })
-      useSessionStore.setState({ sessions: [s1], isLoading: false })
-
-      useSessionStore.getState().toggleAgentTerminal('s1')
-      expect(useSessionStore.getState().sessions[0].showAgentTerminal).toBe(false)
-    })
-
-    it('toggleUserTerminal toggles user terminal', () => {
-      const s1 = createTestSession({ id: 's1' })
-      useSessionStore.setState({ sessions: [s1], isLoading: false })
-
-      useSessionStore.getState().toggleUserTerminal('s1')
-      expect(useSessionStore.getState().sessions[0].showUserTerminal).toBe(true)
-    })
-
     it('toggleExplorer toggles explorer', () => {
       const s1 = createTestSession({ id: 's1' })
       useSessionStore.setState({ sessions: [s1], isLoading: false })
@@ -455,6 +435,62 @@ describe('useSessionStore', () => {
     it('setSidebarWidth updates width', () => {
       useSessionStore.getState().setSidebarWidth(300)
       expect(useSessionStore.getState().sidebarWidth).toBe(300)
+    })
+  })
+
+  describe('setPlanFile', () => {
+    it('sets planFilePath on a session', () => {
+      const s1 = createTestSession({ id: 's1' })
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().setPlanFile('s1', '/plan.md')
+      expect(useSessionStore.getState().sessions[0].planFilePath).toBe('/plan.md')
+    })
+
+    it('clears planFilePath when set to null', () => {
+      const s1 = { ...createTestSession({ id: 's1' }), planFilePath: '/plan.md' }
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().setPlanFile('s1', null)
+      expect(useSessionStore.getState().sessions[0].planFilePath).toBeNull()
+    })
+
+    it('does not affect other sessions', () => {
+      const s1 = createTestSession({ id: 's1' })
+      const s2 = createTestSession({ id: 's2' })
+      useSessionStore.setState({ sessions: [s1, s2], isLoading: false })
+
+      useSessionStore.getState().setPlanFile('s1', '/plan.md')
+      expect(useSessionStore.getState().sessions[1].planFilePath).toBeNull()
+    })
+  })
+
+  describe('setAgentPtyId', () => {
+    it('sets agentPtyId on a session', () => {
+      const s1 = createTestSession({ id: 's1' })
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().setAgentPtyId('s1', 'pty-123')
+      expect(useSessionStore.getState().sessions[0].agentPtyId).toBe('pty-123')
+    })
+
+    it('does not affect other sessions', () => {
+      const s1 = createTestSession({ id: 's1' })
+      const s2 = createTestSession({ id: 's2' })
+      useSessionStore.setState({ sessions: [s1, s2], isLoading: false })
+
+      useSessionStore.getState().setAgentPtyId('s1', 'pty-123')
+      expect(useSessionStore.getState().sessions[1].agentPtyId).toBeUndefined()
+    })
+  })
+
+  describe('markHasHadCommits', () => {
+    it('sets hasHadCommits to true', () => {
+      const s1 = createTestSession({ id: 's1' })
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().markHasHadCommits('s1')
+      expect(useSessionStore.getState().sessions[0].hasHadCommits).toBe(true)
     })
   })
 
@@ -783,11 +819,9 @@ describe('useSessionStore', () => {
       })
       const session = useSessionStore.getState().sessions[0]
       expect(session.sessionType).toBe('review')
-      expect(session.panelVisibility[PANEL_IDS.REVIEW]).toBe(true)
-      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
-      expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(false)
-      expect(session.panelVisibility[PANEL_IDS.AGENT_TERMINAL]).toBe(true)
+      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
       expect(session.panelVisibility[PANEL_IDS.FILE_VIEWER]).toBe(false)
+      expect(session.explorerFilter).toBe('review')
     })
 
     it('addSession with sessionType review sets legacy fields from review visibility', async () => {
@@ -795,9 +829,7 @@ describe('useSessionStore', () => {
         sessionType: 'review',
       })
       const session = useSessionStore.getState().sessions[0]
-      expect(session.showExplorer).toBe(false)
-      expect(session.showUserTerminal).toBe(false)
-      expect(session.showAgentTerminal).toBe(true)
+      expect(session.showExplorer).toBe(true)
       expect(session.showFileViewer).toBe(false)
     })
 
@@ -816,54 +848,17 @@ describe('useSessionStore', () => {
       expect(session.prBaseBranch).toBe('develop')
     })
 
-    it('addSession with sessionType review auto-adds review to toolbar', async () => {
-      await useSessionStore.getState().addSession('/test/repo', 'agent-1', {
-        sessionType: 'review',
-      })
-      const state = useSessionStore.getState()
-      expect(state.toolbarPanels).toContain(PANEL_IDS.REVIEW)
-    })
-
-    it('addSession with sessionType review inserts review before settings in toolbar', async () => {
-      await useSessionStore.getState().addSession('/test/repo', 'agent-1', {
-        sessionType: 'review',
-      })
-      const toolbar = useSessionStore.getState().toolbarPanels
-      const reviewIdx = toolbar.indexOf(PANEL_IDS.REVIEW)
-      const settingsIdx = toolbar.indexOf(PANEL_IDS.SETTINGS)
-      expect(reviewIdx).toBeLessThan(settingsIdx)
-    })
-
-    it('addSession with sessionType review does not duplicate review in toolbar', async () => {
-      await useSessionStore.getState().addSession('/test/repo', 'agent-1', {
-        sessionType: 'review',
-      })
-      const toolbar = useSessionStore.getState().toolbarPanels
-      const reviewCount = toolbar.filter(p => p === PANEL_IDS.REVIEW).length
-      expect(reviewCount).toBe(1)
-    })
-
     it('addSession without sessionType uses default panel visibility', async () => {
       await useSessionStore.getState().addSession('/test/repo', 'agent-1')
       const session = useSessionStore.getState().sessions[0]
       expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
-      expect(session.panelVisibility[PANEL_IDS.USER_TERMINAL]).toBe(true)
-      expect(session.panelVisibility[PANEL_IDS.REVIEW]).toBeUndefined()
-    })
-
-    it('addSession without sessionType keeps review in default toolbar', async () => {
-      await useSessionStore.getState().addSession('/test/repo', 'agent-1')
-      const state = useSessionStore.getState()
-      expect(state.toolbarPanels).toContain(PANEL_IDS.REVIEW)
+      expect(session.panelVisibility[PANEL_IDS.FILE_VIEWER]).toBe(false)
     })
 
     it('loadSessions preserves review panelVisibility from config', async () => {
       const reviewPanelVisibility = {
-        [PANEL_IDS.AGENT_TERMINAL]: true,
-        [PANEL_IDS.USER_TERMINAL]: false,
-        [PANEL_IDS.EXPLORER]: false,
+        [PANEL_IDS.EXPLORER]: true,
         [PANEL_IDS.FILE_VIEWER]: false,
-        [PANEL_IDS.REVIEW]: true,
       }
       vi.mocked(window.config.load).mockResolvedValue({
         agents: [],
@@ -883,8 +878,7 @@ describe('useSessionStore', () => {
       await useSessionStore.getState().loadSessions()
       const session = useSessionStore.getState().sessions[0]
       expect(session.sessionType).toBe('review')
-      expect(session.panelVisibility[PANEL_IDS.REVIEW]).toBe(true)
-      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(false)
+      expect(session.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
       expect(session.prNumber).toBe(42)
       expect(session.prTitle).toBe('Fix bug')
       expect(session.prBaseBranch).toBe('main')
@@ -914,7 +908,6 @@ describe('useSessionStore', () => {
       expect(savedSession.prTitle).toBe('Fix bug')
       expect(savedSession.prUrl).toBe('https://github.com/pr/42')
       expect(savedSession.prBaseBranch).toBe('main')
-      expect(savedSession.panelVisibility?.[PANEL_IDS.REVIEW]).toBe(true)
     })
   })
 
@@ -997,6 +990,7 @@ describe('useSessionStore', () => {
     })
 
     it('refuses to save empty sessions when sessions were previously loaded', async () => {
+      allowConsoleWarn()
       // Load 2 sessions from config
       vi.mocked(window.config.load).mockResolvedValue({
         agents: [],

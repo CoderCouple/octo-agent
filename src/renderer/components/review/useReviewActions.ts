@@ -78,6 +78,7 @@ export function useReviewActions(
     commentsFilePath,
     historyFilePath,
     promptFilePath,
+    setFetching,
     setWaitingForAgent,
     setFetchingStatus,
     setPushing,
@@ -120,8 +121,7 @@ export function useReviewActions(
   const proceedWithGeneration = async () => {
     setShowGitignoreModal(false)
     setPendingGenerate(false)
-    setWaitingForAgent(true)
-    setFetchingStatus('fetching')
+    setFetching(true)
     setError(null)
 
     try {
@@ -145,6 +145,9 @@ export function useReviewActions(
         }
       }
 
+      setFetching(false)
+      setWaitingForAgent(true)
+
       // Create .broomy directory
       await window.fs.mkdir(broomyDir)
 
@@ -163,6 +166,7 @@ export function useReviewActions(
       setFetchingStatus('pasted')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+      setFetching(false)
       setWaitingForAgent(false)
       setFetchingStatus(null)
     }

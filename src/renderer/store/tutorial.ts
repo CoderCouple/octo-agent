@@ -50,14 +50,39 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     description: 'Keyboard shortcuts let you quickly show and hide panels to focus on what matters. Press Cmd/Ctrl+1 through 6 to toggle each panel, or use Ctrl+Tab to cycle through visible ones. Experiment with different layouts as you work.',
   },
   {
+    id: 'learned-shortcuts',
+    title: 'Learn keyboard shortcuts',
+    description: 'Broomy is designed for keyboard-driven workflows. Press Cmd/Ctrl+/ to see all available shortcuts. Key ones to learn: Cmd/Ctrl+N opens a new session, Cmd/Ctrl+J jumps to the session list, Alt+Up/Down switches sessions, and Cmd/Ctrl+Shift+F searches sessions. In the new session dialog, single letter keys (N, E, I, R, O) act on the focused repo. Master these and you\'ll rarely need the mouse.',
+  },
+  {
     id: 'used-source-control',
     title: 'Use source control',
     description: 'Once your agent has made changes you like, you\'ll want to commit them. The Explorer\'s Source Control section shows staged and unstaged changes. Stage the files you want, write a commit message, and commit — all without leaving Broomy.',
   },
   {
+    id: 'viewed-markdown',
+    title: 'Preview a Markdown file',
+    description: 'Open a Markdown file in the File Viewer and toggle between raw source and rendered preview using the view-mode button. This is handy for reading READMEs, docs, or plan files your agent generates.',
+  },
+  {
+    id: 'compared-branch',
+    title: 'Compare branch to main',
+    description: 'Use the Explorer\'s Source Control section to compare your session branch against main. This shows a summary of all changes the agent has made, helping you review before merging.',
+  },
+  {
+    id: 'archived-session',
+    title: 'Archive a session',
+    description: 'When you\'re done with a session, right-click it in the sidebar and choose Archive. Archived sessions are hidden from the main list but can be restored later. This keeps your workspace tidy without losing history.',
+  },
+  {
+    id: 'resolved-conflicts',
+    title: 'Resolve merge conflicts',
+    description: 'When your session branch has conflicts with main, Broomy can help. Ask the agent to resolve merge conflicts and it will pull the latest changes, identify conflicts, and fix them in the worktree.',
+  },
+  {
     id: 'used-review',
-    title: 'Use review pane',
-    description: 'The Review panel lets you review pull requests with AI assistance — see diffs, leave comments, and get summaries. You can also review your current branch to better understand all the code your agent wrote. Create a review session from the New Session dialog by selecting "Review" mode.',
+    title: 'Use review tab',
+    description: 'The Review tab in the Explorer lets you review pull requests with AI assistance — see diffs, leave comments, and get summaries. You can also review your current branch to better understand all the code your agent wrote. Switch to the Review tab in the Explorer, or create a review session from the New Session dialog by selecting "Review" mode.',
   },
   {
     id: 'viewed-settings',
@@ -86,6 +111,7 @@ interface TutorialStore {
   loadTutorial: (profileId?: string) => Promise<void>
   saveTutorial: (profileId?: string) => Promise<void>
   markStepComplete: (stepId: string) => void
+  markStepIncomplete: (stepId: string) => void
   resetProgress: () => void
 }
 
@@ -139,6 +165,14 @@ export const useTutorialStore = create<TutorialStore>((set, get) => ({
     const { completedSteps } = get()
     if (completedSteps.includes(stepId)) return
     const newCompletedSteps = [...completedSteps, stepId]
+    set({ completedSteps: newCompletedSteps })
+    debouncedSave(newCompletedSteps)
+  },
+
+  markStepIncomplete: (stepId: string) => {
+    const { completedSteps } = get()
+    if (!completedSteps.includes(stepId)) return
+    const newCompletedSteps = completedSteps.filter(s => s !== stepId)
     set({ completedSteps: newCompletedSteps })
     debouncedSave(newCompletedSteps)
   },

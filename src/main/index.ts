@@ -10,12 +10,15 @@
  * deterministic mock data during Playwright tests so no real repos, APIs, or
  * config files are touched.
  */
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell, dialog } from 'electron'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
 import { join } from 'path'
 import { existsSync, readFileSync, FSWatcher } from 'fs'
 import * as pty from 'node-pty'
 import { isWindows, isMac } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
+import { resolveShellEnv } from './shellEnv'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
 app.name = 'Broomy'
@@ -161,6 +164,29 @@ const context: HandlerContext & { createWindow: (profileId?: string) => BrowserW
 // Register all IPC handlers
 registerAllHandlers(ipcMain, context)
 
+async function checkForUpdatesFromMenu(): Promise<void> {
+  if (isE2ETest || isDev) {
+    void dialog.showMessageBox({ message: 'Update checking is disabled in development mode.' })
+    return
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    if (result && result.updateInfo.version !== autoUpdater.currentVersion?.version) {
+      // The renderer's VersionIndicator will handle the UI via IPC events
+      const focusedWindow = BrowserWindow.getFocusedWindow()
+      if (focusedWindow) {
+        focusedWindow.webContents.send('updater:updateAvailable', {
+          version: result.updateInfo.version,
+        })
+      }
+    } else {
+      void dialog.showMessageBox({ message: 'You are running the latest version of Broomy.' })
+    }
+  } catch {
+    void dialog.showMessageBox({ message: 'Could not check for updates. Please try again later.' })
+  }
+}
+
 // Build application menu with Help menu
 function buildAppMenu() {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
@@ -168,6 +194,11 @@ function buildAppMenu() {
       label: app.name,
       submenu: [
         { role: 'about' as const },
+        { type: 'separator' as const },
+        {
+          label: 'Check for Updates...',
+          click: () => { void checkForUpdatesFromMenu() },
+        },
         { type: 'separator' as const },
         { role: 'services' as const },
         { type: 'separator' as const },
@@ -249,6 +280,11 @@ function buildAppMenu() {
           },
         },
         { type: 'separator' },
+        ...(!isMac ? [{
+          label: 'Check for Updates...',
+          click: () => { void checkForUpdatesFromMenu() },
+        },
+        { type: 'separator' as const }] : []),
         {
           label: 'Report Issue...',
           click: () => {
@@ -264,7 +300,9 @@ function buildAppMenu() {
 }
 
 // App lifecycle
-  void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
+    await resolveShellEnv()
+
     // Build the application menu
     buildAppMenu()
   // Determine the initial profile to open

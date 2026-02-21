@@ -1,9 +1,11 @@
 import type { ExplorerProps } from './types'
-import { FileTreeIcon, SourceControlIcon, SearchIcon, RecentIcon } from './icons'
+import { FileTreeIcon, SourceControlIcon, SearchIcon, RecentIcon, ReviewIcon } from './icons'
 import { FileTree } from './FileTree'
 import { SourceControl } from './SourceControl'
 import { SearchPanel } from './SearchPanel'
 import { RecentFiles } from './RecentFiles'
+import ReviewPanel from '../review'
+import { IssuePlanChip } from './IssuePlanChip'
 
 export default function Explorer({
   directory,
@@ -25,7 +27,10 @@ export default function Explorer({
   onUpdatePrState,
   repoId,
   agentPtyId,
-  onOpenReview,
+  session,
+  repo,
+  issueNumber,
+  issuePlanExists,
 }: ExplorerProps) {
   if (!directory) {
     return (
@@ -85,6 +90,17 @@ export default function Explorer({
           >
             <RecentIcon />
           </button>
+          <button
+            onClick={() => onFilterChange('review')}
+            className={`p-1 rounded transition-colors ${
+              filter === 'review'
+                ? 'bg-accent text-white'
+                : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'
+            }`}
+            title="Review"
+          >
+            <ReviewIcon />
+          </button>
         </div>
       </div>
 
@@ -109,6 +125,15 @@ export default function Explorer({
           </button>
         </div>
       )}
+
+      {/* Issue plan chip */}
+      <IssuePlanChip
+        directory={directory}
+        issueNumber={issueNumber}
+        issuePlanExists={issuePlanExists}
+        agentPtyId={agentPtyId}
+        onFileSelect={onFileSelect}
+      />
 
       {/* Tab content - scrollable area below pinned toolbar */}
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -136,7 +161,7 @@ export default function Explorer({
             pushedToMainCommit={pushedToMainCommit}
             onRecordPushToMain={onRecordPushToMain}
             onClearPushToMain={onClearPushToMain}
-            onOpenReview={onOpenReview}
+            onOpenReview={() => onFilterChange('review')}
           />
         )}
 
@@ -153,6 +178,16 @@ export default function Explorer({
             onFileSelect={onFileSelect}
             selectedFilePath={selectedFilePath}
             directory={directory}
+          />
+        )}
+
+        {filter === 'review' && session && (
+          <ReviewPanel
+            session={session}
+            repo={repo}
+            onSelectFile={(filePath, openInDiffMode, scrollToLine, diffBaseRef) => {
+              onFileSelect?.({ filePath, openInDiffMode, scrollToLine, diffBaseRef })
+            }}
           />
         )}
       </div>

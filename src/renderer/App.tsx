@@ -27,6 +27,7 @@ import { useSessionLifecycle } from './hooks/useSessionLifecycle'
 import { useAppCallbacks } from './hooks/useAppCallbacks'
 import { usePanelsMap } from './hooks/usePanelsMap'
 import { useHelpMenu } from './hooks/useHelpMenu'
+import { useSessionKeyboardCallbacks } from './hooks/useSessionKeyboardCallbacks'
 
 // Re-export types for backwards compatibility
 export type { Session, SessionStatus }
@@ -36,7 +37,6 @@ const DEFAULT_LAYOUT_SIZES: LayoutSizes = {
   fileViewerSize: 300,
   userTerminalHeight: 192,
   diffPanelWidth: 320,
-  reviewPanelWidth: 320,
   tutorialPanelWidth: 320,
 }
 
@@ -60,6 +60,31 @@ function UnsavedChangesDialog({ onCancel, onDiscard, onSave }: {
   )
 }
 
+function DuplicateSessionModal({ info, onDismiss }: {
+  info: { name: string; wasArchived: boolean }; onDismiss: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-bg-secondary border border-border rounded-lg shadow-xl p-4 max-w-sm mx-4">
+        <p className="text-sm text-text-primary mb-4">
+          {info.wasArchived
+            ? <>Restored archived session <span className="font-medium">{info.name}</span></>
+            : <>Switched to existing session <span className="font-medium">{info.name}</span></>
+          }
+        </p>
+        <div className="flex justify-end">
+          <button
+            onClick={onDismiss}
+            className="px-3 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/80 transition-colors"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function GitMissingBanner() {
   const { gitAvailable } = useRepoStore()
   if (gitAvailable !== false) return null
@@ -74,76 +99,33 @@ function GitMissingBanner() {
 
 function AppContent() {
   const {
-    sessions,
-    activeSessionId,
-    isLoading,
-    sidebarWidth,
-    toolbarPanels,
-    globalPanelVisibility,
-    loadSessions,
-    addSession,
-    removeSession,
-    setActiveSession,
-    refreshAllBranches,
-    togglePanel,
-    toggleGlobalPanel,
-    setSidebarWidth,
-    setToolbarPanels,
-    selectFile,
-    setExplorerFilter,
-    setFileViewerPosition,
-    updateLayoutSize,
-    markSessionRead,
-    recordPushToMain,
-    clearPushToMain,
-    markHasHadCommits,
-    updateBranchStatus,
-    updatePrState,
-    archiveSession,
-    unarchiveSession,
-    setPanelVisibility,
+    sessions, activeSessionId, isLoading, sidebarWidth, toolbarPanels, globalPanelVisibility,
+    loadSessions, addSession, removeSession, setActiveSession, refreshAllBranches,
+    togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
+    selectFile, setExplorerFilter, setFileViewerPosition, updateLayoutSize,
+    markSessionRead, recordPushToMain, clearPushToMain, markHasHadCommits,
+    updateBranchStatus, updatePrState, archiveSession, unarchiveSession, setPanelVisibility,
   } = useSessionStore()
 
   const { agents, loadAgents } = useAgentStore()
   const { repos, loadRepos, checkGhAvailability, checkGitAvailability } = useRepoStore()
   const { currentProfileId, profiles, loadProfiles, switchProfile } = useProfileStore()
-  const { showHelpModal, setShowHelpModal, showShortcutsModal, setShowShortcutsModal, markStepComplete } = useHelpMenu(currentProfileId)
+  const { showHelpModal, setShowHelpModal, showShortcutsModal, setShowShortcutsModal } = useHelpMenu(currentProfileId)
   const currentProfile = profiles.find((p) => p.id === currentProfileId)
-
   const activeSession = sessions.find((s) => s.id === activeSessionId)
 
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false)
   const [showPanelPicker, setShowPanelPicker] = useState(false)
+  const [duplicateSessionInfo, setDuplicateSessionInfo] = useState<{ name: string; wasArchived: boolean } | null>(null)
 
-  // Git polling hook
   const {
-    activeSessionGitStatus,
-    activeSessionGitStatusResult,
-    selectedFileStatus,
-    fetchGitStatus,
-  } = useGitPolling({
-    sessions,
-    activeSession,
-    repos,
-    markHasHadCommits,
-    updateBranchStatus,
-  })
+    activeSessionGitStatus, activeSessionGitStatusResult, selectedFileStatus, fetchGitStatus,
+  } = useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus })
 
-  // File navigation hook
   const {
-    openFileInDiffMode,
-    scrollToLine,
-    searchHighlight,
-    diffBaseRef,
-    diffCurrentRef,
-    diffLabel,
-    setIsFileViewerDirty,
-    pendingNavigation,
-    saveCurrentFileRef,
-    navigateToFile,
-    handlePendingSave,
-    handlePendingDiscard,
-    handlePendingCancel,
+    openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel,
+    setIsFileViewerDirty, pendingNavigation, saveCurrentFileRef, navigateToFile,
+    handlePendingSave, handlePendingDiscard, handlePendingCancel,
   } = useFileNavigation({
     activeSessionId: activeSessionId ?? null,
     activeSessionSelectedFilePath: activeSession?.selectedFilePath ?? null,
@@ -198,6 +180,18 @@ function AppContent() {
     setFileViewerPosition,
     updatePrState,
     setShowNewSessionDialog,
+    onSessionAlreadyExists: setDuplicateSessionInfo,
+  })
+
+  const setActiveTerminalTab = useSessionStore((state) => state.setActiveTerminalTab)
+  const {
+    handleNextSession, handlePrevSession, handleFocusSessionList,
+    handleFocusSessionSearch, handleArchiveSession, handleToggleSettings, handleShowShortcuts,
+    handleNextTerminalTab, handlePrevTerminalTab,
+  } = useSessionKeyboardCallbacks({
+    sessions, activeSessionId: activeSessionId ?? null, globalPanelVisibility,
+    toggleGlobalPanel, archiveSession, unarchiveSession, handleSelectSession, setShowShortcutsModal,
+    setActiveTerminalTab,
   })
 
   const handleSearchFiles = useCallback(() => {
@@ -206,10 +200,22 @@ function AppContent() {
     setExplorerFilter(activeSessionId, 'search')
   }, [activeSessionId, activeSession, togglePanel, setExplorerFilter])
 
+  const handleExplorerTab = useCallback((filter: string) => {
+    if (!activeSessionId) return
+    if (!activeSession?.panelVisibility[PANEL_IDS.EXPLORER]) togglePanel(activeSessionId, PANEL_IDS.EXPLORER)
+    setExplorerFilter(activeSessionId, filter as Parameters<typeof setExplorerFilter>[1])
+    // Auto-focus search input when switching to search tab
+    if (filter === 'search') {
+      requestAnimationFrame(() => {
+        const input = document.querySelector<HTMLInputElement>('[data-explorer-search]')
+        input?.focus()
+      })
+    }
+  }, [activeSessionId, activeSession, togglePanel, setExplorerFilter])
+
   const handleToggleGlobalPanel = useCallback((panelId: string) => {
     toggleGlobalPanel(panelId)
-    if (panelId === PANEL_IDS.TUTORIAL) markStepComplete('toggled-tutorial')
-  }, [toggleGlobalPanel, markStepComplete])
+  }, [toggleGlobalPanel])
 
   // Panels map hook
   const panelsMap = usePanelsMap({
@@ -224,7 +230,7 @@ function AppContent() {
     fetchGitStatus, getAgentCommand, getAgentEnv,
     globalPanelVisibility, toggleGlobalPanel, selectFile, setExplorerFilter,
     recordPushToMain, clearPushToMain, updatePrState,
-    setPanelVisibility, setToolbarPanels, repos, markStepComplete,
+    setPanelVisibility, setToolbarPanels, repos,
   })
 
   if (isLoading) {
@@ -254,6 +260,17 @@ function AppContent() {
         onToggleGlobalPanel={handleToggleGlobalPanel}
         onOpenPanelPicker={() => setShowPanelPicker(true)}
         onSearchFiles={handleSearchFiles}
+        onNewSession={handleNewSession}
+        onNextSession={handleNextSession}
+        onPrevSession={handlePrevSession}
+        onFocusSessionList={handleFocusSessionList}
+        onFocusSessionSearch={handleFocusSessionSearch}
+        onArchiveSession={handleArchiveSession}
+        onToggleSettings={handleToggleSettings}
+        onShowShortcuts={handleShowShortcuts}
+        onNextTerminalTab={handleNextTerminalTab}
+        onPrevTerminalTab={handlePrevTerminalTab}
+        onExplorerTab={handleExplorerTab}
       />
 
       {/* New Session Dialog */}
@@ -285,6 +302,11 @@ function AppContent() {
       {/* Shortcuts Modal */}
       {showShortcutsModal && (
         <ShortcutsModal onClose={() => setShowShortcutsModal(false)} />
+      )}
+
+      {/* Duplicate Session Info Modal */}
+      {duplicateSessionInfo && (
+        <DuplicateSessionModal info={duplicateSessionInfo} onDismiss={() => setDuplicateSessionInfo(null)} />
       )}
     </>
   )

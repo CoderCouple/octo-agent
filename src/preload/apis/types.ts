@@ -18,6 +18,7 @@ export type GitStatusResult = {
   behind: number
   tracking: string | null
   current: string | null
+  isMerging?: boolean
 }
 
 export type SearchResult = {
@@ -91,6 +92,7 @@ export type GitCommitInfo = {
   message: string
   author: string
   date: string
+  pushed?: boolean
 }
 
 export type WorktreeInfo = {
@@ -112,7 +114,7 @@ export type LayoutSizesData = {
   fileViewerSize: number
   userTerminalHeight: number
   diffPanelWidth: number
-  reviewPanelWidth: number
+  tutorialPanelWidth: number
 }
 
 export type PanelVisibility = Record<string, boolean>
@@ -134,14 +136,12 @@ export type SessionData = {
   // New generic panel visibility
   panelVisibility?: PanelVisibility
   // Legacy fields for backwards compat
-  showAgentTerminal?: boolean
-  showUserTerminal?: boolean
   showExplorer?: boolean
   showFileViewer?: boolean
   showDiff?: boolean
   fileViewerPosition?: 'top' | 'left'
   layoutSizes?: LayoutSizesData
-  explorerFilter?: 'all' | 'changed' | 'files' | 'source-control' | 'search' | 'recent'
+  explorerFilter?: 'all' | 'changed' | 'files' | 'source-control' | 'search' | 'recent' | 'review'
   terminalTabs?: unknown
   // Push to main tracking
   pushedToMainAt?: number
@@ -165,6 +165,9 @@ export type ConfigData = {
   repos?: ManagedRepo[]
   defaultCloneDir?: string
   profileId?: string
+  tutorialProgress?: {
+    completedSteps: string[]
+  }
 }
 
 export type ProfileData = {

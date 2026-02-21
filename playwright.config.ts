@@ -3,7 +3,9 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   globalSetup: './tests/global-setup.ts',
   testDir: './tests',
-  testIgnore: process.env.GENERATE_SCREENSHOTS ? [] : ['**/screenshots.spec.ts'],
+  testIgnore: process.env.GENERATE_SCREENSHOTS
+    ? []
+    : ['**/screenshots.spec.ts', '**/special-flows/**'],
   timeout: 30000,
   expect: {
     timeout: 5000,

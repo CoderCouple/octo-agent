@@ -21,6 +21,7 @@ export interface ReviewDataState {
   reviewData: ReviewData | null
   comments: PendingComment[]
   comparison: ReviewComparison | null
+  fetching: boolean
   waitingForAgent: boolean
   fetchingStatus: FetchingStatus
   pushing: boolean
@@ -43,6 +44,7 @@ export interface ReviewDataState {
   setReviewData: React.Dispatch<React.SetStateAction<ReviewData | null>>
   setComments: React.Dispatch<React.SetStateAction<PendingComment[]>>
   setComparison: React.Dispatch<React.SetStateAction<ReviewComparison | null>>
+  setFetching: React.Dispatch<React.SetStateAction<boolean>>
   setWaitingForAgent: React.Dispatch<React.SetStateAction<boolean>>
   setFetchingStatus: React.Dispatch<React.SetStateAction<FetchingStatus>>
   setPushing: React.Dispatch<React.SetStateAction<boolean>>
@@ -59,6 +61,7 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
   const [reviewData, setReviewData] = useState<ReviewData | null>(null)
   const [comments, setComments] = useState<PendingComment[]>([])
   const [comparison, setComparison] = useState<ReviewComparison | null>(null)
+  const [fetching, setFetching] = useState(false)
   const [waitingForAgent, setWaitingForAgent] = useState(false)
   const [fetchingStatus, setFetchingStatus] = useState<FetchingStatus>(null)
   const [pushing, setPushing] = useState(false)
@@ -88,6 +91,7 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
       setReviewData(null)
       setComments([])
       setComparison(null)
+      setFetching(false)
       setWaitingForAgent(false)
       setFetchingStatus(null)
       setError(null)
@@ -195,6 +199,7 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
     reviewData,
     comments,
     comparison,
+    fetching,
     waitingForAgent,
     fetchingStatus,
     pushing,
@@ -217,6 +222,7 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
     setReviewData,
     setComments,
     setComparison,
+    setFetching,
     setWaitingForAgent,
     setFetchingStatus,
     setPushing,

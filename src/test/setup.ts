@@ -11,13 +11,14 @@
  * If the preload type changes (e.g. a sync property becomes an async function),
  * TypeScript will flag the mismatch here at compile time.
  */
-import { vi, type Mock } from 'vitest'
+import { vi, afterEach, type Mock } from 'vitest'
+import { checkAndReset } from './console-guard'
 import type { PtyApi } from '../preload/apis/pty'
 import type { FsApi } from '../preload/apis/fs'
 import type { GitApi } from '../preload/apis/git'
 import type { GhApi } from '../preload/apis/gh'
 import type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from '../preload/apis/config'
-import type { ShellApi, DialogApi, AppApi } from '../preload/apis/shell'
+import type { ShellApi, DialogApi, AppApi, UpdateApi } from '../preload/apis/shell'
 import type { MenuApi, TsApi } from '../preload/apis/menu'
 
 /** Maps every key of an API type to a Vitest Mock — catches missing/extra keys and non-function values. */
@@ -34,7 +35,7 @@ const mockGit: Mocked<GitApi> = {
   isInstalled: vi.fn().mockResolvedValue(true),
   getBranch: vi.fn().mockResolvedValue('main'),
   isGitRepo: vi.fn().mockResolvedValue(true),
-  status: vi.fn().mockResolvedValue({ files: [], ahead: 0, behind: 0, tracking: null, current: 'main' }),
+  status: vi.fn().mockResolvedValue({ files: [], ahead: 0, behind: 0, tracking: null, current: 'main', isMerging: false }),
   diff: vi.fn().mockResolvedValue(''),
   show: vi.fn().mockResolvedValue(''),
   stage: vi.fn().mockResolvedValue({ success: true }),
@@ -42,6 +43,7 @@ const mockGit: Mocked<GitApi> = {
   unstage: vi.fn().mockResolvedValue({ success: true }),
   checkoutFile: vi.fn().mockResolvedValue({ success: true }),
   commit: vi.fn().mockResolvedValue({ success: true }),
+  commitMerge: vi.fn().mockResolvedValue({ success: true }),
   push: vi.fn().mockResolvedValue({ success: true }),
   pull: vi.fn().mockResolvedValue({ success: true }),
   clone: vi.fn().mockResolvedValue({ success: true }),
@@ -74,6 +76,16 @@ const mockApp: Mocked<AppApi> = {
   homedir: vi.fn().mockResolvedValue('/Users/test'),
   platform: vi.fn().mockResolvedValue('darwin'),
   tmpdir: vi.fn().mockResolvedValue('/tmp'),
+  getVersion: vi.fn().mockResolvedValue('0.6.1'),
+}
+
+// Mock window.update
+const mockUpdate: Mocked<UpdateApi> = {
+  checkForUpdates: vi.fn().mockResolvedValue({ updateAvailable: false }),
+  downloadUpdate: vi.fn().mockResolvedValue(undefined),
+  installUpdate: vi.fn(),
+  onDownloadProgress: vi.fn().mockReturnValue(() => {}),
+  onUpdateDownloaded: vi.fn().mockReturnValue(() => {}),
 }
 
 // Mock window.profiles
@@ -180,6 +192,7 @@ const broomyMocks = {
   repos: mockRepos,
   agents: mockAgents,
   help: mockHelp,
+  update: mockUpdate,
   menu: mockMenu,
   ts: mockTs,
   fs: mockFs,
@@ -219,3 +232,10 @@ if (typeof globalThis.window !== 'undefined' && typeof globalThis.document !== '
     writable: true,
   })
 }
+
+// Fail tests that produce unexpected console.error or console.warn output.
+// Tests that intentionally trigger these should call allowConsoleError() or
+// allowConsoleWarn() from '../test/console-guard'.
+afterEach(() => {
+  checkAndReset()
+})

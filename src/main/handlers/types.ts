@@ -42,6 +42,7 @@ export const DEFAULT_AGENTS = [
   { id: 'claude', name: 'Claude Code', command: 'claude', color: '#D97757' },
   { id: 'codex', name: 'Codex', command: 'codex', color: '#10A37F' },
   { id: 'gemini', name: 'Gemini CLI', command: 'gemini', color: '#4285F4' },
+  { id: 'copilot', name: 'GitHub Copilot', command: 'copilot', color: '#6E40C9' },
 ]
 
 // Default profiles

@@ -42,11 +42,10 @@ export interface LayoutSizes {
   fileViewerSize: number // height when top, width when left
   userTerminalHeight: number
   diffPanelWidth: number
-  reviewPanelWidth: number
   tutorialPanelWidth: number
 }
 
-export type ExplorerFilter = 'files' | 'source-control' | 'search' | 'recent'
+export type ExplorerFilter = 'files' | 'source-control' | 'search' | 'recent' | 'review'
 
 // Panel visibility map type
 export type PanelVisibility = Record<string, boolean>
@@ -70,8 +69,6 @@ export interface Session {
   // Per-session UI state (persisted) - generic panel visibility
   panelVisibility: PanelVisibility
   // Legacy fields kept for backwards compat - computed from panelVisibility
-  showAgentTerminal: boolean
-  showUserTerminal: boolean
   showExplorer: boolean
   showFileViewer: boolean
   showDiff: boolean
@@ -106,44 +103,6 @@ export interface Session {
   isArchived: boolean
 }
 
-// Default layout sizes
-const DEFAULT_LAYOUT_SIZES: LayoutSizes = {
-  explorerWidth: 256, // 16rem = 256px
-  fileViewerSize: 300,
-  userTerminalHeight: 192, // 12rem = 192px
-  diffPanelWidth: 320, // 20rem = 320px
-  reviewPanelWidth: 320,
-  tutorialPanelWidth: 320,
-}
-
-const DEFAULT_SIDEBAR_WIDTH = 224 // 14rem = 224px
-
-// Default terminal tabs - starts with one tab
-const createDefaultTerminalTabs = (): TerminalTabsState => {
-  const id = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-  return {
-    tabs: [{ id, name: 'Terminal' }],
-    activeTabId: id,
-  }
-}
-
-// Default panel visibility for new sessions
-const DEFAULT_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: true,
-  [PANEL_IDS.EXPLORER]: true,
-  [PANEL_IDS.FILE_VIEWER]: false,
-}
-
-// Panel visibility for review sessions
-const REVIEW_PANEL_VISIBILITY: PanelVisibility = {
-  [PANEL_IDS.AGENT_TERMINAL]: true,
-  [PANEL_IDS.USER_TERMINAL]: false,
-  [PANEL_IDS.EXPLORER]: false,
-  [PANEL_IDS.FILE_VIEWER]: false,
-  [PANEL_IDS.REVIEW]: true,
-}
-
 // Global panel visibility (sidebar, settings, tutorial)
 const DEFAULT_GLOBAL_PANEL_VISIBILITY: PanelVisibility = {
   [PANEL_IDS.SIDEBAR]: true,
@@ -164,7 +123,7 @@ interface SessionStore {
 
   // Actions
   loadSessions: (profileId?: string) => Promise<void>
-  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<void>
+  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<import('./sessionCoreActions').DuplicateSessionResult | undefined>
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
   updateSessionBranch: (id: string, branch: string) => void
@@ -177,8 +136,6 @@ interface SessionStore {
   // UI state actions (backwards compat aliases)
   toggleSidebar: () => void
   setSidebarWidth: (width: number) => void
-  toggleAgentTerminal: (id: string) => void
-  toggleUserTerminal: (id: string) => void
   toggleExplorer: (id: string) => void
   toggleFileViewer: (id: string) => void
   setPlanFile: (id: string, path: string | null) => void
