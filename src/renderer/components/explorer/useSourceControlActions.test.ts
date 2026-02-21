@@ -324,20 +324,26 @@ describe('useSourceControlActions', () => {
   })
 
   describe('handleCreatePr', () => {
-    it('opens PR create URL', async () => {
-      vi.mocked(window.gh.getPrCreateUrl).mockResolvedValue('https://github.com/test/test/compare')
-      const data = makeData()
+    it('writes prompt and sends instruction to agent', async () => {
+      const data = makeData({ branchBaseName: 'main' })
 
       const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
+        useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-1', data })
       )
 
       await act(async () => {
         await result.current.handleCreatePr()
       })
 
-      expect(window.gh.getPrCreateUrl).toHaveBeenCalledWith('/repos/project')
-      expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/test/test/compare')
+      expect(window.fs.mkdir).toHaveBeenCalledWith('/repos/project/.broomy')
+      expect(window.fs.writeFile).toHaveBeenCalledWith(
+        '/repos/project/.broomy/create-pr-prompt.md',
+        expect.stringContaining('# Create Pull Request')
+      )
+      expect(window.pty.write).toHaveBeenCalledWith(
+        'pty-1',
+        'Please read and follow the instructions in .broomy/create-pr-prompt.md'
+      )
     })
   })
 
@@ -1129,18 +1135,17 @@ describe('useSourceControlActions', () => {
     it('does nothing when no directory', async () => {
       const data = makeData()
       const { result } = renderHook(() =>
-        useSourceControlActions({ data })
+        useSourceControlActions({ agentPtyId: 'pty-1', data })
       )
 
       await act(async () => {
         await result.current.handleCreatePr()
       })
 
-      expect(window.gh.getPrCreateUrl).not.toHaveBeenCalled()
+      expect(window.fs.mkdir).not.toHaveBeenCalled()
     })
 
-    it('does nothing when no URL returned', async () => {
-      vi.mocked(window.gh.getPrCreateUrl).mockResolvedValue(null)
+    it('does nothing when no agentPtyId', async () => {
       const data = makeData()
 
       const { result } = renderHook(() =>
@@ -1151,7 +1156,24 @@ describe('useSourceControlActions', () => {
         await result.current.handleCreatePr()
       })
 
-      expect(window.shell.openExternal).not.toHaveBeenCalled()
+      expect(window.fs.mkdir).not.toHaveBeenCalled()
+    })
+
+    it('uses branchBaseName in prompt', async () => {
+      const data = makeData({ branchBaseName: 'develop' })
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-1', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCreatePr()
+      })
+
+      expect(window.fs.writeFile).toHaveBeenCalledWith(
+        '/repos/project/.broomy/create-pr-prompt.md',
+        expect.stringContaining('origin/develop')
+      )
     })
   })
 })

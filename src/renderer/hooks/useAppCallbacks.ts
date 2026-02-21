@@ -12,7 +12,7 @@ interface AppCallbacksDeps {
   activeSessionId: string | null
   agents: AgentConfig[]
   repos: { id: string; rootDir: string; defaultBranch: string }[]
-  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<DuplicateSessionResult | undefined>
+  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<DuplicateSessionResult | undefined>
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
   togglePanel: (sessionId: string, panelId: string) => void
@@ -47,7 +47,7 @@ export function useAppCallbacks({
   const handleNewSessionComplete = useCallback(async (
     directory: string,
     agentId: string | null,
-    extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }
+    extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }
   ) => {
     try {
       const result = await addSession(directory, agentId, extra)

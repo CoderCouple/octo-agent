@@ -21,6 +21,9 @@ interface SourceControlProps {
   repoId?: string
   agentPtyId?: string
   onUpdatePrState?: (prState: PrState, prNumber?: number, prUrl?: string) => void
+  issueNumber?: number
+  issueTitle?: string
+  issueUrl?: string
   pushedToMainAt?: number
   pushedToMainCommit?: string
   onRecordPushToMain?: (commitHash: string) => void
@@ -38,6 +41,9 @@ export function SourceControl({
   repoId,
   agentPtyId,
   onUpdatePrState,
+  issueNumber,
+  issueTitle,
+  issueUrl,
   pushedToMainAt,
   pushedToMainCommit,
   onRecordPushToMain,
@@ -81,6 +87,9 @@ export function SourceControl({
       onDismissError={() => data.setGitOpError(null)}
       agentMergeMessage={data.agentMergeMessage}
       onDismissAgentMerge={() => data.setAgentMergeMessage(null)}
+      issueNumber={issueNumber}
+      issueTitle={issueTitle}
+      issueUrl={issueUrl}
     />
   )
 

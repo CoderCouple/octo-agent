@@ -1,5 +1,6 @@
 import type { SourceControlData } from './useSourceControlData'
 import { focusAgentTerminal } from '../../utils/focusHelpers'
+import { buildCreatePrPrompt } from '../../utils/prPromptBuilder'
 
 export interface SourceControlActionsProps {
   directory?: string
@@ -115,11 +116,22 @@ function createGitActions(
   }
 
   const handleCreatePr = async () => {
-    if (!directory) return
-    const url = await window.gh.getPrCreateUrl(directory)
-    if (url) {
-      void window.shell.openExternal(url)
-    }
+    if (!directory || !agentPtyId) return
+
+    const broomyDir = `${directory}/.broomy`
+    const promptPath = `${broomyDir}/create-pr-prompt.md`
+    const baseBranch = branchBaseName || 'main'
+
+    // Ensure .broomy directory exists
+    await window.fs.mkdir(broomyDir)
+
+    // Write the prompt file
+    const prompt = buildCreatePrPrompt(baseBranch)
+    await window.fs.writeFile(promptPath, prompt)
+
+    // Send instruction to agent
+    await window.pty.write(agentPtyId, 'Please read and follow the instructions in .broomy/create-pr-prompt.md')
+    focusAgentTerminal()
   }
 
   const handlePushNewBranch = async (branchName: string) => {
