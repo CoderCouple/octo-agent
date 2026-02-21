@@ -82,7 +82,7 @@ function createWindow(profileId?: string): BrowserWindow {
   const profileParam = profileId ? `?profile=${encodeURIComponent(profileId)}` : ''
   if (isDev && process.env.ELECTRON_RENDERER_URL) {
     void window.loadURL(`${process.env.ELECTRON_RENDERER_URL}${profileParam}`)
-    window.webContents.openDevTools()
+    if (!isE2ETest) window.webContents.openDevTools()
   } else {
     void window.loadFile(join(__dirname, '../renderer/index.html'), {
       search: profileId ? `profile=${encodeURIComponent(profileId)}` : undefined,

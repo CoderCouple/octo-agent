@@ -35,6 +35,7 @@ pnpm-debug.log*
 # Test artifacts
 test-results/
 playwright-report/
+tests/.vite-dev-server.pid
 coverage/
 *.png
 !build/icon.png
