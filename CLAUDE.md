@@ -130,3 +130,36 @@ Playwright tests in `tests/`. The test system:
 1. Create `src/renderer/store/myStore.ts` with Zustand
 2. Load in `App.tsx` on mount
 3. Create `src/renderer/store/myStore.test.ts`
+
+## Feature Documentation
+
+When completing a new feature, create a screenshot-documented E2E test that exercises the feature flow and generates a visual writeup. This serves as both verification and documentation.
+
+### How to create a feature doc
+
+1. Create `tests/features/<feature-slug>/` directory
+2. Write `<feature-slug>.spec.ts` that:
+   - Launches the Electron app with `E2E_TEST=true`
+   - Navigates to the relevant state for the feature
+   - Exercises each step of the feature flow
+   - Captures a cropped screenshot at each meaningful stage (use helpers from `_shared/screenshot-helpers.ts`)
+   - Collects step metadata (screenshot path + caption) into an array
+   - In `afterAll`, calls `generateFeaturePage()` to produce `index.html`, then `generateIndex()` to update the table of contents
+3. Run `pnpm test:feature-docs` to verify screenshots and HTML generate correctly
+4. The generated screenshots and HTML are gitignored — only the `.spec.ts` is committed
+
+### Screenshot guidelines
+
+- Crop to the relevant UI region — don't screenshot the whole window unless the whole window is relevant
+- Use `screenshotElement()` for single-element crops, `screenshotRegion()` for multi-element regions
+- Name screenshots with numeric prefixes: `01-initial.png`, `02-after-click.png`, etc.
+- Write captions that explain what the user should notice, not just what's on screen
+
+### Running feature docs
+
+```bash
+pnpm test:feature-docs        # Generate all feature docs
+pnpm test:feature-docs:view   # Generate and open in browser
+```
+
+Feature doc tests are **not** run as part of `pnpm test`. They are separate, on-demand tests for documenting and validating feature flows. See `tests/features/session-switching/` for a reference example.

@@ -41,5 +41,9 @@ coverage/
 !website/public/**/*.png
 !website/public/*.png
 
+# Feature documentation generated artifacts
+tests/features/*/index.html
+tests/features/index.html
+
 # Broomy review data
 .broomy/
