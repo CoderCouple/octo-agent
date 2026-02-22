@@ -25,6 +25,7 @@ async function resolveHome(path: string): Promise<string> {
 interface RepoStore {
   repos: ManagedRepo[]
   defaultCloneDir: string
+  defaultShell: string
   ghAvailable: boolean | null
   gitAvailable: boolean | null
   profileId?: string
@@ -34,6 +35,7 @@ interface RepoStore {
   updateRepo: (id: string, updates: Partial<Omit<ManagedRepo, 'id'>>) => void
   removeRepo: (id: string) => void
   setDefaultCloneDir: (dir: string) => Promise<void>
+  setDefaultShell: (shell: string) => void
   checkGhAvailability: () => Promise<void>
   checkGitAvailability: () => Promise<void>
 }
@@ -41,6 +43,7 @@ interface RepoStore {
 export const useRepoStore = create<RepoStore>((set, get) => ({
   repos: [],
   defaultCloneDir: '',
+  defaultShell: '',
   ghAvailable: null,
   gitAvailable: null,
 
@@ -59,6 +62,7 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
       set({
         repos,
         defaultCloneDir: defaultDir,
+        defaultShell: config.defaultShell || '',
         profileId: pid,
       })
       setLoadedCounts({ repos: repos.length })
@@ -98,6 +102,11 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
   setDefaultCloneDir: async (dir) => {
     const resolved = await resolveHome(dir)
     set({ defaultCloneDir: resolved })
+    scheduleSave()
+  },
+
+  setDefaultShell: (shell) => {
+    set({ defaultShell: shell })
     scheduleSave()
   },
 

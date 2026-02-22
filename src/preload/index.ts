@@ -13,7 +13,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 // Re-export all types so existing imports from '../../preload/index' still work
-export type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo, GitHubIssue, GitHubPrStatus, GitHubPrComment, GitHubPrForReview, GitCommitInfo, WorktreeInfo, AgentData, LayoutSizesData, PanelVisibility, SessionData, ConfigData, ProfileData, ProfilesData, MenuItemDef, TsProjectContext } from './apis/types'
+export type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo, GitHubIssue, GitHubPrStatus, GitHubPrComment, GitHubPrForReview, GitCommitInfo, WorktreeInfo, AgentData, LayoutSizesData, PanelVisibility, SessionData, ConfigData, ProfileData, ProfilesData, MenuItemDef, TsProjectContext, ShellOption } from './apis/types'
 export type { PtyApi } from './apis/pty'
 export type { FsApi } from './apis/fs'
 export type { GitApi } from './apis/git'

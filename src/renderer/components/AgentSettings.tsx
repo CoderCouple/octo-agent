@@ -13,6 +13,7 @@ import { useRepoStore } from '../store/repos'
 import type { EnvVarEditorRef } from './EnvVarEditor'
 import { AgentSettingsAgentTab } from './AgentSettingsAgentTab'
 import { AgentSettingsRepoTab } from './AgentSettingsRepoTab'
+import type { ShellOption } from '../../preload/apis/types'
 
 interface AgentSettingsProps {
   onClose: () => void
@@ -20,14 +21,16 @@ interface AgentSettingsProps {
 
 export default function AgentSettings({ onClose }: AgentSettingsProps) {
   const { agents, addAgent, updateAgent, removeAgent } = useAgentStore()
-  const { repos, loadRepos, updateRepo, defaultCloneDir, setDefaultCloneDir } = useRepoStore()
+  const { repos, loadRepos, updateRepo, defaultCloneDir, setDefaultCloneDir, defaultShell, setDefaultShell } = useRepoStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingRepoId, setEditingRepoId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [availableShells, setAvailableShells] = useState<ShellOption[]>([])
 
-  // Load repos on mount
+  // Load repos and available shells on mount
   useEffect(() => {
     void loadRepos()
+    void window.shell.listShells().then(setAvailableShells)
   }, [loadRepos])
 
   // Form state
@@ -142,6 +145,30 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
               Browse
             </button>
           </div>
+        </div>
+
+        <div className="space-y-2 mb-4">
+          <label className="text-xs text-text-secondary">Terminal Shell</label>
+          {availableShells.length > 0 ? (
+            <select
+              value={defaultShell || availableShells.find((s) => s.isDefault)?.path || ''}
+              onChange={(e) => setDefaultShell(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded border border-border bg-bg-primary text-text-primary font-mono"
+            >
+              {availableShells.map((s) => (
+                <option key={s.path} value={s.path}>
+                  {s.name}{s.isDefault ? ' (system default)' : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="px-3 py-2 text-sm rounded border border-border bg-bg-primary text-text-secondary font-mono">
+              Detecting shells…
+            </div>
+          )}
+          <p className="text-xs text-text-tertiary">
+            Applied to new terminal sessions. Existing sessions are not affected.
+          </p>
         </div>
 
         <AgentSettingsAgentTab

@@ -93,6 +93,12 @@ export type WorktreeInfo = {
   head: string
 }
 
+export type ShellOption = {
+  path: string       // Executable path or name used to spawn the shell
+  name: string       // Human-readable label shown in the UI
+  isDefault: boolean // Whether this is the current system default
+}
+
 export type AgentData = {
   id: string
   name: string
@@ -156,6 +162,7 @@ export type ConfigData = {
   toolbarPanels?: string[]
   repos?: ManagedRepo[]
   defaultCloneDir?: string
+  defaultShell?: string
   profileId?: string
   tutorialProgress?: {
     completedSteps: string[]
