@@ -19,6 +19,7 @@ export type GitStatusResult = {
   tracking: string | null
   current: string | null
   isMerging?: boolean
+  hasConflicts?: boolean
 }
 
 export type SearchResult = {
@@ -119,6 +120,7 @@ export type SessionData = {
   repoId?: string
   issueNumber?: number
   issueTitle?: string
+  issueUrl?: string
   // Review session fields
   sessionType?: 'default' | 'review'
   prNumber?: number

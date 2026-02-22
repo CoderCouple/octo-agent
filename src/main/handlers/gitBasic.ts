@@ -34,6 +34,7 @@ async function handleIsGitRepo(ctx: HandlerContext, dirPath: string) {
 async function handleStatus(ctx: HandlerContext, repoPath: string) {
   if (ctx.isE2ETest) {
     const E2E_MOCK_BRANCHES = getE2EMockBranches(ctx.isScreenshotMode)
+    const mockMerge = process.env.E2E_MOCK_MERGE
     if (ctx.isScreenshotMode) {
       return {
         files: [
@@ -49,7 +50,8 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
         behind: 0,
         tracking: 'origin/feature/jwt-auth',
         current: E2E_MOCK_BRANCHES[repoPath] || 'main',
-        isMerging: false,
+        isMerging: mockMerge === 'true' || mockMerge === 'conflicts',
+        hasConflicts: mockMerge === 'conflicts',
       }
     }
     return {
@@ -61,7 +63,8 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
       behind: 0,
       tracking: null,
       current: E2E_MOCK_BRANCHES[repoPath] || 'main',
-      isMerging: false,
+      isMerging: mockMerge === 'true' || mockMerge === 'conflicts',
+      hasConflicts: mockMerge === 'conflicts',
     }
   }
 
@@ -90,6 +93,7 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
     }
 
     const isMerging = await git.raw(['rev-parse', '--verify', 'MERGE_HEAD']).then(() => true).catch(() => false)
+    const hasConflicts = status.files.some(f => f.index === 'U' || f.working_dir === 'U')
 
     return {
       files,
@@ -98,9 +102,10 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
       tracking: status.tracking,
       current: status.current,
       isMerging,
+      hasConflicts,
     }
   } catch {
-    return { files: [], ahead: 0, behind: 0, tracking: null, current: null, isMerging: false }
+    return { files: [], ahead: 0, behind: 0, tracking: null, current: null, isMerging: false, hasConflicts: false }
   }
 }
 

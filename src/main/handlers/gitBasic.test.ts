@@ -26,6 +26,7 @@ vi.mock('../gitStatusParser', () => ({
       case 'D': return 'deleted'
       case 'R': return 'renamed'
       case '?': return 'untracked'
+      case 'U': return 'conflict'
       default: return 'modified'
     }
   }),
@@ -243,6 +244,37 @@ describe('gitBasic handlers', () => {
       const handlers = setupHandlers()
       const result = await handlers['git:status'](null, '/repo')
       expect(result.isMerging).toBe(false)
+    })
+
+    it('detects hasConflicts when files have U status', async () => {
+      mockGitInstance.status.mockResolvedValue({
+        files: [
+          { path: 'conflict.ts', index: 'U', working_dir: 'U' },
+          { path: 'clean.ts', index: 'M', working_dir: ' ' },
+        ],
+        ahead: 0,
+        behind: 0,
+        tracking: null,
+        current: 'feature',
+      })
+      const handlers = setupHandlers()
+      const result = await handlers['git:status'](null, '/repo')
+      expect(result.hasConflicts).toBe(true)
+    })
+
+    it('returns hasConflicts false when no conflict markers', async () => {
+      mockGitInstance.status.mockResolvedValue({
+        files: [
+          { path: 'clean.ts', index: 'M', working_dir: ' ' },
+        ],
+        ahead: 0,
+        behind: 0,
+        tracking: null,
+        current: 'feature',
+      })
+      const handlers = setupHandlers()
+      const result = await handlers['git:status'](null, '/repo')
+      expect(result.hasConflicts).toBe(false)
     })
 
     it('returns empty status on error', async () => {

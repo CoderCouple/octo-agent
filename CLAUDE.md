@@ -133,7 +133,7 @@ Playwright tests in `tests/`. The test system:
 
 ## Feature Documentation
 
-When completing a new feature, create a screenshot-documented E2E test that exercises the feature flow and generates a visual writeup. This serves as both verification and documentation.
+**Every feature or significant change requires a screenshot walkthrough.** Create a screenshot-documented E2E test that exercises the feature flow and generates a visual writeup. This serves as both verification and documentation. The spec file is committed; running `pnpm test:feature-docs` generates the screenshots and HTML locally.
 
 ### How to create a feature doc
 

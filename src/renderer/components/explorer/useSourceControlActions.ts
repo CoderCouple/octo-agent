@@ -2,6 +2,7 @@ import type { SourceControlData } from './useSourceControlData'
 import { focusAgentTerminal } from '../../utils/focusHelpers'
 import { withGitProgress } from '../../utils/gitOperationProgress'
 import { useSessionStore } from '../../store/sessions'
+import { buildCreatePrPrompt } from '../../utils/prPromptBuilder'
 
 export interface SourceControlActionsProps {
   directory?: string
@@ -127,11 +128,22 @@ function createGitActions(config: GitActionsConfig) {
   }
 
   const handleCreatePr = async () => {
-    if (!directory) return
-    const url = await window.gh.getPrCreateUrl(directory)
-    if (url) {
-      void window.shell.openExternal(url)
-    }
+    if (!directory || !agentPtyId) return
+
+    const broomyDir = `${directory}/.broomy`
+    const promptPath = `${broomyDir}/create-pr-prompt.md`
+    const baseBranch = branchBaseName || 'main'
+
+    // Ensure .broomy directory exists
+    await window.fs.mkdir(broomyDir)
+
+    // Write the prompt file
+    const prompt = buildCreatePrPrompt(baseBranch)
+    await window.fs.writeFile(promptPath, prompt)
+
+    // Send instruction to agent
+    await window.pty.write(agentPtyId, 'Please read and follow the instructions in .broomy/create-pr-prompt.md')
+    focusAgentTerminal()
   }
 
   const handlePushNewBranch = async (branchName: string) => {
@@ -168,7 +180,7 @@ export function useSourceControlActions({
     stagedFiles, unstagedFiles,
     commitMessage, setCommitMessage,
     setIsCommitting, setCommitError, setCommitErrorExpanded,
-    setGitOpError, setAgentMergeMessage,
+    setGitOpError, setAgentMergeMessage, setAskedAgentToResolve,
     expandedCommits, setExpandedCommits,
     commitFilesByHash, setCommitFilesByHash,
     setLoadingCommitFiles,
@@ -187,6 +199,8 @@ export function useSourceControlActions({
     setAgentMergeMessage(null)
     try {
       await withGitProgress(activeSessionId, async () => {
+        // Stage all files (including resolved conflict files) before committing
+        await window.git.stageAll(directory)
         const result = await window.git.commitMerge(directory)
         if (result.success) {
           onGitStatusRefresh?.()
@@ -203,6 +217,14 @@ export function useSourceControlActions({
     } finally {
       setIsCommitting(false)
     }
+  }
+
+  const handleResolveConflicts = async () => {
+    if (!agentPtyId) return
+    await window.pty.write(agentPtyId, 'resolve all merge conflicts\r')
+    focusAgentTerminal()
+    setAskedAgentToResolve(true)
+    setAgentMergeMessage('Asked agent to resolve merge conflicts. Wait for the agent to finish, then commit the merge.')
   }
 
   const handleRevertFile = async (filePath: string) => {
@@ -337,6 +359,7 @@ export function useSourceControlActions({
     handleUnstage,
     handleCommit,
     handleCommitMerge,
+    handleResolveConflicts,
     handleToggleCommit,
     handleReplyToComment,
     ...gitActions,
