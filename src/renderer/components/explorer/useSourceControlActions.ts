@@ -1,4 +1,6 @@
 import type { SourceControlData } from './useSourceControlData'
+import { focusAgentTerminal } from '../../utils/focusHelpers'
+import { buildCreatePrPrompt } from '../../utils/prPromptBuilder'
 
 export interface SourceControlActionsProps {
   directory?: string
@@ -18,6 +20,7 @@ function createGitActions(
   const {
     setIsSyncing, setIsSyncingWithMain, setGitOpError,
     branchBaseName, setIsPushingToMain, gitStatus,
+    setAgentMergeMessage,
   } = data
 
   const handleSync = async () => {
@@ -53,6 +56,7 @@ function createGitActions(
 
     setIsSyncingWithMain(true)
     setGitOpError(null)
+    setAgentMergeMessage(null)
     try {
       const result = await window.git.pullOriginMain(directory)
       if (result.success) {
@@ -60,7 +64,8 @@ function createGitActions(
       } else if (result.hasConflicts) {
         if (agentPtyId) {
           await window.pty.write(agentPtyId, 'resolve all merge conflicts\r')
-          setGitOpError({ operation: 'Sync with main', message: 'Merge conflicts detected. Agent is resolving them.' })
+          focusAgentTerminal()
+          setAgentMergeMessage('Asked agent to resolve merge conflicts. Wait for the agent to finish, then commit the merge.')
         } else {
           setGitOpError({ operation: 'Sync with main', message: 'Merge conflicts detected. Resolve them manually.' })
         }
@@ -111,11 +116,22 @@ function createGitActions(
   }
 
   const handleCreatePr = async () => {
-    if (!directory) return
-    const url = await window.gh.getPrCreateUrl(directory)
-    if (url) {
-      void window.shell.openExternal(url)
-    }
+    if (!directory || !agentPtyId) return
+
+    const broomyDir = `${directory}/.broomy`
+    const promptPath = `${broomyDir}/create-pr-prompt.md`
+    const baseBranch = branchBaseName || 'main'
+
+    // Ensure .broomy directory exists
+    await window.fs.mkdir(broomyDir)
+
+    // Write the prompt file
+    const prompt = buildCreatePrPrompt(baseBranch)
+    await window.fs.writeFile(promptPath, prompt)
+
+    // Send instruction to agent
+    await window.pty.write(agentPtyId, 'Please read and follow the instructions in .broomy/create-pr-prompt.md')
+    focusAgentTerminal()
   }
 
   const handlePushNewBranch = async (branchName: string) => {
@@ -150,7 +166,7 @@ export function useSourceControlActions({
     stagedFiles, unstagedFiles,
     commitMessage, setCommitMessage,
     setIsCommitting, setCommitError, setCommitErrorExpanded,
-    setGitOpError,
+    setGitOpError, setAgentMergeMessage, setAskedAgentToResolve,
     expandedCommits, setExpandedCommits,
     commitFilesByHash, setCommitFilesByHash,
     setLoadingCommitFiles,
@@ -160,29 +176,79 @@ export function useSourceControlActions({
 
   const gitActions = createGitActions(directory, onGitStatusRefresh, agentPtyId, onRecordPushToMain, data)
 
+  const handleCommitMerge = async () => {
+    if (!directory) return
+    setIsCommitting(true)
+    setCommitError(null)
+    setGitOpError(null)
+    setAgentMergeMessage(null)
+    try {
+      // Stage all files (including resolved conflict files) before committing
+      await window.git.stageAll(directory)
+      const result = await window.git.commitMerge(directory)
+      if (result.success) {
+        onGitStatusRefresh?.()
+      } else {
+        const errorMsg = result.error || 'Merge commit failed'
+        setCommitError(errorMsg)
+        setGitOpError({ operation: 'Merge commit', message: errorMsg })
+      }
+    } catch (err) {
+      const errorMsg = String(err)
+      setCommitError(errorMsg)
+      setGitOpError({ operation: 'Merge commit', message: errorMsg })
+    } finally {
+      setIsCommitting(false)
+    }
+  }
+
+  const handleResolveConflicts = async () => {
+    if (!agentPtyId) return
+    await window.pty.write(agentPtyId, 'resolve all merge conflicts\r')
+    focusAgentTerminal()
+    setAskedAgentToResolve(true)
+    setAgentMergeMessage('Asked agent to resolve merge conflicts. Wait for the agent to finish, then commit the merge.')
+  }
+
   const handleRevertFile = async (filePath: string) => {
     if (!directory) return
     if (!window.confirm(`Revert changes to "${filePath}"? This cannot be undone.`)) return
-    await window.git.checkoutFile(directory, filePath)
-    onGitStatusRefresh?.()
+    try {
+      await window.git.checkoutFile(directory, filePath)
+      onGitStatusRefresh?.()
+    } catch (err) {
+      setGitOpError({ operation: 'Revert', message: String(err) })
+    }
   }
 
   const handleStage = async (filePath: string) => {
     if (!directory) return
-    await window.git.stage(directory, filePath)
-    onGitStatusRefresh?.()
+    try {
+      await window.git.stage(directory, filePath)
+      onGitStatusRefresh?.()
+    } catch (err) {
+      setGitOpError({ operation: 'Stage', message: String(err) })
+    }
   }
 
   const handleStageAll = async () => {
     if (!directory) return
-    await window.git.stageAll(directory)
-    onGitStatusRefresh?.()
+    try {
+      await window.git.stageAll(directory)
+      onGitStatusRefresh?.()
+    } catch (err) {
+      setGitOpError({ operation: 'Stage', message: String(err) })
+    }
   }
 
   const handleUnstage = async (filePath: string) => {
     if (!directory) return
-    await window.git.unstage(directory, filePath)
-    onGitStatusRefresh?.()
+    try {
+      await window.git.unstage(directory, filePath)
+      onGitStatusRefresh?.()
+    } catch (err) {
+      setGitOpError({ operation: 'Unstage', message: String(err) })
+    }
   }
 
   const handleCommit = async () => {
@@ -257,7 +323,11 @@ export function useSourceControlActions({
         setReplyText(prev => ({ ...prev, [commentId]: '' }))
         const comments = await window.gh.prComments(directory, prStatus.number)
         setPrComments(comments)
+      } else {
+        setGitOpError({ operation: 'Reply', message: result.error || 'Failed to post reply' })
       }
+    } catch (err) {
+      setGitOpError({ operation: 'Reply', message: String(err) })
     } finally {
       setIsSubmittingReply(null)
     }
@@ -269,6 +339,8 @@ export function useSourceControlActions({
     handleStageAll,
     handleUnstage,
     handleCommit,
+    handleCommitMerge,
+    handleResolveConflicts,
     handleToggleCommit,
     handleReplyToComment,
     ...gitActions,

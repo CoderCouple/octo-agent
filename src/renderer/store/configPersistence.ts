@@ -96,6 +96,7 @@ async function doSave(): Promise<void> {
       repoId: s.repoId,
       issueNumber: s.issueNumber,
       issueTitle: s.issueTitle,
+      issueUrl: s.issueUrl,
       // Save new panelVisibility format
       panelVisibility: s.panelVisibility,
       // Review session fields
@@ -105,8 +106,6 @@ async function doSave(): Promise<void> {
       prUrl: s.prUrl,
       prBaseBranch: s.prBaseBranch,
       // Legacy fields (already synced in store by panel actions)
-      showAgentTerminal: s.showAgentTerminal,
-      showUserTerminal: s.showUserTerminal,
       showExplorer: s.showExplorer,
       showFileViewer: s.showFileViewer,
       showDiff: s.showDiff,

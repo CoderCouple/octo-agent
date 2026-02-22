@@ -1,5 +1,5 @@
-import type { FileEntry, GitFileStatus, GitStatusResult, SearchResult } from '../../../preload/index'
-import type { ExplorerFilter, BranchStatus, PrState } from '../../store/sessions'
+import type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo } from '../../../preload/index'
+import type { ExplorerFilter, BranchStatus, PrState, Session } from '../../store/sessions'
 import type { NavigationTarget } from '../../utils/fileNavigation'
 
 // PR comment type from GitHub API
@@ -38,7 +38,14 @@ export interface ExplorerProps {
   onUpdatePrState?: (prState: PrState, prNumber?: number, prUrl?: string) => void
   repoId?: string
   agentPtyId?: string
-  onOpenReview?: () => void
+  // Review tab data
+  session?: Session
+  repo?: ManagedRepo
+  // Issue plan
+  issueNumber?: number
+  issueTitle?: string
+  issueUrl?: string
+  issuePlanExists?: boolean
 }
 
 export interface TreeNode extends FileEntry {

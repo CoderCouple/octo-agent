@@ -4,7 +4,9 @@ export default defineConfig({
   globalSetup: './tests/global-setup.ts',
   globalTeardown: './tests/global-teardown.ts',
   testDir: './tests',
-  testIgnore: process.env.GENERATE_SCREENSHOTS ? [] : ['**/screenshots.spec.ts'],
+  testIgnore: process.env.GENERATE_SCREENSHOTS
+    ? []
+    : ['**/screenshots.spec.ts', '**/special-flows/**', '**/features/**'],
   timeout: 30000,
   expect: {
     timeout: 5000,

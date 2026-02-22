@@ -1,19 +1,21 @@
-import React, { useMemo } from 'react'
-import Terminal from '../components/Terminal'
+import React, { useMemo, useState, useEffect } from 'react'
 import TabbedTerminal from '../components/TabbedTerminal'
+import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import Explorer from '../components/explorer'
 import FileViewer from '../components/FileViewer'
-import ReviewPanel from '../components/review'
 import AgentSettings from '../components/AgentSettings'
 import SessionList from '../components/SessionList'
-import { useSessionStore, type Session } from '../store/sessions'
+import WelcomeScreen from '../components/WelcomeScreen'
+import TutorialPanel from '../components/TutorialPanel'
+import { type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
+import { useIssuePlanDetection } from './useIssuePlanDetection'
 import type { FileStatus } from '../components/FileViewer'
 import type { GitFileStatus, GitStatusResult, ManagedRepo } from '../../preload/index'
 import type { ExplorerFilter, PrState } from '../store/sessions'
 import type { NavigationTarget } from '../utils/fileNavigation'
 
-interface PanelsMapConfig {
+export interface PanelsMapConfig {
   sessions: Session[]
   activeSessionId: string | null
   activeSession: Session | undefined
@@ -56,8 +58,10 @@ function useExplorerPanel(config: PanelsMapConfig) {
   const {
     activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult,
     navigateToFile, fetchGitStatus, setExplorerFilter,
-    recordPushToMain, clearPushToMain, updatePrState, setPanelVisibility, setToolbarPanels,
+    recordPushToMain, clearPushToMain, updatePrState, repos,
   } = config
+
+  const issuePlanExists = useIssuePlanDetection(activeSessionId, activeSession?.directory)
 
   return useMemo(() => {
     if (!activeSession?.showExplorer) return null
@@ -69,7 +73,9 @@ function useExplorerPanel(config: PanelsMapConfig) {
         gitStatus={activeSessionGitStatus}
         syncStatus={activeSessionGitStatusResult}
         filter={activeSession.explorerFilter}
-        onFilterChange={(filter) => activeSessionId && setExplorerFilter(activeSessionId, filter)}
+        onFilterChange={(filter) => {
+          if (activeSessionId) setExplorerFilter(activeSessionId, filter)
+        }}
         onGitStatusRefresh={fetchGitStatus}
         recentFiles={activeSession.recentFiles}
         sessionId={activeSessionId ?? undefined}
@@ -82,22 +88,15 @@ function useExplorerPanel(config: PanelsMapConfig) {
         onUpdatePrState={(prState, prNumber, prUrl) => activeSessionId && updatePrState(activeSessionId, prState, prNumber, prUrl)}
         repoId={activeSession.repoId}
         agentPtyId={activeSession.agentPtyId}
-        onOpenReview={() => {
-          if (activeSessionId) {
-            setPanelVisibility(activeSessionId, PANEL_IDS.REVIEW, true)
-            const { toolbarPanels } = useSessionStore.getState()
-            if (!toolbarPanels.includes(PANEL_IDS.REVIEW)) {
-              const explorerIdx = toolbarPanels.indexOf(PANEL_IDS.EXPLORER)
-              const updated = [...toolbarPanels]
-              if (explorerIdx >= 0) updated.splice(explorerIdx + 1, 0, PANEL_IDS.REVIEW)
-              else updated.push(PANEL_IDS.REVIEW)
-              setToolbarPanels(updated)
-            }
-          }
-        }}
+        session={activeSession}
+        repo={repos.find(r => r.id === activeSession.repoId)}
+        issueNumber={activeSession.issueNumber}
+        issueTitle={activeSession.issueTitle}
+        issueUrl={activeSession.issueUrl}
+        issuePlanExists={issuePlanExists}
       />
     )
-  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus])
+  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, repos, issuePlanExists])
 }
 
 function useFileViewerPanel(config: PanelsMapConfig) {
@@ -106,6 +105,9 @@ function useFileViewerPanel(config: PanelsMapConfig) {
     diffBaseRef, diffCurrentRef, diffLabel, setIsFileViewerDirty, saveCurrentFileRef,
     handleToggleFileViewer, handleFileViewerPositionChange, selectedFileStatus, fetchGitStatus,
   } = config
+
+  const [tmpdir, setTmpdir] = useState('/tmp')
+  useEffect(() => { void window.app.tmpdir().then(setTmpdir) }, [])
 
   return useMemo(() => {
     if (!activeSession?.showFileViewer) return null
@@ -128,12 +130,12 @@ function useFileViewerPanel(config: PanelsMapConfig) {
         diffLabel={diffLabel}
         reviewContext={activeSession.sessionType === 'review' ? {
           sessionDirectory: activeSession.directory,
-          commentsFilePath: `/tmp/broomy-review-${activeSession.id}/comments.json`,
+          commentsFilePath: `${tmpdir}/broomy-review-${activeSession.id}/comments.json`,
         } : undefined}
         onOpenFile={(targetPath, line) => navigateToFile({ filePath: targetPath, openInDiffMode: false, scrollToLine: line })}
       />
     )
-  }, [activeSession, selectedFileStatus, openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel, fetchGitStatus, handleToggleFileViewer, navigateToFile])
+  }, [activeSession, selectedFileStatus, openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel, fetchGitStatus, handleToggleFileViewer, navigateToFile, tmpdir])
 }
 
 export function usePanelsMap(config: PanelsMapConfig) {
@@ -143,53 +145,32 @@ export function usePanelsMap(config: PanelsMapConfig) {
     archiveSession, unarchiveSession,
     getAgentCommand, getAgentEnv,
     globalPanelVisibility, toggleGlobalPanel,
-    navigateToFile, repos,
+    repos,
   } = config
 
-  const agentTerminalPanel = useMemo(() => (
+  const terminalPanel = useMemo(() => (
     <div className="h-full w-full relative">
       {sessions.map((session) => (
         <div
           key={session.id}
           className={`absolute inset-0 ${session.id === activeSessionId ? '' : 'hidden'}`}
         >
-          <Terminal
-            sessionId={session.id}
-            cwd={session.directory}
-            command={getAgentCommand(session)}
-            env={getAgentEnv(session)}
-            isAgentTerminal={!!getAgentCommand(session)}
-            isActive={session.id === activeSessionId}
-          />
+          <PanelErrorBoundary name={`Session ${session.branch || session.id}`}>
+            <TabbedTerminal
+              sessionId={session.id}
+              cwd={session.directory}
+              isActive={session.id === activeSessionId}
+              agentCommand={getAgentCommand(session)}
+              agentEnv={getAgentEnv(session)}
+            />
+          </PanelErrorBoundary>
         </div>
       ))}
       {sessions.length === 0 && (
-        <div className="h-full w-full flex items-center justify-center text-text-secondary">
-          <div className="text-center">
-            <p>No sessions yet.</p>
-            <p className="text-sm mt-2">Click &quot;+ New Session&quot; to add a git repository.</p>
-          </div>
-        </div>
+        <WelcomeScreen onNewSession={handleNewSession} />
       )}
     </div>
-  ), [sessions, activeSessionId, getAgentCommand, getAgentEnv])
-
-  const userTerminalPanel = useMemo(() => (
-    <div className="h-full w-full relative">
-      {sessions.map((session) => (
-        <div
-          key={`user-${session.id}`}
-          className={`absolute inset-0 ${session.id === activeSessionId ? '' : 'hidden'}`}
-        >
-          <TabbedTerminal
-            sessionId={session.id}
-            cwd={session.directory}
-            isActive={session.id === activeSessionId}
-          />
-        </div>
-      ))}
-    </div>
-  ), [sessions, activeSessionId])
+  ), [sessions, activeSessionId, getAgentCommand, getAgentEnv, handleNewSession])
 
   const explorerPanel = useExplorerPanel(config)
   const fileViewerPanel = useFileViewerPanel(config)
@@ -208,28 +189,23 @@ export function usePanelsMap(config: PanelsMapConfig) {
         onUnarchiveSession={unarchiveSession}
       />
     ),
-    [PANEL_IDS.AGENT_TERMINAL]: agentTerminalPanel,
-    [PANEL_IDS.USER_TERMINAL]: userTerminalPanel,
+    terminal: terminalPanel,
     [PANEL_IDS.EXPLORER]: explorerPanel,
     [PANEL_IDS.FILE_VIEWER]: fileViewerPanel,
-    [PANEL_IDS.REVIEW]: activeSession ? (
-      <ReviewPanel
-        session={activeSession}
-        repo={repos.find(r => r.id === activeSession.repoId)}
-        onSelectFile={(filePath, openInDiffMode, scrollToLine, diffBaseRef) => {
-          navigateToFile({ filePath, openInDiffMode, scrollToLine, diffBaseRef })
-        }}
-      />
-    ) : null,
     [PANEL_IDS.SETTINGS]: globalPanelVisibility[PANEL_IDS.SETTINGS] ? (
-      <AgentSettings onClose={() => toggleGlobalPanel(PANEL_IDS.SETTINGS)} />
+      <AgentSettings onClose={() => {
+        toggleGlobalPanel(PANEL_IDS.SETTINGS)
+      }} />
     ) : null,
+    [PANEL_IDS.TUTORIAL]: (
+      <TutorialPanel />
+    ),
   }), [
     sessions, activeSessionId, activeSession,
-    agentTerminalPanel, userTerminalPanel,
+    terminalPanel,
     explorerPanel, fileViewerPanel,
     globalPanelVisibility,
-    navigateToFile, repos,
+    repos,
   ])
 
   return panelsMap

@@ -4,13 +4,15 @@ import { useErrorStore } from '../store/errors'
 import { PANEL_IDS } from '../panels'
 import type { AgentConfig } from '../store/agents'
 import type { PrState } from '../utils/branchStatus'
+import type { DuplicateSessionResult } from '../store/sessionCoreActions'
+import { focusAgentTerminal } from '../utils/focusHelpers'
 
 interface AppCallbacksDeps {
   sessions: Session[]
   activeSessionId: string | null
   agents: AgentConfig[]
   repos: { id: string; rootDir: string; defaultBranch: string }[]
-  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<void>
+  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<DuplicateSessionResult | undefined>
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
   togglePanel: (sessionId: string, panelId: string) => void
@@ -18,6 +20,7 @@ interface AppCallbacksDeps {
   setFileViewerPosition: (id: string, position: 'top' | 'left') => void
   updatePrState: (sessionId: string, prState: PrState, prNumber?: number, prUrl?: string) => void
   setShowNewSessionDialog: (show: boolean) => void
+  onSessionAlreadyExists?: (info: { name: string; wasArchived: boolean }) => void
 }
 
 export function useAppCallbacks({
@@ -33,6 +36,7 @@ export function useAppCallbacks({
   setFileViewerPosition,
   updatePrState,
   setShowNewSessionDialog,
+  onSessionAlreadyExists,
 }: AppCallbacksDeps) {
   const { addError } = useErrorStore()
 
@@ -43,15 +47,18 @@ export function useAppCallbacks({
   const handleNewSessionComplete = useCallback(async (
     directory: string,
     agentId: string | null,
-    extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }
+    extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }
   ) => {
     try {
-      await addSession(directory, agentId, extra)
+      const result = await addSession(directory, agentId, extra)
+      if (result) {
+        onSessionAlreadyExists?.({ name: result.existingSessionName, wasArchived: result.wasArchived })
+      }
     } catch (error) {
       addError(`Failed to add session: ${error instanceof Error ? error.message : String(error)}`)
     }
     setShowNewSessionDialog(false)
-  }, [addSession, addError, setShowNewSessionDialog])
+  }, [addSession, addError, setShowNewSessionDialog, onSessionAlreadyExists])
 
   const handleCancelNewSession = useCallback(() => {
     setShowNewSessionDialog(false)
@@ -98,14 +105,7 @@ export function useAppCallbacks({
 
   const handleSelectSession = useCallback((id: string) => {
     setActiveSession(id)
-    requestAnimationFrame(() => {
-      const container = document.querySelector(`[data-panel-id="${PANEL_IDS.AGENT_TERMINAL}"]`)
-      if (!container) return
-      const xtermTextarea = container.querySelector<HTMLElement>('.xterm-helper-textarea')
-      if (xtermTextarea) {
-        xtermTextarea.focus()
-      }
-    })
+    focusAgentTerminal()
   }, [setActiveSession])
 
   const handleDeleteSession = useCallback((id: string, deleteWorktree: boolean) => {

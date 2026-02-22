@@ -20,6 +20,7 @@ pnpm test:e2e        # Run Playwright E2E tests (fast, uses Vite dev server)
 pnpm test:e2e:headed # E2E tests with visible window
 pnpm test:e2e:built  # E2E tests against production build (for CI)
 pnpm dist            # Build and package for macOS
+pnpm check:all       # Run all project-specific checks (workers, etc.)
 ```
 
 ## Troubleshooting
@@ -44,7 +45,7 @@ Broomy is an Electron + React desktop app for managing multiple AI coding agent 
 
 - **Stores** (`store/`): Four Zustand stores -- `sessions.ts` (session state, panel visibility, layout sizes, agent monitoring), `agents.ts` (agent definitions), `repos.ts` (managed repositories), `profiles.ts` (multi-window profiles), `errors.ts` (error tracking).
 - **Components** (`components/`): `Layout.tsx` (main layout with drag-to-resize), `Terminal.tsx` (xterm.js wrapper), `Explorer.tsx` (file tree + source control), `FileViewer.tsx` (Monaco editor + diff), `SessionList.tsx`, `TabbedTerminal.tsx`, `NewSessionDialog.tsx`, `AgentSettings.tsx`, `ProfileChip.tsx`.
-- **Panel system** (`panels/`): Registry-based modular panel system. Panel IDs defined in `types.ts`, registered in `builtinPanels.tsx`, accessed via React context in `PanelContext.tsx`. Six built-in panels: sidebar, explorer, fileViewer, agentTerminal, userTerminal, settings.
+- **Panel system** (`panels/`): Registry-based modular panel system. Panel IDs defined in `types.ts`, registered in `builtinPanels.tsx`, accessed via React context in `PanelContext.tsx`. Five built-in panels: sidebar, explorer, fileViewer, tutorial, settings. The terminal area (agent + user tabs) is always visible and not part of the panel toggle system.
 - **Utils** (`utils/`): `stripAnsi.ts` (ANSI escape removal), `explorerHelpers.ts` (git status display), `terminalBufferRegistry.ts` (cross-component terminal access), `slugify.ts` (issue-to-branch names), `textDetection.ts` (binary vs text), `branchStatus.ts` (branch status computation).
 
 ### Agent Activity Detection
@@ -79,7 +80,7 @@ Session store debounces saves with 500ms delay. Runtime-only state (`status`, `i
 
 ## Testing
 
-**Always confirm these checks pass before considering work done: `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, and `pnpm test:e2e`.**
+**Always confirm these checks pass before considering work done: `pnpm lint`, `pnpm typecheck`, `pnpm check:all`, `pnpm test:unit`, and `pnpm test:e2e`.**
 
 **IMPORTANT: Do NOT run E2E tests (`pnpm test:e2e`) without first asking the user for confirmation.** E2E tests launch Electron and are resource-intensive — running them from multiple agents simultaneously will hose the machine. Always run lint, typecheck, and unit tests first, then ask before running E2E.
 
@@ -107,9 +108,10 @@ Playwright tests in `tests/`. The test system:
 2. Write or update unit tests for any changed logic
 3. Run `pnpm lint` to verify there are no lint errors
 4. Run `pnpm typecheck` to verify there are no type errors
-5. Run `pnpm test:unit` to verify all unit tests pass
-6. Run `pnpm test:unit:coverage` to confirm coverage stays above 90%
-7. **Ask the user for confirmation**, then run `pnpm test:e2e` to verify E2E tests still pass
+5. Run `pnpm check:all` to verify project-specific checks pass (worker config, etc.)
+6. Run `pnpm test:unit` to verify all unit tests pass
+7. Run `pnpm test:unit:coverage` to confirm coverage stays above 90%
+8. **Ask the user for confirmation**, then run `pnpm test:e2e` to verify E2E tests still pass
 
 ## Adding New Features
 
@@ -129,3 +131,36 @@ Playwright tests in `tests/`. The test system:
 1. Create `src/renderer/store/myStore.ts` with Zustand
 2. Load in `App.tsx` on mount
 3. Create `src/renderer/store/myStore.test.ts`
+
+## Feature Documentation
+
+**Every feature or significant change requires a screenshot walkthrough.** Create a screenshot-documented E2E test that exercises the feature flow and generates a visual writeup. This serves as both verification and documentation. The spec file is committed; running `pnpm test:feature-docs` generates the screenshots and HTML locally.
+
+### How to create a feature doc
+
+1. Create `tests/features/<feature-slug>/` directory
+2. Write `<feature-slug>.spec.ts` that:
+   - Launches the Electron app with `E2E_TEST=true`
+   - Navigates to the relevant state for the feature
+   - Exercises each step of the feature flow
+   - Captures a cropped screenshot at each meaningful stage (use helpers from `_shared/screenshot-helpers.ts`)
+   - Collects step metadata (screenshot path + caption) into an array
+   - In `afterAll`, calls `generateFeaturePage()` to produce `index.html`, then `generateIndex()` to update the table of contents
+3. Run `pnpm test:feature-docs` to verify screenshots and HTML generate correctly
+4. The generated screenshots and HTML are gitignored — only the `.spec.ts` is committed
+
+### Screenshot guidelines
+
+- Crop to the relevant UI region — don't screenshot the whole window unless the whole window is relevant
+- Use `screenshotElement()` for single-element crops, `screenshotRegion()` for multi-element regions
+- Name screenshots with numeric prefixes: `01-initial.png`, `02-after-click.png`, etc.
+- Write captions that explain what the user should notice, not just what's on screen
+
+### Running feature docs
+
+```bash
+pnpm test:feature-docs        # Generate all feature docs
+pnpm test:feature-docs:view   # Generate and open in browser
+```
+
+Feature doc tests are **not** run as part of `pnpm test`. They are separate, on-demand tests for documenting and validating feature flows. See `tests/features/session-switching/` for a reference example.

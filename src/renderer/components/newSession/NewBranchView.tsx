@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAgentStore } from '../../store/agents'
 import type { ManagedRepo, GitHubIssue } from '../../../preload/index'
 import { issueToBranchName } from '../../utils/slugify'
+import { DialogErrorBanner } from '../ErrorBanner'
 
 export function NewBranchView({
   repo,
@@ -12,7 +13,7 @@ export function NewBranchView({
   repo: ManagedRepo
   issue?: GitHubIssue
   onBack: () => void
-  onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; name?: string }) => void
+  onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string }) => void
 }) {
   const { agents } = useAgentStore()
 
@@ -60,6 +61,7 @@ export function NewBranchView({
         repoId: repo.id,
         issueNumber: issue?.number,
         issueTitle: issue?.title,
+        issueUrl: issue?.url,
         name: repo.name,
       })
     } catch (err) {
@@ -130,7 +132,7 @@ export function NewBranchView({
         </div>
 
         {error && (
-          <div className="text-xs text-red-400 bg-red-400/10 rounded px-3 py-2 whitespace-pre-wrap">{error}</div>
+          <DialogErrorBanner error={error} onDismiss={() => setError(null)} />
         )}
       </div>
 

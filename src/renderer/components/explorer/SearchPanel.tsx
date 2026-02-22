@@ -149,6 +149,7 @@ export function SearchPanel({ directory, onFileSelect }: SearchPanelProps) {
       <div className="px-3 py-2 border-b border-border">
         <input
           type="text"
+          data-explorer-search
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search files..."

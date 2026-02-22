@@ -1,9 +1,9 @@
 import { useEffect, useCallback, useState } from 'react'
 import type { Session } from '../store/sessions'
 import type { ProfileData } from '../store/profiles'
-import { PANEL_IDS } from '../panels'
 import { terminalBufferRegistry } from '../utils/terminalBufferRegistry'
 import { loadMonacoProjectContext } from '../utils/monacoProjectContext'
+import { focusAgentTerminal } from '../utils/focusHelpers'
 
 export function useSessionLifecycle({
   sessions,
@@ -17,6 +17,7 @@ export function useSessionLifecycle({
   loadAgents,
   loadRepos,
   checkGhAvailability,
+  checkGitAvailability,
   switchProfile,
   markSessionRead,
   refreshAllBranches,
@@ -32,6 +33,7 @@ export function useSessionLifecycle({
   loadAgents: (profileId: string) => Promise<void>
   loadRepos: (profileId: string) => Promise<void>
   checkGhAvailability: () => Promise<void>
+  checkGitAvailability: () => Promise<void>
   switchProfile: (profileId: string) => Promise<void>
   markSessionRead: (sessionId: string) => void
   refreshAllBranches: () => void | Promise<void>
@@ -60,6 +62,7 @@ export function useSessionLifecycle({
       void loadAgents(currentProfileId)
       void loadRepos(currentProfileId)
       void checkGhAvailability()
+      void checkGitAvailability()
     })
   }, [])
 
@@ -87,10 +90,7 @@ export function useSessionLifecycle({
       markSessionRead(activeSessionId)
       // Focus the agent terminal after a short delay to let it render
       const timeout = setTimeout(() => {
-        const container = document.querySelector(`[data-panel-id="${PANEL_IDS.AGENT_TERMINAL}"]`)
-        if (!container) return
-        const xtermTextarea = container.querySelector<HTMLElement>('.xterm-helper-textarea')
-        if (xtermTextarea) xtermTextarea.focus()
+        focusAgentTerminal()
       }, 100)
       return () => clearTimeout(timeout)
     }

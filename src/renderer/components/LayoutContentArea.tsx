@@ -2,14 +2,7 @@ import { ReactNode, RefObject } from 'react'
 import type { LayoutSizes, FileViewerPosition } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
 import type { DividerType } from '../hooks/useDividerResize'
-
-// Detect if we're on Mac for keyboard shortcut display
-const isMac = navigator.userAgent.includes('Mac')
-
-const formatShortcut = (key: string) => {
-  const modifier = isMac ? '\u2318' : 'Ctrl+'
-  return `${modifier}${key}`
-}
+import PanelErrorBoundary from './PanelErrorBoundary'
 
 interface DividerProps {
   type: NonNullable<DividerType>
@@ -53,76 +46,23 @@ function getContentFlexDirection(showSettings: boolean, settingsPanel: ReactNode
   return 'flex-col'
 }
 
-function getFileViewerStyle(fileViewerPosition: FileViewerPosition, terminalsVisible: boolean, fileViewerSize: number): React.CSSProperties {
+function getFileViewerStyle(fileViewerPosition: FileViewerPosition, fileViewerSize: number): React.CSSProperties {
   if (fileViewerPosition === 'left') {
-    return { width: terminalsVisible ? fileViewerSize : undefined, flex: terminalsVisible ? undefined : 1 }
+    return { width: fileViewerSize }
   }
-  return { height: terminalsVisible ? fileViewerSize : undefined, flex: terminalsVisible ? undefined : 1 }
-}
-
-interface TerminalsPanelProps {
-  showAgentTerminal: boolean
-  showUserTerminal: boolean
-  agentTerminal: ReactNode
-  userTerminal: ReactNode
-  flashedPanel: string | null
-  draggingDivider: DividerType
-  handleMouseDown: (type: DividerType) => (e: React.MouseEvent) => void
-  userTerminalHeight: number
-}
-
-function TerminalsPanel({
-  showAgentTerminal,
-  showUserTerminal,
-  agentTerminal,
-  userTerminal,
-  flashedPanel,
-  draggingDivider,
-  handleMouseDown,
-  userTerminalHeight,
-}: TerminalsPanelProps) {
-  const terminalsVisible = showAgentTerminal || showUserTerminal
-  return (
-    <div className={`flex flex-col min-w-0 min-h-0 ${terminalsVisible ? 'flex-1' : 'hidden'}`}>
-      <div
-        data-panel-id={PANEL_IDS.AGENT_TERMINAL}
-        tabIndex={-1}
-        className={`relative min-w-0 min-h-0 bg-bg-primary outline-none ${showAgentTerminal ? 'flex-1' : 'hidden'}`}
-      >
-        <FlashOverlay panelId={PANEL_IDS.AGENT_TERMINAL} flashedPanel={flashedPanel} />
-        {agentTerminal}
-      </div>
-
-      {showAgentTerminal && showUserTerminal && (
-        <Divider type="userTerminal" direction="horizontal" draggingDivider={draggingDivider} handleMouseDown={handleMouseDown} />
-      )}
-
-      <div
-        data-panel-id={PANEL_IDS.USER_TERMINAL}
-        tabIndex={-1}
-        className={`relative bg-bg-primary outline-none ${showAgentTerminal ? 'flex-shrink-0' : 'flex-1'} ${!showUserTerminal ? 'hidden' : ''}`}
-        style={showAgentTerminal && showUserTerminal ? { height: userTerminalHeight } : undefined}
-      >
-        <FlashOverlay panelId={PANEL_IDS.USER_TERMINAL} flashedPanel={flashedPanel} />
-        {userTerminal}
-      </div>
-    </div>
-  )
+  return { height: fileViewerSize }
 }
 
 interface LayoutContentAreaProps {
   containerRef: RefObject<HTMLDivElement>
   showSettings: boolean
   showFileViewer: boolean
-  showAgentTerminal: boolean
-  showUserTerminal: boolean
   fileViewerPosition: FileViewerPosition
   layoutSizes: LayoutSizes
   errorMessage?: string | null
   settingsPanel: ReactNode
   fileViewer: ReactNode
-  agentTerminal: ReactNode
-  userTerminal: ReactNode
+  terminal: ReactNode
   flashedPanel: string | null
   draggingDivider: DividerType
   handleMouseDown: (type: DividerType) => (e: React.MouseEvent) => void
@@ -132,20 +72,16 @@ export default function LayoutContentArea({
   containerRef,
   showSettings,
   showFileViewer,
-  showAgentTerminal,
-  showUserTerminal,
   fileViewerPosition,
   layoutSizes,
   errorMessage,
   settingsPanel,
   fileViewer,
-  agentTerminal,
-  userTerminal,
+  terminal,
   flashedPanel,
   draggingDivider,
   handleMouseDown,
 }: LayoutContentAreaProps) {
-  const terminalsVisible = showAgentTerminal || showUserTerminal
   const flexDirection = getContentFlexDirection(showSettings, settingsPanel, fileViewerPosition, showFileViewer, fileViewer)
 
   return (
@@ -156,7 +92,9 @@ export default function LayoutContentArea({
         tabIndex={-1}
         className={`min-w-0 bg-bg-secondary overflow-y-auto outline-none ${showSettings && settingsPanel ? 'flex-1' : 'hidden'}`}
       >
-        {settingsPanel}
+        <PanelErrorBoundary name="Settings">
+          {settingsPanel}
+        </PanelErrorBoundary>
       </div>
 
       {/* Regular content - hidden when settings active, never unmounted */}
@@ -167,40 +105,30 @@ export default function LayoutContentArea({
             data-panel-id={PANEL_IDS.FILE_VIEWER}
             tabIndex={-1}
             className="relative flex-shrink-0 bg-bg-secondary min-h-0 outline-none"
-            style={getFileViewerStyle(fileViewerPosition, terminalsVisible, layoutSizes.fileViewerSize)}
+            style={getFileViewerStyle(fileViewerPosition, layoutSizes.fileViewerSize)}
           >
             <FlashOverlay panelId={PANEL_IDS.FILE_VIEWER} flashedPanel={flashedPanel} />
-            {fileViewer}
+            <PanelErrorBoundary name="File Viewer">
+              {fileViewer}
+            </PanelErrorBoundary>
           </div>
         )}
 
-        {/* Draggable divider between file viewer and terminals */}
-        {showFileViewer && fileViewer && terminalsVisible && (
+        {/* Draggable divider between file viewer and terminal */}
+        {showFileViewer && fileViewer && (
           <Divider type="fileViewer" direction={fileViewerPosition === 'left' ? 'vertical' : 'horizontal'} draggingDivider={draggingDivider} handleMouseDown={handleMouseDown} />
         )}
 
-        <TerminalsPanel
-          showAgentTerminal={showAgentTerminal}
-          showUserTerminal={showUserTerminal}
-          agentTerminal={agentTerminal}
-          userTerminal={userTerminal}
-          flashedPanel={flashedPanel}
-          draggingDivider={draggingDivider}
-          handleMouseDown={handleMouseDown}
-          userTerminalHeight={layoutSizes.userTerminalHeight}
-        />
-
-        {/* Show placeholder if nothing visible */}
-        {!terminalsVisible && !showFileViewer && (
-          <div className="flex-1 flex items-center justify-center bg-bg-primary text-text-secondary">
-            <div className="text-center">
-              <p>No panels visible</p>
-              <p className="text-sm mt-2">
-                Press {formatShortcut('4')} for Agent or {formatShortcut('5')} for Terminal
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Combined terminal area — always visible */}
+        <div
+          data-panel-id="terminal"
+          tabIndex={-1}
+          className="relative flex-1 min-w-0 min-h-0 bg-bg-primary outline-none"
+        >
+          <PanelErrorBoundary name="Terminal">
+            {terminal}
+          </PanelErrorBoundary>
+        </div>
       </div>
     </div>
   )

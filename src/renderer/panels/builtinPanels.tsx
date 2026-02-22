@@ -56,6 +56,14 @@ const SettingsIcon = () => (
   </svg>
 )
 
+const GuideIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+)
+
 export const BUILTIN_PANELS: PanelDefinition[] = [
   {
     id: PANEL_IDS.SIDEBAR,
@@ -87,36 +95,6 @@ export const BUILTIN_PANELS: PanelDefinition[] = [
     resizable: true,
   },
   {
-    id: PANEL_IDS.REVIEW,
-    name: 'Review',
-    icon: <ReviewIcon />,
-    position: 'center-left',
-    defaultVisible: false,
-    defaultInToolbar: true,
-    resizable: true,
-    minSize: 250,
-    maxSize: 600,
-  },
-  {
-    id: PANEL_IDS.AGENT_TERMINAL,
-    name: 'Agent',
-    icon: <TerminalIcon />,
-    position: 'center-main',
-    defaultVisible: true,
-    defaultInToolbar: true,
-  },
-  {
-    id: PANEL_IDS.USER_TERMINAL,
-    name: 'Terminal',
-    icon: <TerminalIcon />,
-    position: 'center-bottom',
-    defaultVisible: false,
-    defaultInToolbar: true,
-    resizable: true,
-    minSize: 100,
-    maxSize: 500,
-  },
-  {
     id: PANEL_IDS.SETTINGS,
     name: 'Settings',
     icon: <SettingsIcon />,
@@ -124,6 +102,18 @@ export const BUILTIN_PANELS: PanelDefinition[] = [
     defaultVisible: false,
     defaultInToolbar: true,
     isGlobal: true,
+  },
+  {
+    id: PANEL_IDS.TUTORIAL,
+    name: 'Guide',
+    icon: <GuideIcon />,
+    position: 'right',
+    defaultVisible: false,
+    defaultInToolbar: true,
+    isGlobal: true,
+    resizable: true,
+    minSize: 280,
+    maxSize: 400,
   },
 ]
 
@@ -135,4 +125,5 @@ export const PanelIcons = {
   review: ReviewIcon,
   terminal: TerminalIcon,
   settings: SettingsIcon,
+  guide: GuideIcon,
 }

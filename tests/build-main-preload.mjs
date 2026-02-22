@@ -28,7 +28,7 @@ const __dirname = __cjs_path__.dirname(__filename);
 const require = __cjs_mod__.createRequire(import.meta.url);
 `
 
-// Build main process
+// Build main process (index + workers — mirrors electron.vite.config.ts)
 await build({
   configFile: false,
   root: ROOT,
@@ -36,11 +36,15 @@ await build({
     ssr: true,
     outDir: 'out/main',
     rollupOptions: {
-      input: resolve(ROOT, 'src/main/index.ts'),
+      input: {
+        index: resolve(ROOT, 'src/main/index.ts'),
+        'workers/fsSearch.worker': resolve(ROOT, 'src/main/workers/fsSearch.worker.ts'),
+        'workers/tsProject.worker': resolve(ROOT, 'src/main/workers/tsProject.worker.ts'),
+      },
       external: electronExternals,
       output: {
         format: 'es',
-        entryFileNames: 'index.js',
+        entryFileNames: '[name].js',
         banner: cjsShim,
       },
     },

@@ -20,13 +20,10 @@ function renderLayout(overrides: Record<string, unknown> = {}) {
       [PANEL_IDS.SIDEBAR]: <div data-testid="sidebar-content">Sidebar</div>,
       [PANEL_IDS.EXPLORER]: <div data-testid="explorer-content">Explorer</div>,
       [PANEL_IDS.FILE_VIEWER]: <div data-testid="fileviewer-content">FileViewer</div>,
-      [PANEL_IDS.AGENT_TERMINAL]: <div data-testid="agent-content">Agent Terminal</div>,
-      [PANEL_IDS.USER_TERMINAL]: <div data-testid="user-content">User Terminal</div>,
+      terminal: <div data-testid="terminal-content">Terminal</div>,
       [PANEL_IDS.SETTINGS]: <div data-testid="settings-content">Settings</div>,
     },
     panelVisibility: {
-      [PANEL_IDS.AGENT_TERMINAL]: true,
-      [PANEL_IDS.USER_TERMINAL]: true,
       [PANEL_IDS.EXPLORER]: true,
       [PANEL_IDS.FILE_VIEWER]: false,
     },
@@ -41,7 +38,7 @@ function renderLayout(overrides: Record<string, unknown> = {}) {
       fileViewerSize: 300,
       userTerminalHeight: 192,
       diffPanelWidth: 320,
-      reviewPanelWidth: 320,
+      tutorialPanelWidth: 320,
     },
     errorMessage: null,
     title: 'Test Session',
@@ -65,8 +62,7 @@ describe('Layout', () => {
     renderLayout()
     expect(screen.getByTestId('sidebar-content')).toBeTruthy()
     expect(screen.getByTestId('explorer-content')).toBeTruthy()
-    expect(screen.getByTestId('agent-content')).toBeTruthy()
-    expect(screen.getByTestId('user-content')).toBeTruthy()
+    expect(screen.getByTestId('terminal-content')).toBeTruthy()
   })
 
   it('hides file viewer when not visible', () => {
@@ -77,8 +73,6 @@ describe('Layout', () => {
   it('shows file viewer when visible', () => {
     renderLayout({
       panelVisibility: {
-        [PANEL_IDS.AGENT_TERMINAL]: true,
-        [PANEL_IDS.USER_TERMINAL]: true,
         [PANEL_IDS.EXPLORER]: true,
         [PANEL_IDS.FILE_VIEWER]: true,
       },
@@ -111,8 +105,6 @@ describe('Layout', () => {
     expect(screen.getByTitle(/Sessions/)).toBeTruthy()
     expect(screen.getByTitle(/Explorer/)).toBeTruthy()
     expect(screen.getByTitle(/File/)).toBeTruthy()
-    expect(screen.getByTitle(/Agent/)).toBeTruthy()
-    expect(screen.getByTitle(/Terminal/)).toBeTruthy()
   })
 
   it('renders profile chip when provided', () => {
@@ -120,16 +112,14 @@ describe('Layout', () => {
     expect(screen.getByTestId('profile')).toBeTruthy()
   })
 
-  it('shows "No panels visible" when all panels hidden', () => {
+  it('always renders terminal area even when other panels hidden', () => {
     renderLayout({
       panelVisibility: {
-        [PANEL_IDS.AGENT_TERMINAL]: false,
-        [PANEL_IDS.USER_TERMINAL]: false,
         [PANEL_IDS.EXPLORER]: false,
         [PANEL_IDS.FILE_VIEWER]: false,
       },
     })
-    expect(screen.getByText('No panels visible')).toBeTruthy()
+    expect(screen.getByTestId('terminal-content')).toBeTruthy()
   })
 
   it('renders panel picker button when onOpenPanelPicker provided', () => {

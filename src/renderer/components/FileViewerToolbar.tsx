@@ -1,10 +1,12 @@
+import { relative } from 'path-browserify'
 import type { EditorActions } from './fileViewers/types'
-import type { FileViewerPosition, ViewMode } from './FileViewer'
+import type { FileStatus, FileViewerPosition, ViewMode } from './FileViewer'
 import type { FileViewerPlugin } from './fileViewers'
 
 interface FileViewerToolbarProps {
   fileName: string
   filePath: string
+  directory?: string
   isDirty: boolean
   isSaving: boolean
   viewMode: ViewMode
@@ -14,6 +16,7 @@ interface FileViewerToolbarProps {
   selectedViewerId: string | null
   canShowDiff: boolean
   diffLabel?: string
+  fileStatus?: FileStatus
   position: FileViewerPosition
   onPositionChange?: (position: FileViewerPosition) => void
   onClose?: () => void
@@ -26,6 +29,7 @@ interface FileViewerToolbarProps {
 export default function FileViewerToolbar({
   fileName,
   filePath,
+  directory,
   isDirty,
   isSaving,
   viewMode,
@@ -35,6 +39,7 @@ export default function FileViewerToolbar({
   selectedViewerId,
   canShowDiff,
   diffLabel,
+  fileStatus,
   position,
   onPositionChange,
   onClose,
@@ -75,7 +80,12 @@ export default function FileViewerToolbar({
             </svg>
           </button>
         )}
-        <span className="text-xs text-text-secondary truncate">{filePath}</span>
+        <span className="text-xs text-text-secondary truncate">{directory ? relative(directory, filePath) : filePath}</span>
+        {fileStatus === 'deleted' && (
+          <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 shrink-0">
+            Deleted
+          </span>
+        )}
         {diffLabel && viewMode === 'diff' && (
           <span className="text-xs px-1.5 py-0.5 rounded bg-bg-tertiary text-text-secondary truncate shrink-0">
             {diffLabel}
@@ -145,56 +155,8 @@ export default function FileViewerToolbar({
           </div>
         )}
 
-        {/* Position toggle icons */}
         {onPositionChange && (
-          <>
-            <button
-              onClick={() => onPositionChange('top')}
-              className={`p-1 rounded transition-colors ${
-                position === 'top'
-                  ? 'bg-accent text-white'
-                  : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
-              }`}
-              title="Position above agent"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="8" rx="1" fill="currentColor" />
-                <rect x="3" y="13" width="18" height="8" rx="1" fill="none" />
-              </svg>
-            </button>
-            <button
-              onClick={() => onPositionChange('left')}
-              className={`p-1 rounded transition-colors ${
-                position === 'left'
-                  ? 'bg-accent text-white'
-                  : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
-              }`}
-              title="Position left of agent"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="8" height="18" rx="1" fill="currentColor" />
-                <rect x="13" y="3" width="8" height="18" rx="1" fill="none" />
-              </svg>
-            </button>
-          </>
+          <PositionToggle position={position} onPositionChange={onPositionChange} />
         )}
         {onClose && (
           <button
@@ -220,5 +182,32 @@ export default function FileViewerToolbar({
         )}
       </div>
     </div>
+  )
+}
+
+function PositionToggle({ position, onPositionChange }: { position: FileViewerPosition; onPositionChange: (p: FileViewerPosition) => void }) {
+  return (
+    <>
+      <button
+        onClick={() => onPositionChange('top')}
+        className={`p-1 rounded transition-colors ${position === 'top' ? 'bg-accent text-white' : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'}`}
+        title="Position above agent"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="8" rx="1" fill="currentColor" />
+          <rect x="3" y="13" width="18" height="8" rx="1" fill="none" />
+        </svg>
+      </button>
+      <button
+        onClick={() => onPositionChange('left')}
+        className={`p-1 rounded transition-colors ${position === 'left' ? 'bg-accent text-white' : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'}`}
+        title="Position left of agent"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="8" height="18" rx="1" fill="currentColor" />
+          <rect x="13" y="3" width="8" height="18" rx="1" fill="none" />
+        </svg>
+      </button>
+    </>
   )
 }

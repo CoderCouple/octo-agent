@@ -1,9 +1,13 @@
 import type { ExplorerProps } from './types'
-import { FileTreeIcon, SourceControlIcon, SearchIcon, RecentIcon } from './icons'
+import { FileTreeIcon, SourceControlIcon, SearchIcon, RecentIcon, ReviewIcon } from './icons'
 import { FileTree } from './FileTree'
 import { SourceControl } from './SourceControl'
 import { SearchPanel } from './SearchPanel'
 import { RecentFiles } from './RecentFiles'
+import ReviewPanel from '../review'
+import { IssuePlanChip } from './IssuePlanChip'
+import { focusSearchInput } from '../../utils/focusHelpers'
+import PanelErrorBoundary from '../PanelErrorBoundary'
 
 export default function Explorer({
   directory,
@@ -25,7 +29,12 @@ export default function Explorer({
   onUpdatePrState,
   repoId,
   agentPtyId,
-  onOpenReview,
+  session,
+  repo,
+  issueNumber,
+  issueTitle,
+  issueUrl,
+  issuePlanExists,
 }: ExplorerProps) {
   if (!directory) {
     return (
@@ -64,7 +73,7 @@ export default function Explorer({
             <SourceControlIcon />
           </button>
           <button
-            onClick={() => onFilterChange('search')}
+            onClick={() => { onFilterChange('search'); focusSearchInput() }}
             className={`p-1 rounded transition-colors ${
               filter === 'search'
                 ? 'bg-accent text-white'
@@ -84,6 +93,17 @@ export default function Explorer({
             title="Recent Files"
           >
             <RecentIcon />
+          </button>
+          <button
+            onClick={() => onFilterChange('review')}
+            className={`p-1 rounded transition-colors ${
+              filter === 'review'
+                ? 'bg-accent text-white'
+                : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'
+            }`}
+            title="Review"
+          >
+            <ReviewIcon />
           </button>
         </div>
       </div>
@@ -110,50 +130,82 @@ export default function Explorer({
         </div>
       )}
 
+      {/* Issue plan chip */}
+      <IssuePlanChip
+        directory={directory}
+        issueNumber={issueNumber}
+        issuePlanExists={issuePlanExists}
+        agentPtyId={agentPtyId}
+        onFileSelect={onFileSelect}
+      />
+
       {/* Tab content - scrollable area below pinned toolbar */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {filter === 'files' && (
-          <FileTree
-            directory={directory}
-            onFileSelect={onFileSelect}
-            selectedFilePath={selectedFilePath}
-            gitStatus={gitStatus}
-          />
+          <PanelErrorBoundary name="File Tree">
+            <FileTree
+              directory={directory}
+              onFileSelect={onFileSelect}
+              selectedFilePath={selectedFilePath}
+              gitStatus={gitStatus}
+            />
+          </PanelErrorBoundary>
         )}
 
         {filter === 'source-control' && (
-          <SourceControl
-            directory={directory}
-            gitStatus={gitStatus}
-            syncStatus={syncStatus}
-            onFileSelect={onFileSelect}
-            onGitStatusRefresh={onGitStatusRefresh}
-            branchStatus={branchStatus}
-            repoId={repoId}
-            agentPtyId={agentPtyId}
-            onUpdatePrState={onUpdatePrState}
-            pushedToMainAt={pushedToMainAt}
-            pushedToMainCommit={pushedToMainCommit}
-            onRecordPushToMain={onRecordPushToMain}
-            onClearPushToMain={onClearPushToMain}
-            onOpenReview={onOpenReview}
-          />
+          <PanelErrorBoundary name="Source Control">
+            <SourceControl
+              directory={directory}
+              gitStatus={gitStatus}
+              syncStatus={syncStatus}
+              onFileSelect={onFileSelect}
+              onGitStatusRefresh={onGitStatusRefresh}
+              branchStatus={branchStatus}
+              repoId={repoId}
+              agentPtyId={agentPtyId}
+              onUpdatePrState={onUpdatePrState}
+              issueNumber={issueNumber}
+              issueTitle={issueTitle}
+              issueUrl={issueUrl}
+              pushedToMainAt={pushedToMainAt}
+              pushedToMainCommit={pushedToMainCommit}
+              onRecordPushToMain={onRecordPushToMain}
+              onClearPushToMain={onClearPushToMain}
+              onOpenReview={() => onFilterChange('review')}
+            />
+          </PanelErrorBoundary>
         )}
 
         {filter === 'search' && (
-          <SearchPanel
-            directory={directory}
-            onFileSelect={onFileSelect}
-          />
+          <PanelErrorBoundary name="Search">
+            <SearchPanel
+              directory={directory}
+              onFileSelect={onFileSelect}
+            />
+          </PanelErrorBoundary>
         )}
 
         {filter === 'recent' && (
-          <RecentFiles
-            recentFiles={recentFiles}
-            onFileSelect={onFileSelect}
-            selectedFilePath={selectedFilePath}
-            directory={directory}
-          />
+          <PanelErrorBoundary name="Recent Files">
+            <RecentFiles
+              recentFiles={recentFiles}
+              onFileSelect={onFileSelect}
+              selectedFilePath={selectedFilePath}
+              directory={directory}
+            />
+          </PanelErrorBoundary>
+        )}
+
+        {filter === 'review' && session && (
+          <PanelErrorBoundary name="Review">
+            <ReviewPanel
+              session={session}
+              repo={repo}
+              onSelectFile={(filePath, openInDiffMode, scrollToLine, diffBaseRef) => {
+                onFileSelect?.({ filePath, openInDiffMode, scrollToLine, diffBaseRef })
+              }}
+            />
+          </PanelErrorBoundary>
         )}
       </div>
     </div>

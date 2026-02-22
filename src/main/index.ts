@@ -10,12 +10,15 @@
  * deterministic mock data during Playwright tests so no real repos, APIs, or
  * config files are touched.
  */
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell, dialog } from 'electron'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
 import { join } from 'path'
 import { existsSync, readFileSync, FSWatcher } from 'fs'
 import * as pty from 'node-pty'
 import { isWindows, isMac } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
+import { resolveShellEnv } from './shellEnv'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
 app.name = 'Broomy'
@@ -161,8 +164,147 @@ const context: HandlerContext & { createWindow: (profileId?: string) => BrowserW
 // Register all IPC handlers
 registerAllHandlers(ipcMain, context)
 
+async function checkForUpdatesFromMenu(): Promise<void> {
+  if (isE2ETest || isDev) {
+    void dialog.showMessageBox({ message: 'Update checking is disabled in development mode.' })
+    return
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    if (result && result.updateInfo.version !== autoUpdater.currentVersion?.version) {
+      // The renderer's VersionIndicator will handle the UI via IPC events
+      const focusedWindow = BrowserWindow.getFocusedWindow()
+      if (focusedWindow) {
+        focusedWindow.webContents.send('updater:updateAvailable', {
+          version: result.updateInfo.version,
+        })
+      }
+    } else {
+      void dialog.showMessageBox({ message: 'You are running the latest version of Broomy.' })
+    }
+  } catch {
+    void dialog.showMessageBox({ message: 'Could not check for updates. Please try again later.' })
+  }
+}
+
+// Build application menu with Help menu
+function buildAppMenu() {
+  const menuTemplate: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac ? [{
+      label: app.name,
+      submenu: [
+        { role: 'about' as const },
+        { type: 'separator' as const },
+        {
+          label: 'Check for Updates...',
+          click: () => { void checkForUpdatesFromMenu() },
+        },
+        { type: 'separator' as const },
+        { role: 'services' as const },
+        { type: 'separator' as const },
+        { role: 'hide' as const },
+        { role: 'hideOthers' as const },
+        { role: 'unhide' as const },
+        { type: 'separator' as const },
+        { role: 'quit' as const },
+      ],
+    }] : []),
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [
+          { type: 'separator' as const },
+          { role: 'front' as const },
+        ] : [
+          { role: 'close' as const },
+        ]),
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Getting Started',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('help:menu', 'getting-started')
+            }
+          },
+        },
+        {
+          label: 'Keyboard Shortcuts',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('help:menu', 'shortcuts')
+            }
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Reset Tutorial Progress',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('help:menu', 'reset-tutorial')
+            }
+          },
+        },
+        { type: 'separator' },
+        ...(!isMac ? [{
+          label: 'Check for Updates...',
+          click: () => { void checkForUpdatesFromMenu() },
+        },
+        { type: 'separator' as const }] : []),
+        {
+          label: 'Report Issue...',
+          click: () => {
+            void shell.openExternal('https://github.com/Broomy-AI/broomy/issues')
+          },
+        },
+      ],
+    },
+  ]
+
+  const menu = Menu.buildFromTemplate(menuTemplate)
+  Menu.setApplicationMenu(menu)
+}
+
 // App lifecycle
-void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
+    await resolveShellEnv()
+
+    // Build the application menu
+    buildAppMenu()
   // Determine the initial profile to open
   let initialProfileId = 'default'
   if (!isE2ETest) {

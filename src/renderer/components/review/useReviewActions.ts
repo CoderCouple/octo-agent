@@ -3,6 +3,7 @@ import type { CodeLocation, RequestedChange, ReviewHistory } from '../../types/r
 import type { Session } from '../../store/sessions'
 import type { ManagedRepo } from '../../../preload/index'
 import { buildReviewPrompt, type PrComment } from '../../utils/reviewPromptBuilder'
+import { focusAgentTerminal } from '../../utils/focusHelpers'
 import type { ReviewDataState } from './useReviewData'
 
 export interface ReviewActions {
@@ -29,6 +30,7 @@ export function useReviewActions(
     commentsFilePath,
     historyFilePath,
     promptFilePath,
+    setFetching,
     setWaitingForAgent,
     setPushing,
     setPushResult,
@@ -45,7 +47,7 @@ export function useReviewActions(
       if (!exists) return false
 
       const content = await window.fs.readFile(gitignorePath)
-      const lines = content.split('\n').map((l: string) => l.trim())
+      const lines = content.split(/\r?\n/).map((l: string) => l.trim())
       return lines.some((line: string) => line === '.broomy' || line === '.broomy/' || line === '/.broomy' || line === '/.broomy/')
     } catch {
       return false
@@ -70,7 +72,7 @@ export function useReviewActions(
   const proceedWithGeneration = async () => {
     setShowGitignoreModal(false)
     setPendingGenerate(false)
-    setWaitingForAgent(true)
+    setFetching(true)
     setError(null)
 
     try {
@@ -93,6 +95,9 @@ export function useReviewActions(
           // Non-fatal - might not have network
         }
       }
+
+      setFetching(false)
+      setWaitingForAgent(true)
 
       // Create .broomy directory
       await window.fs.mkdir(broomyDir)
@@ -139,8 +144,10 @@ export function useReviewActions(
 
       // Send command to agent terminal (user must press enter to confirm)
       await window.pty.write(session.agentPtyId!, 'Please read and follow the instructions in .broomy/review-prompt.md')
+      focusAgentTerminal()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+      setFetching(false)
       setWaitingForAgent(false)
     }
   }

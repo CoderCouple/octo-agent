@@ -21,6 +21,9 @@ interface SourceControlProps {
   repoId?: string
   agentPtyId?: string
   onUpdatePrState?: (prState: PrState, prNumber?: number, prUrl?: string) => void
+  issueNumber?: number
+  issueTitle?: string
+  issueUrl?: string
   pushedToMainAt?: number
   pushedToMainCommit?: string
   onRecordPushToMain?: (commitHash: string) => void
@@ -38,6 +41,9 @@ export function SourceControl({
   repoId,
   agentPtyId,
   onUpdatePrState,
+  issueNumber,
+  issueTitle,
+  issueUrl,
   pushedToMainAt,
   pushedToMainCommit,
   onRecordPushToMain,
@@ -52,7 +58,7 @@ export function SourceControl({
   }, [directory])
 
   const data = useSourceControlData({
-    directory, gitStatus, syncStatus, onUpdatePrState,
+    directory, gitStatus, syncStatus, branchStatus, onUpdatePrState,
     pushedToMainAt, pushedToMainCommit, onClearPushToMain,
     repoId, scView,
   })
@@ -79,7 +85,11 @@ export function SourceControl({
       onSyncWithMain={actions.handleSyncWithMain}
       gitOpError={data.gitOpError}
       onDismissError={() => data.setGitOpError(null)}
-      onFileSelect={onFileSelect}
+      agentMergeMessage={data.agentMergeMessage}
+      onDismissAgentMerge={() => data.setAgentMergeMessage(null)}
+      issueNumber={issueNumber}
+      issueTitle={issueTitle}
+      issueUrl={issueUrl}
     />
   )
 
@@ -155,13 +165,19 @@ export function SourceControl({
         commitMessage={data.commitMessage}
         setCommitMessage={data.setCommitMessage}
         isCommitting={data.isCommitting}
+        isMerging={syncStatus?.isMerging ?? false}
+        hasConflicts={syncStatus?.hasConflicts ?? false}
         commitError={data.commitError}
         commitErrorExpanded={data.commitErrorExpanded}
         setCommitErrorExpanded={data.setCommitErrorExpanded}
         setCommitError={data.setCommitError}
         isSyncing={data.isSyncing}
         onCommit={actions.handleCommit}
+        onCommitMerge={actions.handleCommitMerge}
+        onResolveConflicts={actions.handleResolveConflicts}
+        askedAgentToResolve={data.askedAgentToResolve}
         onSync={actions.handleSync}
+        onSyncWithMain={actions.handleSyncWithMain}
         onPushNewBranch={actions.handlePushNewBranch}
         onStage={actions.handleStage}
         onStageAll={actions.handleStageAll}
@@ -174,6 +190,9 @@ export function SourceControl({
         allowPushToMain={data.currentRepo?.allowPushToMain ?? true}
         onCreatePr={actions.handleCreatePr}
         onPushToMain={actions.handlePushToMain}
+        behindMainCount={data.behindMainCount}
+        isFetchingBehindMain={data.isFetchingBehindMain}
+        isSyncingWithMain={data.isSyncingWithMain}
       />
     </div>
   )
