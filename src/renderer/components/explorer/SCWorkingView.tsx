@@ -259,7 +259,9 @@ function CommitArea({ isMerging, hasConflicts, isCommitting, commitMessage, setC
     <div className="px-3 py-2 border-b border-border">
       {isMerging ? (
         <div className="flex flex-col gap-1.5">
-          <div className="text-xs text-yellow-400 font-medium">Merge in progress</div>
+          <div className={`text-xs font-medium ${hasConflicts ? 'text-yellow-400' : 'text-green-400'}`}>
+            {hasConflicts ? 'Merge in progress' : 'Merge conflicts resolved'}
+          </div>
           {hasConflicts ? (
             <button
               onClick={askedAgentToResolve ? undefined : onResolveConflicts}

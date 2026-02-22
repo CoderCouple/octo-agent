@@ -7,6 +7,7 @@ import { defineConfig } from '@playwright/test'
  */
 export default defineConfig({
   globalSetup: './tests/global-setup.ts',
+  globalTeardown: './tests/global-teardown.ts',
   testDir: './tests/features',
   testIgnore: ['**/_shared/**'],
   timeout: 60000,

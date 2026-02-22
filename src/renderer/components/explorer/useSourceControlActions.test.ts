@@ -636,7 +636,7 @@ describe('useSourceControlActions', () => {
       expect(onGitStatusRefresh).toHaveBeenCalled()
     })
 
-    it('handles merge conflicts with agentPtyId', async () => {
+    it('refreshes git status when merge conflicts detected', async () => {
       vi.mocked(window.git.pullOriginMain).mockResolvedValue({
         success: false,
         hasConflicts: true,
@@ -657,31 +657,8 @@ describe('useSourceControlActions', () => {
         await result.current.handleSyncWithMain()
       })
 
-      expect(window.pty.write).toHaveBeenCalledWith('pty-1', 'resolve all merge conflicts\r')
-      expect(data.setAgentMergeMessage).toHaveBeenCalledWith(
-        'Asked agent to resolve merge conflicts. Wait for the agent to finish, then commit the merge.'
-      )
-    })
-
-    it('handles merge conflicts without agentPtyId', async () => {
-      vi.mocked(window.git.pullOriginMain).mockResolvedValue({
-        success: false,
-        hasConflicts: true,
-      })
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleSyncWithMain()
-      })
-
-      expect(data.setGitOpError).toHaveBeenCalledWith({
-        operation: 'Sync with main',
-        message: 'Merge conflicts detected. Resolve them manually.',
-      })
+      expect(onGitStatusRefresh).toHaveBeenCalled()
+      expect(window.pty.write).not.toHaveBeenCalled()
     })
 
     it('handles sync failure', async () => {

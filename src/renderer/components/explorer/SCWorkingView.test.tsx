@@ -289,9 +289,14 @@ describe('SCWorkingView', () => {
       expect(screen.queryByText('Commit Merge')).toBeNull()
     })
 
-    it('shows merge in progress banner when merging', () => {
-      render(<SCWorkingView {...changesProps} isMerging={true} />)
+    it('shows merge in progress banner when merging with conflicts', () => {
+      render(<SCWorkingView {...changesProps} isMerging={true} hasConflicts={true} />)
       expect(screen.getByText('Merge in progress')).toBeTruthy()
+    })
+
+    it('shows merge conflicts resolved banner when merging without conflicts', () => {
+      render(<SCWorkingView {...changesProps} isMerging={true} hasConflicts={false} />)
+      expect(screen.getByText('Merge conflicts resolved')).toBeTruthy()
     })
 
     it('shows enabled Resolve Conflicts button when merging with conflicts', () => {

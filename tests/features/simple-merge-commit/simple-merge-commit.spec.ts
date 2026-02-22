@@ -1,11 +1,16 @@
 /**
  * Feature Documentation: Simple Merge Commit
  *
- * Exercises the merge commit UI in source control, showing both:
- * - "Resolve Conflicts" disabled state when conflicts exist
- * - "Commit Merge" button when conflicts are resolved
+ * Exercises the merge commit UI in source control, showing:
+ * - "Resolve Conflicts" button when files contain conflict markers
+ * - "Commit Merge" button when conflicts are resolved (even if not yet staged)
  *
- * Run with: pnpm test:feature-docs
+ * Conflict detection checks actual file contents for <<<<<<< markers rather than
+ * git index status, so files resolved by an agent but not staged are correctly
+ * recognized as resolved. The user clicks "Resolve Conflicts" to ask the agent —
+ * this is no longer done automatically on sync.
+ *
+ * Run with: pnpm test:feature-docs simple-merge-commit
  */
 import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test'
 import path from 'path'
@@ -80,8 +85,10 @@ test.afterAll(async () => {
       title: 'Simple Merge Commit',
       description:
         'When a git merge is in progress, the source control panel detects the merge state and adapts the UI. ' +
-        'If there are unresolved conflicts, a disabled "Resolve Conflicts" button is shown. ' +
-        'Once all conflicts are resolved, the button becomes "Commit Merge" — clicking it ' +
+        'Conflict detection reads actual file contents for <<<<<<< markers, so files resolved by an agent ' +
+        'but not yet staged are correctly recognized as resolved. ' +
+        'If conflicts remain, a "Resolve Conflicts" button lets the user ask the agent to fix them. ' +
+        'Once resolved, the button becomes "Commit Merge" — clicking it ' +
         'stages all files and commits the merge with the auto-generated merge message.',
       steps,
     },
@@ -114,10 +121,9 @@ test.describe.serial('Feature: Simple Merge Commit', () => {
       screenshotPath: 'screenshots/01-merge-conflicts.png',
       caption: 'Merge with unresolved conflicts',
       description:
-        'When a merge has unresolved conflicts, the source control panel shows a yellow ' +
-        '"Merge in progress" banner and an orange "Resolve Conflicts" button. ' +
-        'Clicking it asks the agent to resolve the conflicts. After clicking, the button ' +
-        'changes to "Resolving Conflicts..." and becomes disabled until the agent finishes.',
+        'When a merge has unresolved conflicts (detected by checking file contents for <<<<<<< markers), ' +
+        'the source control panel shows a yellow "Merge in progress" banner and an orange ' +
+        '"Resolve Conflicts" button. Clicking it asks the agent to resolve the conflicts.',
     })
 
     await electronApp.close()
@@ -129,9 +135,9 @@ test.describe.serial('Feature: Simple Merge Commit', () => {
     await waitForApp(page)
     await openSourceControl(page)
 
-    // Verify merge banner
-    const mergeBanner = page.locator('text=Merge in progress')
-    await expect(mergeBanner).toBeVisible({ timeout: 5000 })
+    // Verify resolved banner (green text)
+    const resolvedBanner = page.locator('text=Merge conflicts resolved')
+    await expect(resolvedBanner).toBeVisible({ timeout: 5000 })
 
     // Verify "Commit Merge" button is enabled
     const commitMergeBtn = page.locator('button:has-text("Commit Merge")')
@@ -146,8 +152,8 @@ test.describe.serial('Feature: Simple Merge Commit', () => {
       screenshotPath: 'screenshots/02-commit-merge.png',
       caption: 'Conflicts resolved — Commit Merge button enabled',
       description:
-        'After all conflicts are resolved, the button changes to "Commit Merge" and becomes clickable. ' +
-        'Clicking it stages all files (including the resolved conflict files) and commits the merge ' +
+        'Once all conflict markers are removed from files (even if the files haven\'t been staged yet), ' +
+        'the button changes to "Commit Merge". Clicking it stages all files and commits the merge ' +
         'using the auto-generated merge message. No manual commit message is needed.',
     })
 

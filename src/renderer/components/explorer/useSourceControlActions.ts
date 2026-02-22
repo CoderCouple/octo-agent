@@ -71,13 +71,6 @@ function createGitActions(config: GitActionsConfig) {
         if (result.success) {
           onGitStatusRefresh?.()
         } else if (result.hasConflicts) {
-          if (agentPtyId) {
-            await window.pty.write(agentPtyId, 'resolve all merge conflicts\r')
-            focusAgentTerminal()
-            setAgentMergeMessage('Asked agent to resolve merge conflicts. Wait for the agent to finish, then commit the merge.')
-          } else {
-            setGitOpError({ operation: 'Sync with main', message: 'Merge conflicts detected. Resolve them manually.' })
-          }
           onGitStatusRefresh?.()
         } else {
           setGitOpError({ operation: 'Sync with main', message: result.error || 'Sync failed' })
