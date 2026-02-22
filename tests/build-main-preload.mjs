@@ -5,15 +5,22 @@
 import { build } from 'vite'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { readFileSync } from 'fs'
 import { builtinModules } from 'module'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
 
+// Externalize all dependencies from package.json + builtins + electron
+// This mirrors what electron-vite's externalizeDepsPlugin does automatically
+const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf-8'))
+const depNames = [
+  ...Object.keys(pkg.dependencies || {}),
+  ...Object.keys(pkg.devDependencies || {}),
+]
 const electronExternals = [
   'electron',
-  'node-pty',
-  'simple-git',
+  ...depNames,
   ...builtinModules,
   ...builtinModules.map((m) => `node:${m}`),
 ]

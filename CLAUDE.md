@@ -146,7 +146,7 @@ Playwright tests in `tests/`. The test system:
    - Captures a cropped screenshot at each meaningful stage (use helpers from `_shared/screenshot-helpers.ts`)
    - Collects step metadata (screenshot path + caption) into an array
    - In `afterAll`, calls `generateFeaturePage()` to produce `index.html`, then `generateIndex()` to update the table of contents
-3. Run `pnpm test:feature-docs` to verify screenshots and HTML generate correctly
+3. Run `pnpm test:feature-docs <feature-slug>` to verify screenshots and HTML generate correctly
 4. The generated screenshots and HTML are gitignored — only the `.spec.ts` is committed
 
 ### Screenshot guidelines
@@ -159,8 +159,8 @@ Playwright tests in `tests/`. The test system:
 ### Running feature docs
 
 ```bash
-pnpm test:feature-docs        # Generate all feature docs
-pnpm test:feature-docs:view   # Generate and open in browser
+pnpm test:feature-docs <feature-slug> [feature-slug...]  # Generate docs for specific features
+pnpm test:feature-docs:view                               # Open generated docs in browser
 ```
 
-Feature doc tests are **not** run as part of `pnpm test`. They are separate, on-demand tests for documenting and validating feature flows. See `tests/features/session-switching/` for a reference example.
+Feature doc tests are **not** run as part of `pnpm test:e2e`. They are separate, on-demand tests for documenting and validating feature flows. See `tests/features/session-switching/` for a reference example.
