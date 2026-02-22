@@ -337,6 +337,21 @@ async function handleShow(ctx: HandlerContext, repoPath: string, filePath: strin
       lines.push('}')
       return lines.join('\n')
     }
+    if (filePath.endsWith('README.md')) {
+      return [
+        '# Project Overview',
+        '',
+        'This project provides a basic authentication system with token validation for API access.',
+        '',
+        '## Getting Started',
+        '',
+        'Install dependencies and run the development server.',
+        '',
+        '## Architecture',
+        '',
+        'The authentication middleware validates incoming requests by checking the token from the Authorization header.',
+      ].join('\n')
+    }
     return `export function main() {
   console.log('Hello')
 }`

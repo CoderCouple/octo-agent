@@ -182,6 +182,25 @@ async function handleReadFile(ctx: HandlerContext, filePath: string) {
     if (ctx.isScreenshotMode && (/\/tmp\/broomy-review-[^/]+\/comments\.json$/.exec(filePath))) {
       return '[]'
     }
+    if (filePath.endsWith('README.md')) {
+      return [
+        '# Project Overview',
+        '',
+        'This project provides a comprehensive authentication system with JWT-based token management, session tracking, and automatic token rotation for secure API access across distributed microservices.',
+        '',
+        '## Getting Started',
+        '',
+        'To get started with this project, you need to install the dependencies using your preferred package manager, configure the environment variables for JWT secrets and Redis connection strings, and run the database migrations before starting the development server.',
+        '',
+        '## Architecture',
+        '',
+        'The authentication middleware validates incoming requests by extracting the bearer token from the Authorization header, verifying the JWT signature and expiration, checking the session store for revocation status, and attaching the decoded user payload to the request object for downstream handlers.',
+        '',
+        '## Contributing',
+        '',
+        'We welcome contributions from the community. Please read our contributing guidelines, set up your development environment following the instructions above, create a feature branch, write tests for your changes, and submit a pull request with a clear description of what you changed and why.',
+      ].join('\n')
+    }
     // E2E mode: fake review data for ReviewPanel (non-screenshot mode)
     if (/\.broomy[/\\]review\.json$/.exec(filePath)) {
       return JSON.stringify({
