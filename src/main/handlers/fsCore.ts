@@ -182,6 +182,52 @@ async function handleReadFile(ctx: HandlerContext, filePath: string) {
     if (ctx.isScreenshotMode && (/\/tmp\/broomy-review-[^/]+\/comments\.json$/.exec(filePath))) {
       return '[]'
     }
+    // E2E mode: fake review data for ReviewPanel (non-screenshot mode)
+    if (/\.broomy[/\\]review\.json$/.exec(filePath)) {
+      return JSON.stringify({
+        generatedAt: '2025-01-15T10:30:00Z',
+        headCommit: 'abc123',
+        overview: {
+          purpose: 'Add dark mode theme support with user preference persistence.',
+          approach: 'Uses CSS custom properties for theming with a React context provider. Theme preference persisted in localStorage.',
+        },
+        changePatterns: [
+          {
+            id: 'cp1',
+            title: 'Theme context and provider',
+            description: 'New ThemeContext and ThemeProvider for managing dark/light mode state.',
+            locations: [{ file: 'src/contexts/ThemeContext.tsx', startLine: 1 }],
+          },
+          {
+            id: 'cp2',
+            title: 'CSS variable updates',
+            description: 'Updated CSS custom properties in :root and [data-theme="dark"] selectors.',
+            locations: [{ file: 'src/styles/theme.css', startLine: 12 }],
+          },
+        ],
+        potentialIssues: [
+          {
+            id: 'pi1',
+            title: 'Flash of unstyled content on load',
+            description: 'Theme is read from localStorage after React hydration, causing a brief flash of default theme.',
+            severity: 'medium',
+            locations: [{ file: 'src/contexts/ThemeContext.tsx', startLine: 15 }],
+          },
+        ],
+        designDecisions: [
+          {
+            id: 'dd1',
+            title: 'localStorage over cookies',
+            description: 'Theme preference stored in localStorage — simpler but not available server-side.',
+            alternatives: ['HTTP cookie', 'Server-side session'],
+            locations: [],
+          },
+        ],
+      })
+    }
+    if (/\.broomy[/\\]comments\.json$/.exec(filePath)) {
+      return '[]'
+    }
     return '// Mock file content for E2E tests\nexport const test = true;\n'
   }
 
@@ -228,6 +274,10 @@ async function handleAppendFile(ctx: HandlerContext, filePath: string, content: 
 
 async function handleExists(ctx: HandlerContext, filePath: string) {
   if (ctx.isScreenshotMode && (/\/tmp\/broomy-review-[^/]+\/(review|comments)\.json$/.exec(filePath))) {
+    return true
+  }
+  // E2E mode: review/comments files always exist for mock data
+  if (ctx.isE2ETest && /\.broomy[/\\](review|comments)\.json$/.exec(filePath)) {
     return true
   }
   try {

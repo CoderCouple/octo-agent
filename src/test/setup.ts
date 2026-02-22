@@ -106,6 +106,8 @@ const mockGh: Mocked<GhApi> = {
   mergeBranchToMain: vi.fn().mockResolvedValue({ success: true }),
   getPrCreateUrl: vi.fn().mockResolvedValue(null),
   prComments: vi.fn().mockResolvedValue([]),
+  prDescription: vi.fn().mockResolvedValue(null),
+  prIssueComments: vi.fn().mockResolvedValue([]),
   replyToComment: vi.fn().mockResolvedValue({ success: true }),
   prsToReview: vi.fn().mockResolvedValue([]),
   submitDraftReview: vi.fn().mockResolvedValue({ success: true }),
