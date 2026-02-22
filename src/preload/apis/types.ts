@@ -69,6 +69,14 @@ export type GitHubPrComment = {
   inReplyToId?: number
 }
 
+export type GitHubIssueComment = {
+  id: number
+  body: string
+  author: string
+  createdAt: string
+  url: string
+}
+
 export type GitHubPrForReview = {
   number: number
   title: string
