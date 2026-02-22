@@ -16,8 +16,9 @@ pnpm build           # Build without packaging
 pnpm test:unit       # Run Vitest unit tests
 pnpm test:unit:watch # Unit tests in watch mode
 pnpm test:unit:coverage # Unit tests with 90% line coverage threshold
-pnpm test            # Run Playwright E2E tests (headless)
-pnpm test:headed     # E2E tests with visible window
+pnpm test:e2e        # Run Playwright E2E tests (fast, uses Vite dev server)
+pnpm test:e2e:headed # E2E tests with visible window
+pnpm test:e2e:built  # E2E tests against production build (for CI)
 pnpm dist            # Build and package for macOS
 pnpm check:all       # Run all project-specific checks (workers, etc.)
 ```
@@ -79,9 +80,9 @@ Session store debounces saves with 500ms delay. Runtime-only state (`status`, `i
 
 ## Testing
 
-**Always confirm these checks pass before considering work done: `pnpm lint`, `pnpm typecheck`, `pnpm check:all`, `pnpm test:unit`, and `pnpm test` (E2E).**
+**Always confirm these checks pass before considering work done: `pnpm lint`, `pnpm typecheck`, `pnpm check:all`, `pnpm test:unit`, and `pnpm test:e2e`.**
 
-**IMPORTANT: Do NOT run E2E tests (`pnpm test`) without first asking the user for confirmation.** E2E tests launch Electron and are resource-intensive — running them from multiple agents simultaneously will hose the machine. Always run lint, typecheck, and unit tests first, then ask before running E2E.
+**IMPORTANT: Do NOT run E2E tests (`pnpm test:e2e`) without first asking the user for confirmation.** E2E tests launch Electron and are resource-intensive — running them from multiple agents simultaneously will hose the machine. Always run lint, typecheck, and unit tests first, then ask before running E2E.
 
 ### Unit Tests
 
@@ -110,7 +111,7 @@ Playwright tests in `tests/`. The test system:
 5. Run `pnpm check:all` to verify project-specific checks pass (worker config, etc.)
 6. Run `pnpm test:unit` to verify all unit tests pass
 7. Run `pnpm test:unit:coverage` to confirm coverage stays above 90%
-8. **Ask the user for confirmation**, then run `pnpm test` to verify E2E tests still pass
+8. **Ask the user for confirmation**, then run `pnpm test:e2e` to verify E2E tests still pass
 
 ## Adding New Features
 
@@ -145,7 +146,7 @@ Playwright tests in `tests/`. The test system:
    - Captures a cropped screenshot at each meaningful stage (use helpers from `_shared/screenshot-helpers.ts`)
    - Collects step metadata (screenshot path + caption) into an array
    - In `afterAll`, calls `generateFeaturePage()` to produce `index.html`, then `generateIndex()` to update the table of contents
-3. Run `pnpm test:feature-docs` to verify screenshots and HTML generate correctly
+3. Run `pnpm test:feature-docs <feature-slug>` to verify screenshots and HTML generate correctly
 4. The generated screenshots and HTML are gitignored — only the `.spec.ts` is committed
 
 ### Screenshot guidelines
@@ -158,8 +159,8 @@ Playwright tests in `tests/`. The test system:
 ### Running feature docs
 
 ```bash
-pnpm test:feature-docs        # Generate all feature docs
-pnpm test:feature-docs:view   # Generate and open in browser
+pnpm test:feature-docs <feature-slug> [feature-slug...]  # Generate docs for specific features
+pnpm test:feature-docs:view                               # Open generated docs in browser
 ```
 
-Feature doc tests are **not** run as part of `pnpm test`. They are separate, on-demand tests for documenting and validating feature flows. See `tests/features/session-switching/` for a reference example.
+Feature doc tests are **not** run as part of `pnpm test:e2e`. They are separate, on-demand tests for documenting and validating feature flows. See `tests/features/session-switching/` for a reference example.
