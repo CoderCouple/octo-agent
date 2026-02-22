@@ -120,6 +120,7 @@ export default function MonacoDiffViewer({
           keepCurrentModifiedModel={true}
           options={{
             readOnly: true,
+            wordWrap: 'on',
             renderSideBySide: sideBySide,
             minimap: { enabled: false },
             fontSize: 13,
