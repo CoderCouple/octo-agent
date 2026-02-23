@@ -105,19 +105,11 @@ describe('NewSessionDialog', () => {
     expect(screen.getByTestId('home-view')).toBeTruthy()
   })
 
-  it('calls onCancel when backdrop is clicked', () => {
+  it('does not call onCancel when backdrop is clicked', () => {
     const onCancel = vi.fn()
     const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={onCancel} />)
-    // Click the backdrop (outermost div)
+    // Click the backdrop (outermost div) — should NOT close
     fireEvent.click(container.firstElementChild!)
-    expect(onCancel).toHaveBeenCalled()
-  })
-
-  it('does not call onCancel when inner dialog is clicked', () => {
-    const onCancel = vi.fn()
-    render(<NewSessionDialog onComplete={vi.fn()} onCancel={onCancel} />)
-    // Click the inner dialog content
-    fireEvent.click(screen.getByTestId('home-view'))
     expect(onCancel).not.toHaveBeenCalled()
   })
 
