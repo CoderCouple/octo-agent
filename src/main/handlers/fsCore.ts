@@ -1,6 +1,6 @@
 import { BrowserWindow, IpcMain, IpcMainInvokeEvent } from 'electron'
 import { watch } from 'fs'
-import { readdir, readFile, writeFile, appendFile, stat, mkdir, rm, access } from 'fs/promises'
+import { readdir, readFile, writeFile, appendFile, stat, mkdir, rm, access, rename } from 'fs/promises'
 import { join } from 'path'
 import { normalizePath } from '../platform'
 import { HandlerContext } from './types'
@@ -344,6 +344,19 @@ async function handleRm(ctx: HandlerContext, targetPath: string) {
   }
 }
 
+async function handleRename(ctx: HandlerContext, oldPath: string, newPath: string) {
+  if (ctx.isE2ETest) {
+    return { success: true }
+  }
+
+  try {
+    await rename(oldPath, newPath)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
 async function handleCreateFile(ctx: HandlerContext, filePath: string) {
   if (ctx.isE2ETest) {
     return { success: true }
@@ -441,6 +454,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('fs:exists', (_event, filePath: string) => handleExists(ctx, filePath))
   ipcMain.handle('fs:mkdir', (_event, dirPath: string) => handleMkdir(ctx, dirPath))
   ipcMain.handle('fs:rm', (_event, targetPath: string) => handleRm(ctx, targetPath))
+  ipcMain.handle('fs:rename', (_event, oldPath: string, newPath: string) => handleRename(ctx, oldPath, newPath))
   ipcMain.handle('fs:createFile', (_event, filePath: string) => handleCreateFile(ctx, filePath))
   ipcMain.handle('fs:readFileBase64', (_event, filePath: string) => handleReadFileBase64(ctx, filePath))
   ipcMain.handle('fs:watch', (_event, id: string, dirPath: string) => handleWatch(ctx, _event, id, dirPath))

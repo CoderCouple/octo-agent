@@ -159,6 +159,7 @@ const mockFs: Mocked<FsApi> = {
   exists: vi.fn().mockResolvedValue(true),
   mkdir: vi.fn().mockResolvedValue({ success: true }),
   rm: vi.fn().mockResolvedValue({ success: true }),
+  rename: vi.fn().mockResolvedValue({ success: true }),
   createFile: vi.fn().mockResolvedValue({ success: true }),
   search: vi.fn().mockResolvedValue([]),
   watch: vi.fn().mockResolvedValue({ success: true }),
