@@ -58,6 +58,17 @@ if ! security find-identity -v -p codesigning | grep -q "$CSC_NAME"; then
 fi
 echo "  Found: $CSC_NAME"
 
+# --- Check for running Broomy from dist/ ---
+if [ -d dist ]; then
+  BROOMY_PIDS=$(pgrep -f "dist/.*Broomy" 2>/dev/null || true)
+  if [ -n "$BROOMY_PIDS" ]; then
+    echo ""
+    echo "ERROR: Broomy is running from dist/. Quit it before releasing."
+    echo "  PIDs: $BROOMY_PIDS"
+    exit 1
+  fi
+fi
+
 # --- Clean previous build artifacts ---
 echo ""
 echo "Cleaning dist/..."

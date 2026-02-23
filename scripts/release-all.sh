@@ -27,6 +27,17 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
+# --- Pre-flight: Broomy not running from dist/ ---
+if [ -d dist ]; then
+  BROOMY_PIDS=$(pgrep -f "dist/.*Broomy" 2>/dev/null || true)
+  if [ -n "$BROOMY_PIDS" ]; then
+    echo ""
+    echo "Error: Broomy is running from dist/. Quit it before releasing."
+    echo "  PIDs: $BROOMY_PIDS"
+    exit 1
+  fi
+fi
+
 # --- Pre-flight: signing credentials ---
 if [ -f .env ]; then
   echo "Loading credentials from .env"
