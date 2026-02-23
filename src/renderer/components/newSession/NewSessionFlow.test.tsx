@@ -46,6 +46,13 @@ describe('NewSessionDialog', () => {
     expect(onCancel).not.toHaveBeenCalled()
   })
 
+  it('does not call onCancel when dialog content is clicked', () => {
+    const onCancel = vi.fn()
+    render(<NewSessionDialog onComplete={vi.fn()} onCancel={onCancel} />)
+    fireEvent.click(screen.getByText('New Session'))
+    expect(onCancel).not.toHaveBeenCalled()
+  })
+
   it('navigates to clone view', () => {
     const { container } = render(<NewSessionDialog onComplete={vi.fn()} onCancel={vi.fn()} />)
     fireEvent.click(findButton(container, { textIncludes: 'lone' }))
