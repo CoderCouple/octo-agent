@@ -28,7 +28,12 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
   ipcMain.handle('shells:list', (_event) => {
     if (ctx.isE2ETest) {
-      return [{ path: getDefaultShell(), name: 'Default Shell', isDefault: true }]
+      const defaultPath = getDefaultShell()
+      return [
+        { path: defaultPath, name: 'Default Shell', isDefault: true },
+        { path: '/bin/bash', name: 'Bash', isDefault: false },
+        { path: '/bin/sh', name: 'sh', isDefault: false },
+      ]
     }
     return getAvailableShells()
   })
