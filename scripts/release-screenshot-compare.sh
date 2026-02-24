@@ -71,12 +71,12 @@ run_walkthroughs() {
   output_file=$(mktemp)
   local exit_code=0
 
-  # Run all features in a single Playwright invocation
-  if npx playwright test --config playwright.features.config.ts "${test_paths[@]}" 2>&1 | tee "$output_file"; then
-    exit_code=0
-  else
-    exit_code=$?
-  fi
+  # Run all features in a single Playwright invocation.
+  # Redirect to file instead of tee to avoid pipe keeping processes alive on timeout.
+  npx playwright test --config playwright.features.config.ts "${test_paths[@]}" > "$output_file" 2>&1 || exit_code=$?
+
+  # Show a condensed summary of what Playwright reported
+  grep -E '^\s*(✓|✘|-)' "$output_file" | tail -20 || true
 
   # Collect screenshots and determine per-feature pass/fail from output
   local passed=0
