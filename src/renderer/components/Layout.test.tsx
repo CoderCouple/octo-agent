@@ -66,8 +66,10 @@ describe('Layout', () => {
   })
 
   it('hides file viewer when not visible', () => {
-    renderLayout()
-    expect(screen.queryByTestId('fileviewer-content')).toBeNull()
+    const { container } = renderLayout()
+    // File viewer is now always mounted but hidden via CSS
+    const fileViewerPanel = container.querySelector(`[data-panel-id="${PANEL_IDS.FILE_VIEWER}"]`)!
+    expect(fileViewerPanel.className).toContain('hidden')
   })
 
   it('shows file viewer when visible', () => {

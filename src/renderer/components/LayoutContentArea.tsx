@@ -99,25 +99,23 @@ export default function LayoutContentArea({
 
       {/* Regular content - hidden when settings active, never unmounted */}
       <div className={`flex-1 min-w-0 min-h-0 flex ${flexDirection}`}>
-        {/* File viewer */}
-        {showFileViewer && fileViewer && (
-          <div
-            data-panel-id={PANEL_IDS.FILE_VIEWER}
-            tabIndex={-1}
-            className="relative flex-shrink-0 bg-bg-secondary min-h-0 outline-none"
-            style={getFileViewerStyle(fileViewerPosition, layoutSizes.fileViewerSize)}
-          >
-            <FlashOverlay panelId={PANEL_IDS.FILE_VIEWER} flashedPanel={flashedPanel} />
-            <PanelErrorBoundary name="File Viewer">
-              {fileViewer}
-            </PanelErrorBoundary>
-          </div>
-        )}
+        {/* File viewer - uses hidden/visible instead of ternary to preserve per-session state */}
+        <div
+          data-panel-id={PANEL_IDS.FILE_VIEWER}
+          tabIndex={-1}
+          className={`relative flex-shrink-0 bg-bg-secondary min-h-0 outline-none ${showFileViewer && fileViewer ? '' : 'hidden'}`}
+          style={showFileViewer && fileViewer ? getFileViewerStyle(fileViewerPosition, layoutSizes.fileViewerSize) : undefined}
+        >
+          <FlashOverlay panelId={PANEL_IDS.FILE_VIEWER} flashedPanel={flashedPanel} />
+          <PanelErrorBoundary name="File Viewer">
+            {fileViewer}
+          </PanelErrorBoundary>
+        </div>
 
         {/* Draggable divider between file viewer and terminal */}
-        {showFileViewer && fileViewer && (
+        <div className={showFileViewer && fileViewer ? '' : 'hidden'}>
           <Divider type="fileViewer" direction={fileViewerPosition === 'left' ? 'vertical' : 'horizontal'} draggingDivider={draggingDivider} handleMouseDown={handleMouseDown} />
-        )}
+        </div>
 
         {/* Combined terminal area — always visible */}
         <div

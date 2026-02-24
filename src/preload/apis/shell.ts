@@ -1,8 +1,10 @@
 import { ipcRenderer } from 'electron'
+import type { ShellOption } from './types'
 
 export type ShellApi = {
   exec: (command: string, cwd: string) => Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }>
   openExternal: (url: string) => Promise<void>
+  listShells: () => Promise<ShellOption[]>
 }
 
 export type DialogApi = {
@@ -34,6 +36,7 @@ export type UpdateApi = {
 export const shellApi: ShellApi = {
   exec: (command, cwd) => ipcRenderer.invoke('shell:exec', command, cwd),
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
+  listShells: () => ipcRenderer.invoke('shells:list'),
 }
 
 export const dialogApi: DialogApi = {

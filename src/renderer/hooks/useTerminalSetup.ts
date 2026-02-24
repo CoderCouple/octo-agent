@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { SerializeAddon } from '@xterm/addon-serialize'
 import { useErrorStore } from '../store/errors'
 import { useSessionStore } from '../store/sessions'
+import { useRepoStore } from '../store/repos'
 import { terminalBufferRegistry } from '../utils/terminalBufferRegistry'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 import { usePlanDetection } from './usePlanDetection'
@@ -345,6 +346,7 @@ export function useTerminalSetup(
 ): TerminalSetupResult {
   const { sessionId, isAgentTerminal, isActive, restartKey } = config
   const s = useTerminalState(config)
+  const defaultShell = useRepoStore((state) => state.defaultShell)
 
   // Main terminal setup effect
   useEffect(() => {
@@ -410,7 +412,7 @@ export function useTerminalSetup(
     const id = `${sessionId}-${Date.now()}`
     s.ptyIdRef.current = id
 
-    window.pty.create({ id, cwd: effectCwd, command: cmd, sessionId, env: envVars })
+    window.pty.create({ id, cwd: effectCwd, command: cmd, sessionId, env: envVars, shell: defaultShell || undefined })
       .then(() => {
         if (isAgentTerminal && sessionId) s.setAgentPtyId(sessionId, id)
 

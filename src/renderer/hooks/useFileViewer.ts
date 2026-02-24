@@ -14,7 +14,7 @@ interface UseFileViewerParams {
   searchHighlight?: string
   onSaveComplete?: () => void
   onDirtyStateChange?: (isDirty: boolean) => void
-  saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
+  onSaveFunctionChange?: (fn: (() => Promise<void>) | null) => void
   diffBaseRef?: string
   diffCurrentRef?: string
 }
@@ -27,7 +27,7 @@ export function useFileViewer({
   scrollToLine,
   onSaveComplete,
   onDirtyStateChange,
-  saveRef,
+  onSaveFunctionChange,
   diffBaseRef,
   diffCurrentRef,
 }: UseFileViewerParams) {
@@ -114,15 +114,15 @@ export function useFileViewer({
     }
   }, [filePath, onSaveComplete, checkForExternalChanges])
 
-  // Expose save function to parent via ref
+  // Expose save function to parent via callback
   useEffect(() => {
-    if (saveRef) {
-      saveRef.current = isDirty && editedContent ? async () => { await handleSave(editedContent) } : null
+    if (onSaveFunctionChange) {
+      onSaveFunctionChange(isDirty && editedContent ? async () => { await handleSave(editedContent) } : null)
     }
     return () => {
-      if (saveRef) saveRef.current = null
+      if (onSaveFunctionChange) onSaveFunctionChange(null)
     }
-  }, [saveRef, isDirty, editedContent, handleSave])
+  }, [onSaveFunctionChange, isDirty, editedContent, handleSave])
 
   // Save button handler
   const handleSaveButton = useCallback(async () => {

@@ -6,7 +6,7 @@ import { isWindows, getDefaultShell } from '../platform'
 import { HandlerContext } from './types'
 
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
-  ipcMain.handle('pty:create', (_event, options: { id: string; cwd: string; command?: string; sessionId?: string; env?: Record<string, string> }) => {
+  ipcMain.handle('pty:create', (_event, options: { id: string; cwd: string; command?: string; sessionId?: string; env?: Record<string, string>; shell?: string }) => {
     // Find the sender window
     const senderWindow = BrowserWindow.fromWebContents(_event.sender)
     // In E2E test mode, use a controlled shell that won't run real commands
@@ -53,7 +53,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
       shell = isWindows ? (process.env.ComSpec || 'cmd.exe') : '/bin/bash'
       shellArgs = isWindows ? ['/c', ctx.E2E_MOCK_SHELL] : [ctx.E2E_MOCK_SHELL]
     } else {
-      shell = getDefaultShell()
+      shell = options.shell || getDefaultShell()
       shellArgs = []
       // Pass agent command as shell args so it runs after the shell profile loads,
       // instead of writing it to the PTY after a blind delay.

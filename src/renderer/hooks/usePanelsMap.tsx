@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import TabbedTerminal from '../components/TabbedTerminal'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import Explorer from '../components/explorer'
@@ -29,8 +29,9 @@ export interface PanelsMapConfig {
   diffBaseRef: string | undefined
   diffCurrentRef: string | undefined
   diffLabel: string | undefined
-  setIsFileViewerDirty: (dirty: boolean) => void
-  saveCurrentFileRef: React.MutableRefObject<(() => Promise<void>) | null>
+  setIsFileViewerDirty: (sessionId: string, dirty: boolean) => void
+  registerSaveFunction: (sessionId: string, fn: (() => Promise<void>) | null) => void
+  unregisterSaveFunction: (sessionId: string) => void
   handleSelectSession: (id: string) => void
   handleNewSession: () => void
   removeSession: (id: string, deleteWorktree: boolean) => void
@@ -101,41 +102,61 @@ function useExplorerPanel(config: PanelsMapConfig) {
 
 function useFileViewerPanel(config: PanelsMapConfig) {
   const {
-    activeSession, navigateToFile, openFileInDiffMode, scrollToLine, searchHighlight,
-    diffBaseRef, diffCurrentRef, diffLabel, setIsFileViewerDirty, saveCurrentFileRef,
+    sessions, activeSessionId, navigateToFile, openFileInDiffMode, scrollToLine, searchHighlight,
+    diffBaseRef, diffCurrentRef, diffLabel, setIsFileViewerDirty,
+    registerSaveFunction,
     handleToggleFileViewer, handleFileViewerPositionChange, selectedFileStatus, fetchGitStatus,
   } = config
 
   const [tmpdir, setTmpdir] = useState('/tmp')
   useEffect(() => { void window.app.tmpdir().then(setTmpdir) }, [])
 
+  // Create stable per-session callbacks for save function registration
+  const makeSaveFunctionCallback = useCallback((sessionId: string) => {
+    return (fn: (() => Promise<void>) | null) => {
+      registerSaveFunction(sessionId, fn)
+    }
+  }, [registerSaveFunction])
+
   return useMemo(() => {
-    if (!activeSession?.showFileViewer) return null
+    if (sessions.length === 0) return null
     return (
-      <FileViewer
-        filePath={activeSession.selectedFilePath}
-        position={activeSession.fileViewerPosition}
-        onPositionChange={handleFileViewerPositionChange}
-        onClose={handleToggleFileViewer}
-        fileStatus={selectedFileStatus}
-        directory={activeSession.directory}
-        onSaveComplete={fetchGitStatus}
-        initialViewMode={openFileInDiffMode ? 'diff' : 'latest'}
-        scrollToLine={scrollToLine}
-        searchHighlight={searchHighlight}
-        onDirtyStateChange={setIsFileViewerDirty}
-        saveRef={saveCurrentFileRef}
-        diffBaseRef={diffBaseRef}
-        diffCurrentRef={diffCurrentRef}
-        diffLabel={diffLabel}
-        reviewContext={activeSession.sessionType === 'review' ? {
-          sessionDirectory: activeSession.directory,
-          commentsFilePath: `${tmpdir}/broomy-review-${activeSession.id}/comments.json`,
-        } : undefined}
-        onOpenFile={(targetPath, line) => navigateToFile({ filePath: targetPath, openInDiffMode: false, scrollToLine: line })}
-      />
+      <div className="h-full w-full relative">
+        {sessions.map((session) => {
+          const isActive = session.id === activeSessionId
+          return (
+            <div
+              key={session.id}
+              className={`absolute inset-0 ${isActive ? '' : 'hidden'}`}
+            >
+              <FileViewer
+                filePath={session.selectedFilePath}
+                position={session.fileViewerPosition}
+                onPositionChange={handleFileViewerPositionChange}
+                onClose={handleToggleFileViewer}
+                fileStatus={isActive ? selectedFileStatus : undefined}
+                directory={session.directory}
+                onSaveComplete={isActive ? fetchGitStatus : undefined}
+                initialViewMode={isActive && openFileInDiffMode ? 'diff' : 'latest'}
+                scrollToLine={isActive ? scrollToLine : undefined}
+                searchHighlight={isActive ? searchHighlight : undefined}
+                onDirtyStateChange={(dirty) => setIsFileViewerDirty(session.id, dirty)}
+                onSaveFunctionChange={makeSaveFunctionCallback(session.id)}
+                diffBaseRef={isActive ? diffBaseRef : undefined}
+                diffCurrentRef={isActive ? diffCurrentRef : undefined}
+                diffLabel={isActive ? diffLabel : undefined}
+                reviewContext={session.sessionType === 'review' ? {
+                  sessionDirectory: session.directory,
+                  commentsFilePath: `${tmpdir}/broomy-review-${session.id}/comments.json`,
+                } : undefined}
+                onOpenFile={isActive ? (targetPath, line) => navigateToFile({ filePath: targetPath, openInDiffMode: false, scrollToLine: line }) : undefined}
+              />
+            </div>
+          )
+        })}
+      </div>
     )
-  }, [activeSession, selectedFileStatus, openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel, fetchGitStatus, handleToggleFileViewer, navigateToFile, tmpdir])
+  }, [sessions, activeSessionId, selectedFileStatus, openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel, fetchGitStatus, handleToggleFileViewer, handleFileViewerPositionChange, navigateToFile, tmpdir, setIsFileViewerDirty, makeSaveFunctionCallback])
 }
 
 export function usePanelsMap(config: PanelsMapConfig) {

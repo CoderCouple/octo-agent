@@ -1,6 +1,6 @@
 import { BrowserWindow, IpcMain, dialog, Menu, shell } from 'electron'
 import { exec } from 'child_process'
-import { getExecShell, normalizePath } from '../platform'
+import { getExecShell, normalizePath, getAvailableShells, getDefaultShell } from '../platform'
 import { HandlerContext, expandHomePath } from './types'
 
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
@@ -24,6 +24,18 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
   ipcMain.handle('shell:openExternal', async (_event, url: string) => {
     await shell.openExternal(url)
+  })
+
+  ipcMain.handle('shells:list', (_event) => {
+    if (ctx.isE2ETest) {
+      const defaultPath = getDefaultShell()
+      return [
+        { path: defaultPath, name: 'Default Shell', isDefault: true },
+        { path: '/bin/bash', name: 'Bash', isDefault: false },
+        { path: '/bin/sh', name: 'sh', isDefault: false },
+      ]
+    }
+    return getAvailableShells()
   })
 
   ipcMain.handle('dialog:openFolder', async (_event) => {

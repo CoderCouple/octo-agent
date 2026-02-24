@@ -65,9 +65,11 @@ describe('LayoutContentArea', () => {
     expect(screen.getByTestId('file-viewer')).toBeTruthy()
   })
 
-  it('does not render file viewer when showFileViewer is false', () => {
-    renderContentArea({ showFileViewer: false })
-    expect(screen.queryByTestId('file-viewer')).toBeNull()
+  it('hides file viewer panel when showFileViewer is false (CSS hidden, still mounted)', () => {
+    const { container } = renderContentArea({ showFileViewer: false })
+    // File viewer is still in the DOM (mounted) but the panel container is hidden via CSS
+    const fileViewerPanel = container.querySelector(`[data-panel-id="${PANEL_IDS.FILE_VIEWER}"]`)!
+    expect(fileViewerPanel.className).toContain('hidden')
   })
 
   it('hides content area when errorMessage is provided', () => {
@@ -112,12 +114,16 @@ describe('LayoutContentArea', () => {
     expect(dividers.length).toBeGreaterThan(0)
   })
 
-  it('does not render divider when only terminal visible', () => {
+  it('hides divider when only terminal visible', () => {
     const { container } = renderContentArea({
       showFileViewer: false,
     })
+    // Divider is still in the DOM but its parent wrapper is hidden
     const dividers = container.querySelectorAll('.cursor-row-resize, .cursor-col-resize')
-    expect(dividers.length).toBe(0)
+    if (dividers.length > 0) {
+      // Divider's parent wrapper should be hidden
+      expect(dividers[0].parentElement!.className).toContain('hidden')
+    }
   })
 
   it('applies flex-row direction when fileViewerPosition is left', () => {

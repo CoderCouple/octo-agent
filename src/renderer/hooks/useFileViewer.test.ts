@@ -292,35 +292,38 @@ describe('useFileViewer', () => {
     })
   })
 
-  describe('saveRef', () => {
-    it('exposes save function when dirty with content', () => {
+  describe('onSaveFunctionChange', () => {
+    it('calls callback with save function when dirty with content', () => {
       vi.mocked(window.fs.writeFile).mockResolvedValue({ success: true })
-      const saveRef = { current: null } as React.MutableRefObject<(() => Promise<void>) | null>
+      const onSaveFunctionChange = vi.fn()
 
       const { result } = renderHook(() =>
-        useFileViewer({ filePath: '/test/file.ts', saveRef })
+        useFileViewer({ filePath: '/test/file.ts', onSaveFunctionChange })
       )
 
-      // Initially null since not dirty
-      expect(saveRef.current).toBeNull()
+      // Initially called with null since not dirty
+      expect(onSaveFunctionChange).toHaveBeenCalledWith(null)
 
       // Mark dirty
       act(() => {
         result.current.handleDirtyChange(true, 'edited')
       })
 
-      expect(saveRef.current).toBeInstanceOf(Function)
+      // Should have been called with a function
+      const lastCall = onSaveFunctionChange.mock.calls[onSaveFunctionChange.mock.calls.length - 1]
+      expect(lastCall[0]).toBeInstanceOf(Function)
     })
 
-    it('clears saveRef on unmount', () => {
-      const saveRef = { current: null } as React.MutableRefObject<(() => Promise<void>) | null>
+    it('calls callback with null on unmount', () => {
+      const onSaveFunctionChange = vi.fn()
 
       const { unmount } = renderHook(() =>
-        useFileViewer({ filePath: '/test/file.ts', saveRef })
+        useFileViewer({ filePath: '/test/file.ts', onSaveFunctionChange })
       )
 
+      onSaveFunctionChange.mockClear()
       unmount()
-      expect(saveRef.current).toBeNull()
+      expect(onSaveFunctionChange).toHaveBeenCalledWith(null)
     })
   })
 

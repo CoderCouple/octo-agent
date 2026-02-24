@@ -75,7 +75,8 @@ function makeConfig(overrides: Partial<PanelsMapConfig> = {}): PanelsMapConfig {
     diffCurrentRef: undefined,
     diffLabel: undefined,
     setIsFileViewerDirty: vi.fn(),
-    saveCurrentFileRef: { current: null },
+    registerSaveFunction: vi.fn(),
+    unregisterSaveFunction: vi.fn(),
     handleSelectSession: vi.fn(),
     handleNewSession: vi.fn(),
     removeSession: vi.fn(),
@@ -138,12 +139,13 @@ describe('usePanelsMap', () => {
     expect(result.current[PANEL_IDS.EXPLORER]).not.toBeNull()
   })
 
-  it('returns null for fileViewer when showFileViewer is false', () => {
+  it('returns fileViewer container element (always mounted for per-session state)', () => {
     const session = makeSession({ showFileViewer: false })
     const config = makeConfig({ sessions: [session], activeSession: session })
     const { result } = renderHook(() => usePanelsMap(config))
 
-    expect(result.current[PANEL_IDS.FILE_VIEWER]).toBeNull()
+    // File viewer panel now always returns a container when sessions exist
+    expect(result.current[PANEL_IDS.FILE_VIEWER]).not.toBeNull()
   })
 
   it('returns fileViewer element when showFileViewer is true', () => {
@@ -152,6 +154,13 @@ describe('usePanelsMap', () => {
     const { result } = renderHook(() => usePanelsMap(config))
 
     expect(result.current[PANEL_IDS.FILE_VIEWER]).not.toBeNull()
+  })
+
+  it('returns null for fileViewer when there are no sessions', () => {
+    const config = makeConfig({ sessions: [], activeSessionId: null, activeSession: undefined })
+    const { result } = renderHook(() => usePanelsMap(config))
+
+    expect(result.current[PANEL_IDS.FILE_VIEWER]).toBeNull()
   })
 
   it('returns null for settings when globalPanelVisibility settings is false', () => {

@@ -127,6 +127,7 @@ async function doSave(): Promise<void> {
     })),
     repos,
     defaultCloneDir: repoState.defaultCloneDir || undefined,
+    defaultShell: repoState.defaultShell || undefined,
     showSidebar: sessionState.globalPanelVisibility[PANEL_IDS.SIDEBAR] ?? true,
     sidebarWidth: sessionState.sidebarWidth,
     toolbarPanels: sessionState.toolbarPanels,

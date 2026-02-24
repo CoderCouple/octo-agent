@@ -31,7 +31,7 @@ interface FileViewerProps {
   scrollToLine?: number // Line number to scroll to
   searchHighlight?: string // Text to highlight in the file
   onDirtyStateChange?: (isDirty: boolean) => void // Report dirty state to parent
-  saveRef?: React.MutableRefObject<(() => Promise<void>) | null> // Ref for parent to trigger save
+  onSaveFunctionChange?: (fn: (() => Promise<void>) | null) => void // Callback for parent to receive save function
   diffBaseRef?: string // Git ref to compare against (e.g. 'origin/main' for branch changes)
   diffCurrentRef?: string // Git ref for the "modified" side (e.g. commit hash for commit diffs)
   diffLabel?: string // Label to display in the header (e.g. "abc1234: commit message")
@@ -39,7 +39,7 @@ interface FileViewerProps {
   onOpenFile?: (filePath: string, line?: number) => void // Navigate to a different file (e.g. go-to-definition)
 }
 
-export default function FileViewer({ filePath, position = 'top', onPositionChange, onClose, fileStatus, directory, onSaveComplete, initialViewMode = 'latest', scrollToLine, searchHighlight, onDirtyStateChange, saveRef, diffBaseRef, diffCurrentRef, diffLabel, reviewContext, onOpenFile }: FileViewerProps) {
+export default function FileViewer({ filePath, position = 'top', onPositionChange, onClose, fileStatus, directory, onSaveComplete, initialViewMode = 'latest', scrollToLine, searchHighlight, onDirtyStateChange, onSaveFunctionChange, diffBaseRef, diffCurrentRef, diffLabel, reviewContext, onOpenFile }: FileViewerProps) {
   const viewer = useFileViewer({
     filePath,
     fileStatus,
@@ -49,7 +49,7 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
     searchHighlight,
     onSaveComplete,
     onDirtyStateChange,
-    saveRef,
+    onSaveFunctionChange,
     diffBaseRef,
     diffCurrentRef,
   })

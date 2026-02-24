@@ -117,6 +117,7 @@ const mockGh: Mocked<GhApi> = {
 const mockShell: Mocked<ShellApi> = {
   exec: vi.fn().mockResolvedValue({ success: true, stdout: '', stderr: '', exitCode: 0 }),
   openExternal: vi.fn().mockResolvedValue(undefined),
+  listShells: vi.fn().mockResolvedValue([{ path: '/bin/bash', name: 'Bash', isDefault: true }]),
 }
 
 // Mock window.repos
@@ -159,6 +160,7 @@ const mockFs: Mocked<FsApi> = {
   exists: vi.fn().mockResolvedValue(true),
   mkdir: vi.fn().mockResolvedValue({ success: true }),
   rm: vi.fn().mockResolvedValue({ success: true }),
+  rename: vi.fn().mockResolvedValue({ success: true }),
   createFile: vi.fn().mockResolvedValue({ success: true }),
   search: vi.fn().mockResolvedValue([]),
   watch: vi.fn().mockResolvedValue({ success: true }),

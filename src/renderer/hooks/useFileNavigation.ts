@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { resolveNavigation, applyPendingNavigation, type NavigationTarget } from '../utils/fileNavigation'
 
 export function useFileNavigation({
@@ -16,14 +16,29 @@ export function useFileNavigation({
   const [diffBaseRef, setDiffBaseRef] = useState<string | undefined>(undefined)
   const [diffCurrentRef, setDiffCurrentRef] = useState<string | undefined>(undefined)
   const [diffLabel, setDiffLabel] = useState<string | undefined>(undefined)
-  const [isFileViewerDirty, setIsFileViewerDirty] = useState(false)
   const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | null>(null)
-  const saveCurrentFileRef = React.useRef<(() => Promise<void>) | null>(null)
+
+  // Per-session dirty state and save function maps
+  const dirtyMapRef = useRef<Record<string, boolean>>({})
+  const saveMapRef = useRef<Record<string, (() => Promise<void>) | null>>({})
+
+  const setIsFileViewerDirty = useCallback((sessionId: string, dirty: boolean) => {
+    dirtyMapRef.current[sessionId] = dirty
+  }, [])
+
+  const registerSaveFunction = useCallback((sessionId: string, fn: (() => Promise<void>) | null) => {
+    saveMapRef.current[sessionId] = fn
+  }, [])
+
+  const unregisterSaveFunction = useCallback((sessionId: string) => {
+    saveMapRef.current[sessionId] = null
+  }, [])
 
   // Navigate to a file, checking for unsaved changes first
   const navigateToFile = useCallback((target: NavigationTarget) => {
     if (!activeSessionId) return
-    const result = resolveNavigation(target, activeSessionSelectedFilePath, isFileViewerDirty)
+    const isDirty = dirtyMapRef.current[activeSessionId] ?? false
+    const result = resolveNavigation(target, activeSessionSelectedFilePath, isDirty)
 
     if (result.action === 'update-scroll' || result.action === 'navigate') {
       setOpenFileInDiffMode(result.state.openFileInDiffMode)
@@ -39,11 +54,14 @@ export function useFileNavigation({
     if (result.action === 'pending') {
       setPendingNavigation(result.target)
     }
-  }, [activeSessionId, activeSessionSelectedFilePath, isFileViewerDirty, selectFile])
+  }, [activeSessionId, activeSessionSelectedFilePath, selectFile])
 
   const handlePendingSave = useCallback(async () => {
-    if (saveCurrentFileRef.current) {
-      await saveCurrentFileRef.current()
+    if (activeSessionId) {
+      const saveFn = saveMapRef.current[activeSessionId]
+      if (saveFn) {
+        await saveFn()
+      }
     }
     if (pendingNavigation && activeSessionId) {
       const { state, filePath } = applyPendingNavigation(pendingNavigation)
@@ -56,7 +74,9 @@ export function useFileNavigation({
       selectFile(activeSessionId, filePath)
     }
     setPendingNavigation(null)
-    setIsFileViewerDirty(false)
+    if (activeSessionId) {
+      dirtyMapRef.current[activeSessionId] = false
+    }
   }, [pendingNavigation, activeSessionId, selectFile])
 
   const handlePendingDiscard = useCallback(() => {
@@ -68,7 +88,9 @@ export function useFileNavigation({
       setDiffBaseRef(state.diffBaseRef)
       setDiffCurrentRef(state.diffCurrentRef)
       setDiffLabel(state.diffLabel)
-      setIsFileViewerDirty(false)
+      if (activeSessionId) {
+        dirtyMapRef.current[activeSessionId] = false
+      }
       selectFile(activeSessionId, filePath)
     }
     setPendingNavigation(null)
@@ -85,13 +107,13 @@ export function useFileNavigation({
     diffBaseRef,
     diffCurrentRef,
     diffLabel,
-    isFileViewerDirty,
-    setIsFileViewerDirty,
     pendingNavigation,
-    saveCurrentFileRef,
     navigateToFile,
     handlePendingSave,
     handlePendingDiscard,
     handlePendingCancel,
+    setIsFileViewerDirty,
+    registerSaveFunction,
+    unregisterSaveFunction,
   }
 }

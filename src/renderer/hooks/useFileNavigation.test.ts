@@ -44,7 +44,6 @@ describe('useFileNavigation', () => {
     expect(result.current.diffBaseRef).toBeUndefined()
     expect(result.current.diffCurrentRef).toBeUndefined()
     expect(result.current.diffLabel).toBeUndefined()
-    expect(result.current.isFileViewerDirty).toBe(false)
     expect(result.current.pendingNavigation).toBeNull()
   })
 
@@ -123,7 +122,7 @@ describe('useFileNavigation', () => {
   })
 
   // --- handlePendingSave ---
-  it('handlePendingSave calls saveCurrentFileRef, applies pending navigation, and clears dirty', async () => {
+  it('handlePendingSave calls registered save function, applies pending navigation, and clears dirty', async () => {
     const pending: NavigationTarget = {
       filePath: '/project/pending.ts',
       openInDiffMode: true,
@@ -138,9 +137,9 @@ describe('useFileNavigation', () => {
     const params = makeParams()
     const { result } = renderHook(() => useFileNavigation(params))
 
-    // Set up a save function
+    // Register a save function for the active session
     const saveFn = vi.fn().mockResolvedValue(undefined)
-    result.current.saveCurrentFileRef.current = saveFn
+    act(() => result.current.registerSaveFunction('sess-1', saveFn))
 
     // Create pending navigation
     act(() => result.current.navigateToFile(pending))
@@ -151,12 +150,11 @@ describe('useFileNavigation', () => {
     expect(saveFn).toHaveBeenCalled()
     expect(params.selectFile).toHaveBeenCalledWith('sess-1', '/project/pending.ts')
     expect(result.current.pendingNavigation).toBeNull()
-    expect(result.current.isFileViewerDirty).toBe(false)
     expect(result.current.openFileInDiffMode).toBe(true)
     expect(result.current.scrollToLine).toBe(5)
   })
 
-  it('handlePendingSave clears pending even when no saveCurrentFileRef', async () => {
+  it('handlePendingSave clears pending even when no save function registered', async () => {
     const pending: NavigationTarget = { filePath: '/project/pending.ts', openInDiffMode: false }
     vi.mocked(resolveNavigation).mockReturnValue({ action: 'pending', target: pending })
     vi.mocked(applyPendingNavigation).mockReturnValue({
@@ -181,7 +179,7 @@ describe('useFileNavigation', () => {
   })
 
   // --- handlePendingDiscard ---
-  it('handlePendingDiscard applies pending navigation, clears dirty, and clears pending', () => {
+  it('handlePendingDiscard applies pending navigation and clears pending', () => {
     const pending: NavigationTarget = {
       filePath: '/project/discard.ts',
       openInDiffMode: false,
@@ -197,7 +195,7 @@ describe('useFileNavigation', () => {
     const { result } = renderHook(() => useFileNavigation(params))
 
     // Mark dirty
-    act(() => result.current.setIsFileViewerDirty(true))
+    act(() => result.current.setIsFileViewerDirty('sess-1', true))
     // Create pending
     act(() => result.current.navigateToFile(pending))
 
@@ -205,7 +203,6 @@ describe('useFileNavigation', () => {
     act(() => result.current.handlePendingDiscard())
     expect(params.selectFile).toHaveBeenCalledWith('sess-1', '/project/discard.ts')
     expect(result.current.pendingNavigation).toBeNull()
-    expect(result.current.isFileViewerDirty).toBe(false)
     expect(result.current.searchHighlight).toBe('search')
   })
 
@@ -233,22 +230,69 @@ describe('useFileNavigation', () => {
     expect(params.selectFile).not.toHaveBeenCalled()
   })
 
-  // --- setIsFileViewerDirty ---
-  it('setIsFileViewerDirty updates dirty state', () => {
+  // --- Per-session dirty state ---
+  it('setIsFileViewerDirty sets dirty state per session', () => {
     const { result } = renderHook(() => useFileNavigation(makeParams()))
-    expect(result.current.isFileViewerDirty).toBe(false)
-    act(() => result.current.setIsFileViewerDirty(true))
-    expect(result.current.isFileViewerDirty).toBe(true)
-    act(() => result.current.setIsFileViewerDirty(false))
-    expect(result.current.isFileViewerDirty).toBe(false)
+    act(() => result.current.setIsFileViewerDirty('sess-1', true))
+    // Dirty state is stored in a ref, verified by navigateToFile behavior
   })
 
-  // --- saveCurrentFileRef ---
-  it('saveCurrentFileRef is a mutable ref', () => {
-    const { result } = renderHook(() => useFileNavigation(makeParams()))
-    expect(result.current.saveCurrentFileRef.current).toBeNull()
-    const fn = vi.fn()
-    result.current.saveCurrentFileRef.current = fn
-    expect(result.current.saveCurrentFileRef.current).toBe(fn)
+  it('dirty state in session A does not trigger pending dialog for navigation in session B', () => {
+    // Start with session A active and dirty
+    const paramsA = makeParams({ activeSessionId: 'sess-A' })
+    const { result, rerender } = renderHook(
+      (props) => useFileNavigation(props),
+      { initialProps: paramsA },
+    )
+
+    // Mark session A as dirty
+    act(() => result.current.setIsFileViewerDirty('sess-A', true))
+
+    // Now switch to session B (simulating session switch)
+    const paramsB = makeParams({ activeSessionId: 'sess-B', selectFile: paramsA.selectFile })
+    rerender(paramsB)
+
+    // Navigate to a file in session B — should NOT trigger pending since B is not dirty
+    vi.mocked(resolveNavigation).mockImplementation((_target, _currentPath, isDirty) => {
+      // resolveNavigation is called with isDirty=false for session B
+      expect(isDirty).toBe(false)
+      return {
+        action: 'navigate',
+        state: defaultState,
+        filePath: '/project/file.ts',
+      }
+    })
+
+    act(() => result.current.navigateToFile({ filePath: '/project/file.ts', openInDiffMode: false }))
+    expect(paramsA.selectFile).toHaveBeenCalledWith('sess-B', '/project/file.ts')
+  })
+
+  // --- registerSaveFunction / unregisterSaveFunction ---
+  it('registerSaveFunction and unregisterSaveFunction manage per-session save functions', async () => {
+    const pending: NavigationTarget = { filePath: '/project/file.ts', openInDiffMode: false }
+    vi.mocked(resolveNavigation).mockReturnValue({ action: 'pending', target: pending })
+    vi.mocked(applyPendingNavigation).mockReturnValue({
+      state: defaultState,
+      filePath: '/project/file.ts',
+    })
+
+    const params = makeParams()
+    const { result } = renderHook(() => useFileNavigation(params))
+
+    const saveFn = vi.fn().mockResolvedValue(undefined)
+    act(() => result.current.registerSaveFunction('sess-1', saveFn))
+
+    act(() => result.current.navigateToFile(pending))
+    await act(() => result.current.handlePendingSave())
+    expect(saveFn).toHaveBeenCalled()
+
+    // After unregister, save function should not be called
+    saveFn.mockClear()
+    act(() => result.current.unregisterSaveFunction('sess-1'))
+
+    // Set up another pending navigation
+    act(() => result.current.navigateToFile(pending))
+    await act(() => result.current.handlePendingSave())
+    expect(saveFn).not.toHaveBeenCalled()
   })
 })

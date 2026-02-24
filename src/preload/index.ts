@@ -13,7 +13,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 // Re-export all types so existing imports from '../../preload/index' still work
-export type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo, GitHubIssue, GitHubPrStatus, GitHubPrComment, GitHubPrForReview, GitCommitInfo, WorktreeInfo, AgentData, LayoutSizesData, PanelVisibility, SessionData, ConfigData, ProfileData, ProfilesData, MenuItemDef, TsProjectContext } from './apis/types'
+export type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo, GitHubIssue, GitHubPrStatus, GitHubPrComment, GitHubPrForReview, GitCommitInfo, WorktreeInfo, AgentData, LayoutSizesData, PanelVisibility, SessionData, ConfigData, ProfileData, ProfilesData, MenuItemDef, TsProjectContext, ShellOption } from './apis/types'
 export type { PtyApi } from './apis/pty'
 export type { FsApi } from './apis/fs'
 export type { GitApi } from './apis/git'
@@ -53,6 +53,11 @@ import { ghApi } from './apis/gh'
 import { configApi, profilesApi, agentsApi, reposApi } from './apis/config'
 import { shellApi, dialogApi, appApi, updateApi } from './apis/shell'
 import { menuApi, tsApi } from './apis/menu'
+
+// Forward menu:select-all from main process to a DOM CustomEvent
+ipcRenderer.on('menu:select-all', () => {
+  window.dispatchEvent(new CustomEvent('app:select-all'))
+})
 
 // Expose all APIs to the renderer process via context bridge
 contextBridge.exposeInMainWorld('pty', ptyApi)
