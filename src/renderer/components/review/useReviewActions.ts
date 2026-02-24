@@ -140,7 +140,7 @@ export function useReviewActions(
       if (session.prNumber) {
         try {
           const branch = await window.git.getBranch(session.directory)
-          await window.git.pullPrBranch(session.directory, branch, session.prNumber)
+          await window.git.syncReviewBranch(session.directory, branch, session.prNumber)
         } catch {
           // Non-fatal - might not have network
         }

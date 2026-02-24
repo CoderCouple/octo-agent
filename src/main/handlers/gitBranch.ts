@@ -187,7 +187,7 @@ async function handleFetchBranch(ctx: HandlerContext, repoPath: string, branchNa
   }
 }
 
-async function handleFetchPrHead(ctx: HandlerContext, repoPath: string, prNumber: number, targetBranch?: string) {
+async function handleFetchReviewPrHead(ctx: HandlerContext, repoPath: string, prNumber: number, targetBranch?: string) {
   if (ctx.isE2ETest) {
     return { success: true }
   }
@@ -196,7 +196,8 @@ async function handleFetchPrHead(ctx: HandlerContext, repoPath: string, prNumber
     const git = simpleGit(expandHomePath(repoPath))
     if (targetBranch) {
       // Fetch into a named remote-tracking ref so origin/${targetBranch} exists
-      await git.fetch('origin', `pull/${prNumber}/head:refs/remotes/origin/${targetBranch}`)
+      // Use + prefix to allow non-fast-forward updates (force-pushed PRs)
+      await git.fetch('origin', `+pull/${prNumber}/head:refs/remotes/origin/${targetBranch}`)
     } else {
       await git.fetch('origin', `pull/${prNumber}/head`)
     }
@@ -206,10 +207,10 @@ async function handleFetchPrHead(ctx: HandlerContext, repoPath: string, prNumber
   }
 }
 
-// Fetch and merge latest changes for a PR branch.
+// Fetch and reset to latest changes for a PR branch.
 // Tries fetching by branch name first (same-repo PRs), falls back to PR ref (fork PRs).
-// For fork PRs, updates the remote-tracking ref so origin/${branchName} stays current.
-async function handlePullPrBranch(ctx: HandlerContext, repoPath: string, branchName: string, prNumber: number) {
+// Uses reset --hard instead of merge so force-pushed PRs update cleanly.
+async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, branchName: string, prNumber: number) {
   if (ctx.isE2ETest) {
     return { success: true }
   }
@@ -220,14 +221,15 @@ async function handlePullPrBranch(ctx: HandlerContext, repoPath: string, branchN
     // Try fetching the branch by name (works for same-repo PRs)
     try {
       await git.fetch('origin', branchName)
-      await git.merge([`origin/${branchName}`])
-      return { success: true }
     } catch {
       // Fall back to PR ref (fork PRs) - fetch into named ref so origin/${branchName} updates
-      await git.fetch('origin', `pull/${prNumber}/head:refs/remotes/origin/${branchName}`)
-      await git.merge([`origin/${branchName}`])
-      return { success: true }
+      // Use + prefix to allow non-fast-forward updates (force-pushed PRs)
+      await git.fetch('origin', `+pull/${prNumber}/head:refs/remotes/origin/${branchName}`)
     }
+
+    // Reset to match remote — review branches shouldn't have local commits
+    await git.reset(['--hard', `origin/${branchName}`])
+    return { success: true }
   } catch (error) {
     return { success: false, error: String(error) }
   }
@@ -318,8 +320,8 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('git:headCommit', (_event, repoPath: string) => handleHeadCommit(ctx, repoPath))
   ipcMain.handle('git:listBranches', (_event, repoPath: string) => handleListBranches(ctx, repoPath))
   ipcMain.handle('git:fetchBranch', (_event, repoPath: string, branchName: string) => handleFetchBranch(ctx, repoPath, branchName))
-  ipcMain.handle('git:fetchPrHead', (_event, repoPath: string, prNumber: number, targetBranch?: string) => handleFetchPrHead(ctx, repoPath, prNumber, targetBranch))
-  ipcMain.handle('git:pullPrBranch', (_event, repoPath: string, branchName: string, prNumber: number) => handlePullPrBranch(ctx, repoPath, branchName, prNumber))
+  ipcMain.handle('git:fetchReviewPrHead', (_event, repoPath: string, prNumber: number, targetBranch?: string) => handleFetchReviewPrHead(ctx, repoPath, prNumber, targetBranch))
+  ipcMain.handle('git:syncReviewBranch', (_event, repoPath: string, branchName: string, prNumber: number) => handleSyncReviewBranch(ctx, repoPath, branchName, prNumber))
   ipcMain.handle('git:isMergedInto', (_event, repoPath: string, ref: string) => handleIsMergedInto(ctx, repoPath, ref))
   ipcMain.handle('git:hasBranchCommits', (_event, repoPath: string, ref: string) => handleHasBranchCommits(ctx, repoPath, ref))
   ipcMain.handle('git:worktreeRemove', (_event, repoPath: string, worktreePath: string) => handleWorktreeRemove(ctx, repoPath, worktreePath))

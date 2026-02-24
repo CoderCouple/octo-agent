@@ -150,14 +150,14 @@ describe('preload git API', () => {
     expect(mockInvoke).toHaveBeenCalledWith('git:fetchBranch', '/repo', 'branch')
   })
 
-  it('fetchPrHead invokes git:fetchPrHead', async () => {
-    await gitApi.fetchPrHead('/repo', 42, 'target')
-    expect(mockInvoke).toHaveBeenCalledWith('git:fetchPrHead', '/repo', 42, 'target')
+  it('fetchReviewPrHead invokes git:fetchReviewPrHead', async () => {
+    await gitApi.fetchReviewPrHead('/repo', 42, 'target')
+    expect(mockInvoke).toHaveBeenCalledWith('git:fetchReviewPrHead', '/repo', 42, 'target')
   })
 
-  it('pullPrBranch invokes git:pullPrBranch', async () => {
-    await gitApi.pullPrBranch('/repo', 'branch', 42)
-    expect(mockInvoke).toHaveBeenCalledWith('git:pullPrBranch', '/repo', 'branch', 42)
+  it('syncReviewBranch invokes git:syncReviewBranch', async () => {
+    await gitApi.syncReviewBranch('/repo', 'branch', 42)
+    expect(mockInvoke).toHaveBeenCalledWith('git:syncReviewBranch', '/repo', 'branch', 42)
   })
 
   it('isMergedInto invokes git:isMergedInto', async () => {

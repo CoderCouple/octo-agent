@@ -119,7 +119,7 @@ describe('ReviewPrsView', () => {
     ])
     vi.mocked(window.git.worktreeList).mockResolvedValue([])
     vi.mocked(window.git.fetchBranch).mockResolvedValue({ success: false })
-    vi.mocked(window.git.fetchPrHead).mockResolvedValue({ success: false, error: 'Permission denied' })
+    vi.mocked(window.git.fetchReviewPrHead).mockResolvedValue({ success: false, error: 'Permission denied' })
 
     render(
       <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />

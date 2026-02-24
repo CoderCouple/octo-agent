@@ -9,6 +9,7 @@ const mockGitInstance = {
   branch: vi.fn(),
   fetch: vi.fn(),
   merge: vi.fn(),
+  reset: vi.fn(),
 }
 
 vi.mock('simple-git', () => ({
@@ -81,8 +82,8 @@ describe('gitBranch handlers', () => {
       expect(handlers['git:headCommit']).toBeDefined()
       expect(handlers['git:listBranches']).toBeDefined()
       expect(handlers['git:fetchBranch']).toBeDefined()
-      expect(handlers['git:fetchPrHead']).toBeDefined()
-      expect(handlers['git:pullPrBranch']).toBeDefined()
+      expect(handlers['git:fetchReviewPrHead']).toBeDefined()
+      expect(handlers['git:syncReviewBranch']).toBeDefined()
       expect(handlers['git:isMergedInto']).toBeDefined()
       expect(handlers['git:hasBranchCommits']).toBeDefined()
       expect(handlers['git:worktreeRemove']).toBeDefined()
@@ -319,50 +320,52 @@ describe('gitBranch handlers', () => {
     })
   })
 
-  describe('git:fetchPrHead', () => {
+  describe('git:fetchReviewPrHead', () => {
     it('returns success in E2E mode', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
-      expect(await handlers['git:fetchPrHead'](null, '/repo', 42)).toEqual({ success: true })
+      expect(await handlers['git:fetchReviewPrHead'](null, '/repo', 42)).toEqual({ success: true })
     })
 
     it('fetches PR head with target branch', async () => {
       mockGitInstance.fetch.mockResolvedValue(undefined)
       const handlers = setupHandlers()
-      await handlers['git:fetchPrHead'](null, '/repo', 42, 'pr-branch')
-      expect(mockGitInstance.fetch).toHaveBeenCalledWith('origin', 'pull/42/head:refs/remotes/origin/pr-branch')
+      await handlers['git:fetchReviewPrHead'](null, '/repo', 42, 'pr-branch')
+      expect(mockGitInstance.fetch).toHaveBeenCalledWith('origin', '+pull/42/head:refs/remotes/origin/pr-branch')
     })
 
     it('fetches PR head without target branch', async () => {
       mockGitInstance.fetch.mockResolvedValue(undefined)
       const handlers = setupHandlers()
-      await handlers['git:fetchPrHead'](null, '/repo', 42)
+      await handlers['git:fetchReviewPrHead'](null, '/repo', 42)
       expect(mockGitInstance.fetch).toHaveBeenCalledWith('origin', 'pull/42/head')
     })
   })
 
-  describe('git:pullPrBranch', () => {
+  describe('git:syncReviewBranch', () => {
     it('returns success in E2E mode', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
-      expect(await handlers['git:pullPrBranch'](null, '/repo', 'branch', 42)).toEqual({ success: true })
+      expect(await handlers['git:syncReviewBranch'](null, '/repo', 'branch', 42)).toEqual({ success: true })
     })
 
-    it('fetches by branch name first (same-repo PR)', async () => {
+    it('fetches by branch name first (same-repo PR) and resets', async () => {
       mockGitInstance.fetch.mockResolvedValue(undefined)
-      mockGitInstance.merge.mockResolvedValue(undefined)
+      mockGitInstance.reset.mockResolvedValue(undefined)
       const handlers = setupHandlers()
-      const result = await handlers['git:pullPrBranch'](null, '/repo', 'feature', 42)
+      const result = await handlers['git:syncReviewBranch'](null, '/repo', 'feature', 42)
       expect(result).toEqual({ success: true })
       expect(mockGitInstance.fetch).toHaveBeenCalledWith('origin', 'feature')
+      expect(mockGitInstance.reset).toHaveBeenCalledWith(['--hard', 'origin/feature'])
     })
 
     it('falls back to PR ref on branch fetch failure', async () => {
       mockGitInstance.fetch.mockRejectedValueOnce(new Error('no branch'))
         .mockResolvedValueOnce(undefined)
-      mockGitInstance.merge.mockResolvedValue(undefined)
+      mockGitInstance.reset.mockResolvedValue(undefined)
       const handlers = setupHandlers()
-      const result = await handlers['git:pullPrBranch'](null, '/repo', 'feature', 42)
+      const result = await handlers['git:syncReviewBranch'](null, '/repo', 'feature', 42)
       expect(result).toEqual({ success: true })
-      expect(mockGitInstance.fetch).toHaveBeenCalledWith('origin', 'pull/42/head:refs/remotes/origin/feature')
+      expect(mockGitInstance.fetch).toHaveBeenCalledWith('origin', '+pull/42/head:refs/remotes/origin/feature')
+      expect(mockGitInstance.reset).toHaveBeenCalledWith(['--hard', 'origin/feature'])
     })
   })
 

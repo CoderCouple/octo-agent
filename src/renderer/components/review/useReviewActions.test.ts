@@ -405,7 +405,7 @@ describe('useReviewActions', () => {
       await result.current.handleGenerateReview()
     })
 
-    expect(window.git.pullPrBranch).toHaveBeenCalledWith('/test/repo', 'feature/review', 42)
+    expect(window.git.syncReviewBranch).toHaveBeenCalledWith('/test/repo', 'feature/review', 42)
   })
 
   it('handleGenerateReview handles generation error', async () => {

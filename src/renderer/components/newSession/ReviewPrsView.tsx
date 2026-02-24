@@ -15,7 +15,7 @@ async function createReviewWorktree(repo: ManagedRepo, pr: GitHubPrForReview): P
   if (existingWorktree) {
     // Worktree exists - fetch latest changes before opening
     try {
-      await window.git.pullPrBranch(existingWorktree.path, branchName, pr.number)
+      await window.git.syncReviewBranch(existingWorktree.path, branchName, pr.number)
     } catch {
       // Non-fatal - might not have network
     }
@@ -28,7 +28,7 @@ async function createReviewWorktree(repo: ManagedRepo, pr: GitHubPrForReview): P
 
   if (isFork) {
     // Fork PR - fetch into a named remote-tracking ref so origin/${branchName} exists
-    const fetchResult = await window.git.fetchPrHead(mainDir, pr.number, branchName)
+    const fetchResult = await window.git.fetchReviewPrHead(mainDir, pr.number, branchName)
     if (!fetchResult.success) {
       return { worktreePath: '', error: fetchResult.error || 'Failed to fetch PR head' }
     }
