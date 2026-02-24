@@ -84,7 +84,7 @@ fi
 # ──────────────────────────────────────────────────────────────
 progress "Finding last release tag"
 
-LAST_TAG=$(git tag --list 'v*' --sort=-version:refSort | head -n 1)
+LAST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
 
 if [ -z "$LAST_TAG" ]; then
   fail "No v* release tags found. Cannot compare."
