@@ -157,6 +157,7 @@ describe('MonacoDiffViewer', () => {
     const mockEditorInstance = {
       getOriginalEditor: vi.fn().mockReturnValue(mockOriginalEditor),
       getModifiedEditor: vi.fn().mockReturnValue(mockModifiedEditor),
+
     }
     onMountHandler(mockEditorInstance)
 
@@ -182,6 +183,7 @@ describe('MonacoDiffViewer', () => {
     const mockEditorInstance = {
       getOriginalEditor: vi.fn().mockReturnValue(mockOriginalEditor),
       getModifiedEditor: vi.fn().mockReturnValue(mockModifiedEditor),
+
     }
     onMountHandler(mockEditorInstance)
 
