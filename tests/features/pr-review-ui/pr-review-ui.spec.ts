@@ -8,7 +8,8 @@
  *
  * Run with: pnpm test:feature-docs pr-review-ui
  */
-import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test'
+import { test, expect, resetApp } from '../_shared/electron-fixture'
+import type { ElectronApplication, Page } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -30,21 +31,7 @@ const steps: FeatureStep[] = []
 test.beforeAll(async () => {
   await fs.promises.mkdir(SCREENSHOTS, { recursive: true })
 
-  electronApp = await electron.launch({
-    args: [path.join(__dirname, '..', '..', '..', 'out', 'main', 'index.js')],
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      E2E_TEST: 'true',
-      E2E_HEADLESS: process.env.E2E_HEADLESS ?? 'true',
-    },
-  })
-
-  page = await electronApp.firstWindow()
-  await page.setViewportSize({ width: 1400, height: 900 })
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForSelector('#root > div', { timeout: 15000 })
-  await page.waitForTimeout(3000)
+  ;({ electronApp, page } = await resetApp())
 
   // Install IPC call tracking in the main process
   await electronApp.evaluate(({ ipcMain }) => {
@@ -85,9 +72,6 @@ test.afterAll(async () => {
   )
   await generateIndex(FEATURES_ROOT)
 
-  if (electronApp) {
-    await electronApp.close()
-  }
 })
 
 /** Read and clear tracked IPC calls from the main process */

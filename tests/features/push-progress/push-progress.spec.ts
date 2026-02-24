@@ -8,7 +8,8 @@
  *
  * Run with: pnpm test:feature-docs push-progress
  */
-import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test'
+import { test, expect, resetApp } from '../_shared/electron-fixture'
+import type { Page } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -22,7 +23,6 @@ const FEATURE_DIR = __dirname
 const SCREENSHOTS = path.join(FEATURE_DIR, 'screenshots')
 const FEATURES_ROOT = path.join(__dirname, '..')
 
-let electronApp: ElectronApplication
 let page: Page
 const steps: FeatureStep[] = []
 
@@ -70,22 +70,7 @@ async function setSessionStatus(status: string) {
 test.beforeAll(async () => {
   await fs.promises.mkdir(SCREENSHOTS, { recursive: true })
 
-  electronApp = await electron.launch({
-    args: [path.join(__dirname, '..', '..', '..', 'out', 'main', 'index.js')],
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      E2E_TEST: 'true',
-      E2E_HEADLESS: process.env.E2E_HEADLESS ?? 'true',
-      SCREENSHOT_MODE: 'true',
-    },
-  })
-
-  page = await electronApp.firstWindow()
-  await page.setViewportSize({ width: 1400, height: 900 })
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForSelector('#root > div', { timeout: 15000 })
-  await page.waitForTimeout(3000)
+  ;({ page } = await resetApp())
 })
 
 test.afterAll(async () => {
@@ -104,9 +89,6 @@ test.afterAll(async () => {
   )
   await generateIndex(FEATURES_ROOT)
 
-  if (electronApp) {
-    await electronApp.close()
-  }
 })
 
 test.describe.serial('Feature: Push Progress Indicator', () => {
