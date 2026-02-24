@@ -399,6 +399,136 @@ describe('useFileViewer', () => {
     })
   })
 
+  describe('requestViewMode (guarded switching)', () => {
+    it('switches immediately when not dirty', () => {
+      const { result } = renderHook(() =>
+        useFileViewer({ filePath: '/test/file.ts' })
+      )
+
+      act(() => {
+        result.current.requestViewMode('diff')
+      })
+
+      expect(result.current.viewMode).toBe('diff')
+      expect(result.current.pendingViewMode).toBeNull()
+    })
+
+    it('sets pendingViewMode when dirty and switching away from latest', () => {
+      const { result } = renderHook(() =>
+        useFileViewer({ filePath: '/test/file.ts' })
+      )
+
+      act(() => {
+        result.current.handleDirtyChange(true, 'edited content')
+      })
+
+      act(() => {
+        result.current.requestViewMode('diff')
+      })
+
+      expect(result.current.viewMode).toBe('latest')
+      expect(result.current.pendingViewMode).toBe('diff')
+    })
+
+    it('switches immediately when dirty but switching to latest', () => {
+      const { result } = renderHook(() =>
+        useFileViewer({ filePath: '/test/file.ts' })
+      )
+
+      // First switch to diff mode while clean
+      act(() => {
+        result.current.setViewMode('diff')
+      })
+
+      // Mark dirty (even though diff mode doesn't normally make dirty, test the logic)
+      act(() => {
+        result.current.handleDirtyChange(true, 'edited content')
+      })
+
+      act(() => {
+        result.current.requestViewMode('latest')
+      })
+
+      expect(result.current.viewMode).toBe('latest')
+      expect(result.current.pendingViewMode).toBeNull()
+    })
+
+    it('handleViewModeSave saves then switches', async () => {
+      vi.mocked(window.fs.writeFile).mockResolvedValue({ success: true })
+
+      const { result } = renderHook(() =>
+        useFileViewer({ filePath: '/test/file.ts' })
+      )
+
+      act(() => {
+        result.current.handleDirtyChange(true, 'edited content')
+      })
+
+      act(() => {
+        result.current.requestViewMode('diff')
+      })
+
+      expect(result.current.pendingViewMode).toBe('diff')
+
+      await act(async () => {
+        await result.current.handleViewModeSave()
+      })
+
+      expect(window.fs.writeFile).toHaveBeenCalledWith('/test/file.ts', 'edited content')
+      expect(result.current.viewMode).toBe('diff')
+      expect(result.current.pendingViewMode).toBeNull()
+      expect(result.current.isDirty).toBe(false)
+    })
+
+    it('handleViewModeDiscard resets dirty and switches', () => {
+      const onDirtyStateChange = vi.fn()
+
+      const { result } = renderHook(() =>
+        useFileViewer({ filePath: '/test/file.ts', onDirtyStateChange })
+      )
+
+      act(() => {
+        result.current.handleDirtyChange(true, 'edited content')
+      })
+
+      act(() => {
+        result.current.requestViewMode('diff')
+      })
+
+      act(() => {
+        result.current.handleViewModeDiscard()
+      })
+
+      expect(result.current.viewMode).toBe('diff')
+      expect(result.current.pendingViewMode).toBeNull()
+      expect(result.current.isDirty).toBe(false)
+      expect(onDirtyStateChange).toHaveBeenCalledWith(false)
+    })
+
+    it('handleViewModeCancel clears pending without switching', () => {
+      const { result } = renderHook(() =>
+        useFileViewer({ filePath: '/test/file.ts' })
+      )
+
+      act(() => {
+        result.current.handleDirtyChange(true, 'edited content')
+      })
+
+      act(() => {
+        result.current.requestViewMode('diff')
+      })
+
+      expect(result.current.pendingViewMode).toBe('diff')
+
+      act(() => {
+        result.current.handleViewModeCancel()
+      })
+
+      expect(result.current.viewMode).toBe('latest')
+      expect(result.current.pendingViewMode).toBeNull()
+    })
+  })
+
   describe('file change resets', () => {
     it('resets dirty state when filePath changes', () => {
       const { result, rerender } = renderHook(

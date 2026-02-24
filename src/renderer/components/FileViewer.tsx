@@ -131,7 +131,7 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
         onSaveButton={viewer.handleSaveButton}
         onSetDiffSideBySide={viewer.setDiffSideBySide}
         onSelectViewer={viewer.setSelectedViewerId}
-        onSetViewMode={viewer.setViewMode}
+        onSetViewMode={viewer.requestViewMode}
       />
       <div className="flex-1 min-h-0">
         <PanelErrorBoundary name="File Viewer Content">
@@ -164,6 +164,22 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
           ) : null}
         </PanelErrorBoundary>
       </div>
+
+      {viewer.pendingViewMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-bg-secondary border border-border rounded-lg shadow-xl p-4 max-w-sm mx-4">
+            <h3 className="text-sm font-medium text-text-primary mb-2">Unsaved Changes</h3>
+            <p className="text-xs text-text-secondary mb-4">
+              You have unsaved changes. What would you like to do?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={viewer.handleViewModeCancel} className="px-3 py-1.5 text-xs rounded bg-bg-tertiary text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
+              <button onClick={viewer.handleViewModeDiscard} className="px-3 py-1.5 text-xs rounded bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors">Discard</button>
+              <button onClick={viewer.handleViewModeSave} className="px-3 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/80 transition-colors">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

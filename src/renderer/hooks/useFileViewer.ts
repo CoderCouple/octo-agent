@@ -37,6 +37,7 @@ export function useFileViewer({
   const [editedContent, setEditedContent] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('latest')
+  const [pendingViewMode, setPendingViewMode] = useState<ViewMode | null>(null)
   const [diffSideBySide, setDiffSideBySide] = useState(true)
   const [editorActions, setEditorActions] = useState<EditorActions | null>(null)
 
@@ -139,6 +140,37 @@ export function useFileViewer({
     }
   }, [onDirtyStateChange])
 
+  // Guarded view mode switching — prompts to save if dirty
+  const requestViewMode = useCallback((mode: ViewMode) => {
+    if (isDirty && viewMode === 'latest' && mode !== 'latest') {
+      setPendingViewMode(mode)
+    } else {
+      setViewMode(mode)
+    }
+  }, [isDirty, viewMode])
+
+  const handleViewModeSave = useCallback(async () => {
+    if (!filePath || !editedContent) return
+    const saved = await handleSave(editedContent)
+    if (saved && pendingViewMode) {
+      setViewMode(pendingViewMode)
+      setPendingViewMode(null)
+    }
+  }, [filePath, editedContent, handleSave, pendingViewMode])
+
+  const handleViewModeDiscard = useCallback(() => {
+    setIsDirty(false)
+    onDirtyStateChange?.(false)
+    if (pendingViewMode) {
+      setViewMode(pendingViewMode)
+      setPendingViewMode(null)
+    }
+  }, [pendingViewMode, onDirtyStateChange])
+
+  const handleViewModeCancel = useCallback(() => {
+    setPendingViewMode(null)
+  }, [])
+
   const selectedViewer = availableViewers.find(v => v.id === selectedViewerId)
 
   return {
@@ -159,9 +191,11 @@ export function useFileViewer({
     isLoadingDiff,
     fileChangedOnDisk,
     selectedViewer,
+    pendingViewMode,
     // Actions
     setSelectedViewerId,
     setViewMode,
+    requestViewMode,
     setDiffSideBySide,
     setEditorActions,
     handleSave,
@@ -169,5 +203,8 @@ export function useFileViewer({
     handleDirtyChange,
     handleKeepLocalChanges,
     handleLoadDiskVersion,
+    handleViewModeSave,
+    handleViewModeDiscard,
+    handleViewModeCancel,
   }
 }
