@@ -3,55 +3,15 @@ import { watch } from 'fs'
 import { readdir, readFile, writeFile, appendFile, stat, mkdir, rm, access, rename } from 'fs/promises'
 import { join } from 'path'
 import { normalizePath } from '../platform'
-import { HandlerContext, E2EScenario } from './types'
+import { HandlerContext } from './types'
+import { getScenarioData, SHARED_README } from './scenarios'
 
 async function handleReadDir(ctx: HandlerContext, dirPath: string) {
   if (ctx.isE2ETest) {
-    if (ctx.e2eScenario === E2EScenario.Marketing) {
-      if (dirPath.endsWith('/src')) {
-        return [
-          { name: 'components', path: join(dirPath, 'components'), isDirectory: true },
-          { name: 'middleware', path: join(dirPath, 'middleware'), isDirectory: true },
-          { name: 'routes', path: join(dirPath, 'routes'), isDirectory: true },
-          { name: 'services', path: join(dirPath, 'services'), isDirectory: true },
-          { name: 'types', path: join(dirPath, 'types'), isDirectory: true },
-          { name: 'utils', path: join(dirPath, 'utils'), isDirectory: true },
-          { name: 'app.ts', path: join(dirPath, 'app.ts'), isDirectory: false },
-          { name: 'config.ts', path: join(dirPath, 'config.ts'), isDirectory: false },
-          { name: 'index.ts', path: join(dirPath, 'index.ts'), isDirectory: false },
-        ]
-      }
-      if (dirPath.endsWith('/middleware')) {
-        return [
-          { name: 'auth.ts', path: join(dirPath, 'auth.ts'), isDirectory: false },
-          { name: 'cors.ts', path: join(dirPath, 'cors.ts'), isDirectory: false },
-          { name: 'rateLimit.ts', path: join(dirPath, 'rateLimit.ts'), isDirectory: false },
-        ]
-      }
-      if (dirPath.endsWith('/services')) {
-        return [
-          { name: 'session.ts', path: join(dirPath, 'session.ts'), isDirectory: false },
-          { name: 'token.ts', path: join(dirPath, 'token.ts'), isDirectory: false },
-          { name: 'user.ts', path: join(dirPath, 'user.ts'), isDirectory: false },
-        ]
-      }
-      if (dirPath.endsWith('/routes')) {
-        return [
-          { name: 'auth.ts', path: join(dirPath, 'auth.ts'), isDirectory: false },
-          { name: 'users.ts', path: join(dirPath, 'users.ts'), isDirectory: false },
-          { name: 'health.ts', path: join(dirPath, 'health.ts'), isDirectory: false },
-        ]
-      }
-      return [
-        { name: 'src', path: join(dirPath, 'src'), isDirectory: true },
-        { name: 'tests', path: join(dirPath, 'tests'), isDirectory: true },
-        { name: '.env.example', path: join(dirPath, '.env.example'), isDirectory: false },
-        { name: 'docker-compose.yml', path: join(dirPath, 'docker-compose.yml'), isDirectory: false },
-        { name: 'Dockerfile', path: join(dirPath, 'Dockerfile'), isDirectory: false },
-        { name: 'package.json', path: join(dirPath, 'package.json'), isDirectory: false },
-        { name: 'README.md', path: join(dirPath, 'README.md'), isDirectory: false },
-        { name: 'tsconfig.json', path: join(dirPath, 'tsconfig.json'), isDirectory: false },
-      ]
+    const scenario = getScenarioData(ctx.e2eScenario)
+    const entries = scenario.fileTree.readDir(dirPath)
+    if (entries) {
+      return entries.map(e => ({ name: e.name, path: join(dirPath, e.name), isDirectory: e.isDirectory }))
     }
     return [
       { name: 'src', path: join(dirPath, 'src'), isDirectory: true },
@@ -81,176 +41,10 @@ async function handleReadDir(ctx: HandlerContext, dirPath: string) {
 
 async function handleReadFile(ctx: HandlerContext, filePath: string) {
   if (ctx.isE2ETest) {
-    if (ctx.e2eScenario === E2EScenario.Marketing && filePath.includes('auth.ts')) {
-      const IM = 'im' + 'port'
-      const lines = []
-      lines.push(`${IM  } { Request, Response, NextFunction } from 'express'`)
-      lines.push(`${IM  } jwt from 'jsonwebtoken'`)
-      lines.push(`${IM  } { TokenService } from '../services/token'`)
-      lines.push(`${IM  } { SessionStore } from '../services/session'`)
-      lines.push('')
-      lines.push('const tokenService = new TokenService({')
-      lines.push("  accessTokenTTL: '15m',")
-      lines.push("  refreshTokenTTL: '7d',")
-      lines.push('  rotateRefreshTokens: true,')
-      lines.push('})')
-      lines.push('')
-      lines.push('export async function authenticate(req: Request, res: Response, next: NextFunction) {')
-      lines.push('  try {')
-      lines.push("    const accessToken = req.headers.authorization?.split(' ')[1]")
-      lines.push("    if (!accessToken) return res.status(401).json({ error: 'Missing token' })")
-      lines.push('')
-      lines.push('    const payload = await tokenService.verifyAccessToken(accessToken)')
-      lines.push('    const session = await SessionStore.get(payload.sessionId)')
-      lines.push('    if (!session || session.revoked) {')
-      lines.push("      return res.status(401).json({ error: 'Session revoked' })")
-      lines.push('    }')
-      lines.push('')
-      lines.push('    req.user = payload.user')
-      lines.push('    req.sessionId = payload.sessionId')
-      lines.push('    next()')
-      lines.push('  } catch (err) {')
-      lines.push('    if (err instanceof jwt.TokenExpiredError) {')
-      lines.push("      return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' })")
-      lines.push('    }')
-      lines.push("    return res.status(401).json({ error: 'Invalid token' })")
-      lines.push('  }')
-      lines.push('}')
-      return lines.join('\n')
-    }
-    // Screenshot mode: fake review data for ReviewPanel
-    if (ctx.e2eScenario === E2EScenario.Marketing && (/broomy-review-[^/\\]+[/\\]review\.json$/.exec(filePath))) {
-      return JSON.stringify({
-        version: 1,
-        generatedAt: '2025-01-15T10:30:00Z',
-        prNumber: 47,
-        prTitle: 'Add JWT authentication with session management',
-        overview: {
-          purpose: 'Replaces basic token auth with JWT-based authentication supporting refresh tokens, session tracking, and automatic token rotation.',
-          approach: 'Adds a TokenService for JWT signing/verification, a SessionStore for tracking active sessions, and updates the auth middleware to validate access tokens and check session revocation.',
-        },
-        changePatterns: [
-          {
-            id: 'cp1',
-            title: 'Auth middleware overhaul',
-            description: 'Converts synchronous token check to async JWT verification with session validation. Adds try/catch for token expiry handling.',
-            locations: [{ file: 'src/middleware/auth.ts', startLine: 12, endLine: 28 }],
-          },
-          {
-            id: 'cp2',
-            title: 'New token and session services',
-            description: 'Introduces TokenService (JWT sign/verify/rotate) and SessionStore (Redis-backed session tracking with revocation support).',
-            locations: [
-              { file: 'src/services/token.ts', startLine: 1, endLine: 45 },
-              { file: 'src/services/session.ts', startLine: 1, endLine: 38 },
-            ],
-          },
-          {
-            id: 'cp3',
-            title: 'Route updates for token refresh',
-            description: 'Adds POST /auth/refresh endpoint and updates existing auth routes to use new middleware.',
-            locations: [{ file: 'src/routes/auth.ts', startLine: 15, endLine: 42 }],
-          },
-        ],
-        potentialIssues: [
-          {
-            id: 'pi1',
-            severity: 'warning',
-            title: 'No token expiry grace period',
-            description: 'Access tokens are rejected immediately on expiry. Consider a small grace period (30s) to handle clock skew between services.',
-            locations: [{ file: 'src/services/token.ts', startLine: 22, endLine: 24 }],
-          },
-          {
-            id: 'pi2',
-            severity: 'concern',
-            title: 'Session revocation check on every request',
-            description: 'Every authenticated request hits Redis to check session revocation. Under high load this could become a bottleneck. Consider caching with a short TTL.',
-            locations: [{ file: 'src/middleware/auth.ts', startLine: 18, endLine: 21 }],
-          },
-        ],
-        designDecisions: [
-          {
-            id: 'dd1',
-            title: 'JWT with Redis sessions over stateless JWT',
-            description: 'Uses JWT for transport but backs it with server-side sessions, enabling immediate revocation at the cost of a Redis dependency.',
-            alternatives: ['Stateless JWT with token blacklist', 'Opaque session tokens', 'OAuth 2.0 with external provider'],
-            locations: [{ file: 'src/services/session.ts', startLine: 5, endLine: 12 }],
-          },
-        ],
-      })
-    }
-    if (ctx.e2eScenario === E2EScenario.Marketing && (/\/tmp\/broomy-review-[^/]+\/comments\.json$/.exec(filePath))) {
-      return '[]'
-    }
-    if (filePath.endsWith('README.md')) {
-      return [
-        '# Project Overview',
-        '',
-        'This project provides a comprehensive authentication system with JWT-based token management, session tracking, and automatic token rotation for secure API access across distributed microservices.',
-        '',
-        '## Getting Started',
-        '',
-        'To get started with this project, you need to install the dependencies using your preferred package manager, configure the environment variables for JWT secrets and Redis connection strings, and run the database migrations before starting the development server.',
-        '',
-        '## Architecture',
-        '',
-        'The authentication middleware validates incoming requests by extracting the bearer token from the Authorization header, verifying the JWT signature and expiration, checking the session store for revocation status, and attaching the decoded user payload to the request object for downstream handlers.',
-        '',
-        '## Contributing',
-        '',
-        'We welcome contributions from the community. Please read our [contributing guidelines](https://github.com/example/project/blob/main/CONTRIBUTING.md), set up your development environment following the instructions above, create a feature branch, write tests for your changes, and submit a pull request with a clear description of what you changed and why.',
-        '',
-        '## Resources',
-        '',
-        'For more information, see the [API documentation](https://docs.example.com/api) and the [project homepage](https://example.com).',
-      ].join('\n')
-    }
-    // E2E mode: fake review data for ReviewPanel (non-screenshot mode)
-    if (/\.broomy[/\\]review\.json$/.exec(filePath)) {
-      return JSON.stringify({
-        generatedAt: '2025-01-15T10:30:00Z',
-        headCommit: 'abc123',
-        overview: {
-          purpose: 'Add dark mode theme support with user preference persistence.',
-          approach: 'Uses CSS custom properties for theming with a React context provider. Theme preference persisted in localStorage.',
-        },
-        changePatterns: [
-          {
-            id: 'cp1',
-            title: 'Theme context and provider',
-            description: 'New ThemeContext and ThemeProvider for managing dark/light mode state.',
-            locations: [{ file: 'src/contexts/ThemeContext.tsx', startLine: 1 }],
-          },
-          {
-            id: 'cp2',
-            title: 'CSS variable updates',
-            description: 'Updated CSS custom properties in :root and [data-theme="dark"] selectors.',
-            locations: [{ file: 'src/styles/theme.css', startLine: 12 }],
-          },
-        ],
-        potentialIssues: [
-          {
-            id: 'pi1',
-            title: 'Flash of unstyled content on load',
-            description: 'Theme is read from localStorage after React hydration, causing a brief flash of default theme.',
-            severity: 'medium',
-            locations: [{ file: 'src/contexts/ThemeContext.tsx', startLine: 15 }],
-          },
-        ],
-        designDecisions: [
-          {
-            id: 'dd1',
-            title: 'localStorage over cookies',
-            description: 'Theme preference stored in localStorage — simpler but not available server-side.',
-            alternatives: ['HTTP cookie', 'Server-side session'],
-            locations: [],
-          },
-        ],
-      })
-    }
-    if (/\.broomy[/\\]comments\.json$/.exec(filePath)) {
-      return '[]'
-    }
+    const scenario = getScenarioData(ctx.e2eScenario)
+    const scenarioContent = scenario.readFile(filePath)
+    if (scenarioContent !== null) return scenarioContent
+    if (filePath.endsWith('README.md')) return SHARED_README
     return '// Mock file content for E2E tests\nexport const test = true;\n'
   }
 
@@ -296,12 +90,15 @@ async function handleAppendFile(ctx: HandlerContext, filePath: string, content: 
 }
 
 async function handleExists(ctx: HandlerContext, filePath: string) {
-  if (ctx.e2eScenario === E2EScenario.Marketing && (/\/tmp\/broomy-review-[^/]+\/(review|comments)\.json$/.exec(filePath))) {
-    return true
-  }
-  // E2E mode: review/comments files always exist for mock data
-  if (ctx.isE2ETest && /\.broomy[/\\](review|comments)\.json$/.exec(filePath)) {
-    return true
+  if (ctx.isE2ETest) {
+    // Check if scenario has marketing review files in tmp dir
+    if (getScenarioData(ctx.e2eScenario).hasMarketingReviewFiles && /\/tmp\/broomy-review-[^/]+\/(review|comments)\.json$/.exec(filePath)) {
+      return true
+    }
+    // Review/comments files always exist for mock data in any scenario
+    if (/\.broomy[/\\](review|comments)\.json$/.exec(filePath)) {
+      return true
+    }
   }
   try {
     await access(filePath)

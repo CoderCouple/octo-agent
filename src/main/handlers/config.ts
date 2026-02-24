@@ -13,9 +13,9 @@ import {
   getProfileInitScriptsDir,
   DEFAULT_AGENTS,
   DEFAULT_PROFILES,
-  getE2EDemoSessions,
   getE2EDemoRepos,
 } from './types'
+import { getScenarioData } from './scenarios'
 import { isWindows, normalizePath } from '../platform'
 import { tmpdir } from 'os'
 
@@ -79,7 +79,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
   // Create E2E test directories if in E2E mode
   if (ctx.isE2ETest) {
-    const sessions = getE2EDemoSessions(ctx.e2eScenario)
+    const sessions = getScenarioData(ctx.e2eScenario).sessions
     for (const session of sessions) {
       if (!existsSync(session.directory)) {
         mkdirSync(session.directory, { recursive: true })
@@ -163,7 +163,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     if (ctx.isE2ETest) {
       return {
         agents: DEFAULT_AGENTS,
-        sessions: getE2EDemoSessions(ctx.e2eScenario),
+        sessions: getScenarioData(ctx.e2eScenario).sessions,
         repos: getE2EDemoRepos(),
         defaultCloneDir: normalizePath(join(tmpdir(), 'broomy-e2e-repos')),
       }

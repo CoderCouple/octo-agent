@@ -9,13 +9,12 @@ import {
   getProfileConfigFile,
   getProfileInitScriptsDir,
   expandHomePath,
-  getE2EDemoSessions,
   getE2EDemoRepos,
-  getE2EMockBranches,
   E2EScenario,
   DEFAULT_AGENTS,
   DEFAULT_PROFILES,
 } from './types'
+import { getScenarioData } from './scenarios'
 
 describe('types constants', () => {
   it('CONFIG_DIR points to ~/.broomy', () => {
@@ -118,19 +117,19 @@ describe('expandHomePath', () => {
   })
 })
 
-describe('getE2EDemoSessions', () => {
-  it('returns 8 sessions in screenshot mode', () => {
-    const sessions = getE2EDemoSessions(E2EScenario.Marketing)
+describe('getScenarioData sessions', () => {
+  it('returns 8 sessions in marketing scenario', () => {
+    const sessions = getScenarioData(E2EScenario.Marketing).sessions
     expect(sessions).toHaveLength(8)
   })
 
-  it('returns 3 sessions in non-screenshot mode', () => {
-    const sessions = getE2EDemoSessions(E2EScenario.Default)
+  it('returns 3 sessions in default scenario', () => {
+    const sessions = getScenarioData(E2EScenario.Default).sessions
     expect(sessions).toHaveLength(3)
   })
 
   it('each session has id, name, directory, and agentId', () => {
-    const sessions = getE2EDemoSessions(E2EScenario.Default)
+    const sessions = getScenarioData(E2EScenario.Default).sessions
     for (const session of sessions) {
       expect(session).toHaveProperty('id')
       expect(session).toHaveProperty('name')
@@ -140,7 +139,7 @@ describe('getE2EDemoSessions', () => {
   })
 
   it('session directories use tmpdir and are normalized', () => {
-    const sessions = getE2EDemoSessions(E2EScenario.Default)
+    const sessions = getScenarioData(E2EScenario.Default).sessions
     for (const session of sessions) {
       // Should not contain backslashes (normalized)
       expect(session.directory).not.toContain('\\')
@@ -162,26 +161,26 @@ describe('getE2EDemoRepos', () => {
   })
 })
 
-describe('getE2EMockBranches', () => {
-  it('returns 8 branch mappings in screenshot mode', () => {
-    const branches = getE2EMockBranches(E2EScenario.Marketing)
+describe('getScenarioData branches', () => {
+  it('returns 8 branch mappings in marketing scenario', () => {
+    const branches = getScenarioData(E2EScenario.Marketing).branches
     expect(Object.keys(branches)).toHaveLength(8)
   })
 
-  it('returns 3 branch mappings in non-screenshot mode', () => {
-    const branches = getE2EMockBranches(E2EScenario.Default)
+  it('returns 3 branch mappings in default scenario', () => {
+    const branches = getScenarioData(E2EScenario.Default).branches
     expect(Object.keys(branches)).toHaveLength(3)
   })
 
   it('keys are normalized paths (no backslashes)', () => {
-    const branches = getE2EMockBranches(E2EScenario.Default)
+    const branches = getScenarioData(E2EScenario.Default).branches
     for (const key of Object.keys(branches)) {
       expect(key).not.toContain('\\')
     }
   })
 
   it('values are branch name strings', () => {
-    const branches = getE2EMockBranches(E2EScenario.Default)
+    const branches = getScenarioData(E2EScenario.Default).branches
     for (const value of Object.values(branches)) {
       expect(typeof value).toBe('string')
       expect(value.length).toBeGreaterThan(0)

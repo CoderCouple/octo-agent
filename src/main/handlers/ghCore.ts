@@ -4,7 +4,8 @@ import { promisify } from 'util'
 import simpleGit from 'simple-git'
 import { buildPrCreateUrl } from '../gitStatusParser'
 import { isWindows, getExecShell } from '../platform'
-import { HandlerContext, expandHomePath, getE2EMockBranches } from './types'
+import { HandlerContext, expandHomePath } from './types'
+import { getScenarioData } from './scenarios'
 
 const execFileAsync = promisify(execFile)
 const execAsync = promisify(exec)
@@ -28,8 +29,6 @@ async function runShellCommand(command: string, options: { cwd?: string; timeout
 }
 
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
-  const E2E_MOCK_BRANCHES = getE2EMockBranches(ctx.e2eScenario)
-
   // Agent CLI installation check
   ipcMain.handle('agent:isInstalled', async (_event, command: string) => {
     if (ctx.isE2ETest) return true
@@ -111,7 +110,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
   ipcMain.handle('gh:prStatus', async (_event, repoDir: string) => {
     if (ctx.isE2ETest) {
-      const branch = E2E_MOCK_BRANCHES[repoDir]
+      const branch = getScenarioData(ctx.e2eScenario).branches[repoDir]
       if (branch && branch !== 'main') {
         return {
           number: 123,

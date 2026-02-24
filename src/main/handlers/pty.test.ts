@@ -26,6 +26,7 @@ vi.mock('electron', () => ({
 vi.mock('../platform', () => ({
   isWindows: false,
   getDefaultShell: () => '/bin/zsh',
+  normalizePath: (p: string) => p.replace(/\\/g, '/'),
 }))
 
 function createMockPtyProcess() {

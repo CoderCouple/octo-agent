@@ -37,13 +37,15 @@ vi.mock('../gitStatusParser', () => ({
   }),
 }))
 
-vi.mock('./types', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./types')>()
+vi.mock('./scenarios', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./scenarios')>()
   return {
     ...actual,
-    getE2EMockBranches: () => ({
-      '/test-repo': 'feature/test',
-    }),
+    // Override branches so E2E getBranch tests use a known value
+    getScenarioData: (scenario: string) => {
+      const data = actual.getScenarioData(scenario as never)
+      return { ...data, branches: { ...data.branches, '/test-repo': 'feature/test' } }
+    },
   }
 })
 

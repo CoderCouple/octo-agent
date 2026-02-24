@@ -1,6 +1,7 @@
 import { IpcMain } from 'electron'
 import simpleGit from 'simple-git'
-import { HandlerContext, E2EScenario, expandHomePath } from './types'
+import { HandlerContext, expandHomePath } from './types'
+import { getScenarioData } from './scenarios'
 
 async function handlePullOriginMain(ctx: HandlerContext, repoPath: string) {
   if (ctx.isE2ETest) {
@@ -100,29 +101,7 @@ async function handleSetConfig(ctx: HandlerContext, repoPath: string, key: strin
 
 async function handleBranchChanges(ctx: HandlerContext, repoPath: string, baseBranch?: string) {
   if (ctx.isE2ETest) {
-    if (ctx.e2eScenario === E2EScenario.Marketing) {
-      return {
-        files: [
-          { path: 'src/middleware/auth.ts', status: 'modified' },
-          { path: 'src/services/token.ts', status: 'added' },
-          { path: 'src/services/session.ts', status: 'added' },
-          { path: 'src/routes/auth.ts', status: 'modified' },
-          { path: 'src/types/auth.d.ts', status: 'added' },
-          { path: 'tests/auth.test.ts', status: 'modified' },
-          { path: 'package.json', status: 'modified' },
-        ],
-        baseBranch: 'main',
-        mergeBase: 'abc1234',
-      }
-    }
-    return {
-      files: [
-        { path: 'src/index.ts', status: 'modified' },
-        { path: 'src/new-feature.ts', status: 'added' },
-      ],
-      baseBranch: 'main',
-      mergeBase: 'abc1234',
-    }
+    return getScenarioData(ctx.e2eScenario).branchChanges
   }
 
   try {
@@ -180,24 +159,7 @@ async function handleBranchChanges(ctx: HandlerContext, repoPath: string, baseBr
 
 async function handleBranchCommits(ctx: HandlerContext, repoPath: string, baseBranch?: string) {
   if (ctx.isE2ETest) {
-    if (ctx.e2eScenario === E2EScenario.Marketing) {
-      return {
-        commits: [
-          { hash: 'a1b2c3d4e5f60', shortHash: 'a1b2c3d', message: 'Add JWT token refresh with rotation', author: 'Claude', date: '2025-01-15T14:30:00Z', pushed: false },
-          { hash: 'b2c3d4e5f6a70', shortHash: 'b2c3d4e', message: 'Implement session store with Redis backend', author: 'Claude', date: '2025-01-15T14:15:00Z', pushed: false },
-          { hash: 'c3d4e5f6a7b80', shortHash: 'c3d4e5f', message: 'Add auth middleware with token validation', author: 'Claude', date: '2025-01-15T14:00:00Z', pushed: true },
-          { hash: 'd4e5f6a7b8c90', shortHash: 'd4e5f6a', message: 'Set up authentication routes and types', author: 'Claude', date: '2025-01-15T13:45:00Z', pushed: true },
-        ],
-        baseBranch: 'main',
-      }
-    }
-    return {
-      commits: [
-        { hash: 'abc1234567890', shortHash: 'abc1234', message: 'Add new feature', author: 'Test User', date: '2025-01-15T10:00:00Z', pushed: false },
-        { hash: 'def5678901234', shortHash: 'def5678', message: 'Fix styling bug', author: 'Test User', date: '2025-01-14T09:00:00Z', pushed: true },
-      ],
-      baseBranch: 'main',
-    }
+    return getScenarioData(ctx.e2eScenario).branchCommits
   }
 
   try {

@@ -3,7 +3,8 @@ import { join } from 'path'
 import { homedir } from 'os'
 import * as pty from 'node-pty'
 import { isWindows, getDefaultShell } from '../platform'
-import { HandlerContext, E2EScenario } from './types'
+import { HandlerContext } from './types'
+import { getScenarioData } from './scenarios'
 
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('pty:create', (_event, options: { id: string; cwd: string; command?: string; sessionId?: string; env?: Record<string, string>; shell?: string }) => {
@@ -32,16 +33,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
         if (options.command) {
           // This is an agent terminal - run the fake claude script
-          let fakeClaude: string
-          if (ctx.e2eScenario === E2EScenario.Marketing && options.sessionId === '1') {
-            // First session gets the long "working" script for screenshots
-            fakeClaude = join(__dirname, '../../scripts/fake-claude-screenshot.sh')
-          } else if (ctx.e2eScenario === E2EScenario.Marketing) {
-            // Other sessions get the quick "idle" script for screenshots
-            fakeClaude = join(__dirname, '../../scripts/fake-claude-screenshot-idle.sh')
-          } else {
-            fakeClaude = ctx.FAKE_CLAUDE_SCRIPT || join(__dirname, '../../scripts/fake-claude.sh')
-          }
+          const scenarioScript = getScenarioData(ctx.e2eScenario).agentScript(options.sessionId || '')
+          const fakeClaude = scenarioScript
+            ? join(__dirname, `../../scripts/${scenarioScript}`)
+            : ctx.FAKE_CLAUDE_SCRIPT || join(__dirname, '../../scripts/fake-claude.sh')
           initialCommand = `bash "${fakeClaude}"`
         } else {
           // Regular user terminal - just echo ready marker

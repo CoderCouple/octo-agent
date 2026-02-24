@@ -2,7 +2,8 @@ import { BrowserWindow, IpcMain } from 'electron'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 type UpdateInfo = import('electron-updater').UpdateInfo
-import { HandlerContext, E2EScenario } from './types'
+import { HandlerContext } from './types'
+import { getScenarioData } from './scenarios'
 
 export type UpdateCheckResult = {
   updateAvailable: boolean
@@ -14,14 +15,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   // In E2E or dev mode, return mock/no-op responses
   if (ctx.isE2ETest || ctx.isDev) {
     ipcMain.handle('updater:checkForUpdates', (): UpdateCheckResult => {
-      if (ctx.e2eScenario === E2EScenario.Marketing) {
-        return {
-          updateAvailable: true,
-          version: '0.9.0',
-          releaseNotes: 'Dark mode support\nImproved performance\nBug fixes',
-        }
-      }
-      return { updateAvailable: false }
+      return getScenarioData(ctx.e2eScenario).updater
     })
     ipcMain.handle('updater:downloadUpdate', () => {})
     ipcMain.handle('updater:installUpdate', () => {})

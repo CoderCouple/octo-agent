@@ -76,43 +76,10 @@ export const expandHomePath = (path: string): string => {
   return path
 }
 
-// E2E mock data
-export function getE2EDemoSessions(scenario: E2EScenario) {
-  return scenario === E2EScenario.Marketing ? [
-    { id: '1', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'broomy-e2e-backend-api')), agentId: 'claude' },
-    { id: '2', name: 'web-dashboard', directory: normalizePath(join(tmpdir(), 'broomy-e2e-web-dashboard')), agentId: 'codex' },
-    { id: '3', name: 'mobile-app', directory: normalizePath(join(tmpdir(), 'broomy-e2e-mobile-app')), agentId: 'gemini' },
-    { id: '4', name: 'payments-svc', directory: normalizePath(join(tmpdir(), 'broomy-e2e-payments-svc')), agentId: 'claude' },
-    { id: '5', name: 'search-engine', directory: normalizePath(join(tmpdir(), 'broomy-e2e-search-engine')), agentId: 'claude' },
-    { id: '6', name: 'infra-config', directory: normalizePath(join(tmpdir(), 'broomy-e2e-infra-config')), agentId: 'codex' },
-    { id: '7', name: 'docs-site', directory: normalizePath(join(tmpdir(), 'broomy-e2e-docs-site')), agentId: null },
-    { id: '8', name: 'data-pipeline', directory: normalizePath(join(tmpdir(), 'broomy-e2e-data-pipeline')), agentId: 'claude' },
-  ] : [
-    { id: '1', name: 'broomy', directory: normalizePath(join(tmpdir(), 'broomy-e2e-broomy')), agentId: 'claude', issueNumber: 42, issueTitle: 'Add user authentication', issueUrl: 'https://github.com/user/broomy/issues/42' },
-    { id: '2', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'broomy-e2e-backend-api')), agentId: 'aider', issueNumber: 15, issueTitle: 'Fix API rate limiting', issueUrl: 'https://github.com/user/backend-api/issues/15' },
-    { id: '3', name: 'docs-site', directory: normalizePath(join(tmpdir(), 'broomy-e2e-docs-site')), agentId: null },
-  ]
-}
-
+// E2E mock data — scenario-specific data is in scenarios.ts
+// Only non-scenario-specific data remains here.
 export function getE2EDemoRepos() {
   return [
     { id: 'repo-1', name: 'demo-project', remoteUrl: 'git@github.com:user/demo-project.git', rootDir: normalizePath(join(tmpdir(), 'broomy-e2e-repos/demo-project')), defaultBranch: 'main' },
   ]
-}
-
-export function getE2EMockBranches(scenario: E2EScenario): Record<string, string> {
-  return scenario === E2EScenario.Marketing ? {
-    [normalizePath(join(tmpdir(), 'broomy-e2e-backend-api'))]: 'feature/jwt-auth',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-web-dashboard'))]: 'fix/dashboard-perf',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-mobile-app'))]: 'feature/push-notifs',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-payments-svc'))]: 'feature/stripe-webhooks',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-search-engine'))]: 'feature/vector-search',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-infra-config'))]: 'fix/k8s-scaling',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-docs-site'))]: 'main',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-data-pipeline'))]: 'feature/batch-processing',
-  } : {
-    [normalizePath(join(tmpdir(), 'broomy-e2e-broomy'))]: 'main',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-backend-api'))]: 'feature/auth',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-docs-site'))]: 'main',
-  }
 }
