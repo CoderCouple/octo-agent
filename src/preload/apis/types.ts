@@ -57,6 +57,11 @@ export type GitHubPrStatus = {
   baseRefName: string
 } | null
 
+export type GitHubReaction = {
+  content: string
+  count: number
+}
+
 export type GitHubPrComment = {
   id: number
   body: string
@@ -67,6 +72,7 @@ export type GitHubPrComment = {
   createdAt: string
   url: string
   inReplyToId?: number
+  reactions?: GitHubReaction[]
 }
 
 export type GitHubIssueComment = {
@@ -75,6 +81,7 @@ export type GitHubIssueComment = {
   author: string
   createdAt: string
   url: string
+  reactions?: GitHubReaction[]
 }
 
 export type GitHubPrForReview = {

@@ -15,6 +15,9 @@ const defaultGitHubProps = {
   prCommentsLoading: false,
   prCommentsHasMore: false,
   onLoadOlderComments: vi.fn(),
+  repoDir: '/test',
+  prNumber: 1,
+  onRefreshComments: vi.fn(),
 }
 
 function makeReviewData(overrides: Partial<ReviewData> = {}): ReviewData {

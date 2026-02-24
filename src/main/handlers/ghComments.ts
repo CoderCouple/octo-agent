@@ -5,6 +5,12 @@ import { HandlerContext, expandHomePath } from './types'
 
 const execFileAsync = promisify(execFile)
 
+function parseJsonLines(stdout: string): unknown[] {
+  return stdout.trim().split(/\r?\n/).filter(line => line.trim()).map(line => {
+    try { return JSON.parse(line) } catch { return null }
+  }).filter(c => c !== null)
+}
+
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('gh:prComments', async (_event, repoDir: string, prNumber: number) => {
     if (ctx.isE2ETest) {
@@ -18,6 +24,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
           author: 'reviewer',
           createdAt: '2024-01-15T10:30:00Z',
           url: 'https://github.com/user/demo-project/pull/123#discussion_r1',
+          reactions: [{ content: '+1', count: 2 }],
         },
         {
           id: 2,
@@ -28,6 +35,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
           author: 'reviewer',
           createdAt: '2024-01-15T11:00:00Z',
           url: 'https://github.com/user/demo-project/pull/123#discussion_r2',
+          reactions: [],
         },
       ]
     }
@@ -35,27 +43,14 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     try {
       const { stdout } = await execFileAsync('gh', [
         'api', `repos/{owner}/{repo}/pulls/${prNumber}/comments`,
-        '--jq', '.[] | {id: .id, body: .body, path: .path, line: .line, side: .side, author: .user.login, createdAt: .created_at, url: .html_url, inReplyToId: .in_reply_to_id}',
+        '--jq', '.[] | {id: .id, body: .body, path: .path, line: .line, side: .side, author: .user.login, createdAt: .created_at, url: .html_url, inReplyToId: .in_reply_to_id, reactions: (.reactions | to_entries | map(select(.key != "url" and .key != "total_count" and .value > 0) | {content: .key, count: .value}))}',
       ], {
         cwd: expandHomePath(repoDir),
         encoding: 'utf-8',
         timeout: 30000,
       })
 
-      const comments = stdout
-        .trim()
-        .split(/\r?\n/)
-        .filter(line => line.trim())
-        .map(line => {
-          try {
-            return JSON.parse(line)
-          } catch {
-            return null
-          }
-        })
-        .filter(c => c !== null)
-
-      return comments
+      return parseJsonLines(stdout)
     } catch {
       return []
     }
@@ -89,6 +84,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
           author: 'reviewer',
           createdAt: '2024-01-15T09:00:00Z',
           url: 'https://github.com/user/demo-project/pull/123#issuecomment-101',
+          reactions: [{ content: '+1', count: 1 }, { content: 'heart', count: 1 }],
         },
         {
           id: 102,
@@ -96,6 +92,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
           author: 'maintainer',
           createdAt: '2024-01-15T12:00:00Z',
           url: 'https://github.com/user/demo-project/pull/123#issuecomment-102',
+          reactions: [],
         },
       ]
     }
@@ -103,7 +100,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     try {
       const { stdout } = await execFileAsync('gh', [
         'api', `repos/{owner}/{repo}/issues/${prNumber}/comments`,
-        '--jq', '.[] | {id: .id, body: .body, author: .user.login, createdAt: .created_at, url: .html_url}',
+        '--jq', '.[] | {id: .id, body: .body, author: .user.login, createdAt: .created_at, url: .html_url, reactions: (.reactions | to_entries | map(select(.key != "url" and .key != "total_count" and .value > 0) | {content: .key, count: .value}))}',
         '-F', `per_page=${perPage}`, '-F', `page=${page}`,
       ], {
         cwd: expandHomePath(repoDir),
@@ -111,20 +108,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
         timeout: 30000,
       })
 
-      const comments = stdout
-        .trim()
-        .split(/\r?\n/)
-        .filter(line => line.trim())
-        .map(line => {
-          try {
-            return JSON.parse(line)
-          } catch {
-            return null
-          }
-        })
-        .filter(c => c !== null)
-
-      return comments
+      return parseJsonLines(stdout)
     } catch {
       return []
     }
@@ -182,6 +166,28 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     } catch (error) {
       console.error('Failed to fetch PRs for review:', error)
       return []
+    }
+  })
+
+  ipcMain.handle('gh:addReaction', async (_event, repoDir: string, commentId: number, reaction: string, commentType: 'review' | 'issue') => {
+    if (ctx.isE2ETest) {
+      return { success: true }
+    }
+
+    try {
+      const endpoint = commentType === 'review'
+        ? `repos/{owner}/{repo}/pulls/comments/${commentId}/reactions`
+        : `repos/{owner}/{repo}/issues/comments/${commentId}/reactions`
+      await execFileAsync('gh', [
+        'api', endpoint, '-X', 'POST', '-f', `content=${reaction}`,
+      ], {
+        cwd: expandHomePath(repoDir),
+        encoding: 'utf-8',
+        timeout: 30000,
+      })
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: String(error) }
     }
   })
 

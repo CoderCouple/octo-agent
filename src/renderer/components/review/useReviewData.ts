@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ReviewData, PendingComment, ReviewComparison, ReviewHistory } from '../../types/review'
+import type { GitHubReaction } from '../../../preload/apis/types'
 import { useGitHubPrData } from './useGitHubPrData'
 import { useReviewFilePoller } from './useReviewFilePoller'
 
@@ -15,6 +16,7 @@ export interface NormalizedComment {
   path?: string
   line?: number | null
   inReplyToId?: number
+  reactions?: GitHubReaction[]
 }
 
 export interface ReviewDataState {
@@ -41,6 +43,7 @@ export interface ReviewDataState {
   prCommentsLoading: boolean
   prCommentsHasMore: boolean
   loadOlderComments: () => void
+  refreshComments: () => void
   setReviewData: React.Dispatch<React.SetStateAction<ReviewData | null>>
   setComments: React.Dispatch<React.SetStateAction<PendingComment[]>>
   setComparison: React.Dispatch<React.SetStateAction<ReviewComparison | null>>
@@ -74,7 +77,7 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
   // GitHub PR data (description + comments)
   const {
     prDescription, prGitHubComments, prCommentsLoading,
-    prCommentsHasMore, loadOlderComments, resetGitHubPrData,
+    prCommentsHasMore, loadOlderComments, refreshComments, resetGitHubPrData,
   } = useGitHubPrData(sessionId, sessionDirectory, prNumber)
 
   // All files live in .broomy folder in the repo
@@ -215,6 +218,7 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
     prCommentsLoading,
     prCommentsHasMore,
     loadOlderComments,
+    refreshComments,
     reviewFilePath,
     commentsFilePath,
     historyFilePath,

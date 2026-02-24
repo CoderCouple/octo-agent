@@ -1,7 +1,61 @@
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { ReviewData, ReviewComparison, PendingComment, CodeLocation } from '../../types/review'
 import type { NormalizedComment } from './useReviewData'
 import { CollapsibleSection } from './CollapsibleSection'
 import { LocationLink, SeverityBadge, ChangeStatusBadge } from './ReviewHelpers'
+import { PrCommentsSection } from './PrComments'
+
+export { PrCommentsSection }
+
+export function MarkdownBody({ content }: { content: string }) {
+  return (
+    <Markdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        h1: ({ children }) => <h1 className="text-base font-bold mt-3 mb-2 text-text-primary">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-sm font-semibold mt-3 mb-1.5 text-text-primary">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1 text-text-primary">{children}</h3>,
+        h4: ({ children }) => <h4 className="text-sm font-medium mt-2 mb-1 text-text-primary">{children}</h4>,
+        p: ({ children }) => <p className="my-1.5 text-sm text-text-primary leading-relaxed">{children}</p>,
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            className="text-accent hover:underline"
+            onClick={(e) => {
+              e.preventDefault()
+              if (href) void window.shell.openExternal(href)
+            }}
+          >
+            {children}
+          </a>
+        ),
+        code: ({ children, className }) => {
+          const isBlock = className?.includes('language-')
+          if (isBlock) {
+            return <code className="block bg-bg-tertiary p-2 rounded overflow-x-auto text-xs">{children}</code>
+          }
+          return <code className="bg-bg-tertiary px-1 rounded text-xs">{children}</code>
+        },
+        pre: ({ children }) => <pre className="bg-bg-tertiary p-2 rounded overflow-x-auto my-1.5">{children}</pre>,
+        blockquote: ({ children }) => <blockquote className="border-l-2 border-border pl-3 my-1.5 text-text-secondary italic">{children}</blockquote>,
+        ul: ({ children }) => <ul className="list-disc ml-4 my-1.5 text-sm">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal ml-4 my-1.5 text-sm">{children}</ol>,
+        li: ({ children }) => <li className="text-text-primary">{children}</li>,
+        hr: () => <hr className="border-border my-3" />,
+        img: ({ src, alt }) => <img src={src} alt={alt} className="max-w-full my-1.5 rounded" />,
+        table: ({ children }) => <table className="border-collapse my-2 w-full">{children}</table>,
+        thead: ({ children }) => <thead className="bg-bg-tertiary">{children}</thead>,
+        tbody: ({ children }) => <tbody>{children}</tbody>,
+        tr: ({ children }) => <tr className="border-b border-border">{children}</tr>,
+        th: ({ children }) => <th className="px-2 py-1 text-left text-xs font-semibold text-text-primary border border-border">{children}</th>,
+        td: ({ children }) => <td className="px-2 py-1 text-xs text-text-primary border border-border">{children}</td>,
+      }}
+    >
+      {content}
+    </Markdown>
+  )
+}
 
 function SinceLastReviewSection({ data }: { data: NonNullable<ReviewData['changesSinceLastReview']> }) {
   return (
@@ -36,102 +90,7 @@ function SinceLastReviewSection({ data }: { data: NonNullable<ReviewData['change
   )
 }
 
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffHr = Math.floor(diffMin / 60)
-  if (diffHr < 24) return `${diffHr}h ago`
-  const diffDay = Math.floor(diffHr / 24)
-  if (diffDay < 30) return `${diffDay}d ago`
-  return date.toLocaleDateString()
-}
-
-function PrCommentsSection({
-  prGitHubComments,
-  prCommentsLoading,
-  prCommentsHasMore,
-  onLoadOlderComments,
-  onClickLocation,
-}: {
-  prGitHubComments: NormalizedComment[]
-  prCommentsLoading: boolean
-  prCommentsHasMore: boolean
-  onLoadOlderComments: () => void
-  onClickLocation: (location: CodeLocation) => void
-}) {
-  // Group review comments: top-level threads and their replies
-  const topLevel = prGitHubComments.filter(c => c.type === 'issue' || !c.inReplyToId)
-  const replies = prGitHubComments.filter(c => c.type === 'review' && c.inReplyToId)
-  const replyMap = new Map<number, NormalizedComment[]>()
-  for (const reply of replies) {
-    const existing = replyMap.get(reply.inReplyToId!) || []
-    existing.push(reply)
-    replyMap.set(reply.inReplyToId!, existing)
-  }
-
-  return (
-    <CollapsibleSection title="PR Comments" count={prGitHubComments.length} defaultOpen={false}>
-      <div className="space-y-2">
-        {topLevel.map(comment => (
-          <div key={comment.id}>
-            <div className="rounded border border-border bg-bg-primary p-2">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-text-primary">{comment.author}</span>
-                <span className="text-[10px] text-text-secondary">{formatRelativeTime(comment.createdAt)}</span>
-                {comment.type === 'review' && comment.path && (
-                  <button
-                    onClick={() => onClickLocation({
-                      file: comment.path!,
-                      startLine: comment.line || 1,
-                    })}
-                    className="text-[10px] text-accent hover:text-accent/80 font-mono truncate transition-colors ml-auto"
-                  >
-                    {comment.path.split('/').pop()}{comment.line ? `:${comment.line}` : ''}
-                  </button>
-                )}
-              </div>
-              <div className="text-xs text-text-primary whitespace-pre-wrap">{comment.body}</div>
-            </div>
-            {/* Threaded replies */}
-            {replyMap.get(comment.id)?.map(reply => (
-              <div key={reply.id} className="ml-4 mt-1 rounded border border-border/50 bg-bg-primary/50 p-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium text-text-primary">{reply.author}</span>
-                  <span className="text-[10px] text-text-secondary">{formatRelativeTime(reply.createdAt)}</span>
-                </div>
-                <div className="text-xs text-text-primary whitespace-pre-wrap">{reply.body}</div>
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {prCommentsLoading && (
-          <div className="flex items-center justify-center py-2">
-            <svg className="animate-spin w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          </div>
-        )}
-
-        {prCommentsHasMore && !prCommentsLoading && (
-          <button
-            onClick={onLoadOlderComments}
-            className="w-full py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
-          >
-            Show older comments
-          </button>
-        )}
-      </div>
-    </CollapsibleSection>
-  )
-}
-
-interface ReviewContentProps {
+export interface ReviewContentProps {
   reviewData: ReviewData
   comparison: ReviewComparison | null
   comments: PendingComment[]
@@ -144,6 +103,9 @@ interface ReviewContentProps {
   onLoadOlderComments: () => void
   onClickLocation: (location: CodeLocation) => void
   onDeleteComment: (commentId: string) => void
+  repoDir: string
+  prNumber: number
+  onRefreshComments: () => void
 }
 
 export function ReviewContent({
@@ -159,6 +121,9 @@ export function ReviewContent({
   onLoadOlderComments,
   onClickLocation,
   onDeleteComment,
+  repoDir,
+  prNumber,
+  onRefreshComments,
 }: ReviewContentProps) {
   return (
     <>
@@ -189,19 +154,16 @@ export function ReviewContent({
         </CollapsibleSection>
       )}
 
-      {/* Since Last Review (from agent's analysis) */}
       {reviewData.changesSinceLastReview && (
         <SinceLastReviewSection data={reviewData.changesSinceLastReview} />
       )}
 
-      {/* PR Description */}
       {prDescription && (
-        <CollapsibleSection title="PR Description" defaultOpen={true}>
-          <div className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">{prDescription}</div>
+        <CollapsibleSection title="PR Description" defaultOpen={false}>
+          <MarkdownBody content={prDescription} />
         </CollapsibleSection>
       )}
 
-      {/* Overview */}
       <CollapsibleSection title="Overview" defaultOpen={true}>
         <div className="space-y-3">
           <div>
@@ -215,7 +177,6 @@ export function ReviewContent({
         </div>
       </CollapsibleSection>
 
-      {/* Change Patterns */}
       <CollapsibleSection title="Change Patterns" count={reviewData.changePatterns.length}>
         <div className="space-y-3">
           {reviewData.changePatterns.map((pattern) => (
@@ -225,12 +186,7 @@ export function ReviewContent({
               {pattern.locations.length > 0 && (
                 <div className="mt-1 space-y-0.5">
                   {pattern.locations.map((loc, i) => (
-                    <LocationLink
-                      key={i}
-                      location={loc}
-                      directory={directory}
-                      onClick={() => onClickLocation(loc)}
-                    />
+                    <LocationLink key={i} location={loc} directory={directory} onClick={() => onClickLocation(loc)} />
                   ))}
                 </div>
               )}
@@ -239,7 +195,6 @@ export function ReviewContent({
         </div>
       </CollapsibleSection>
 
-      {/* Potential Issues */}
       {reviewData.potentialIssues.length > 0 && (
         <CollapsibleSection title="Potential Issues" count={reviewData.potentialIssues.length}>
           <div className="space-y-3">
@@ -253,12 +208,7 @@ export function ReviewContent({
                 {issue.locations.length > 0 && (
                   <div className="mt-1 space-y-0.5">
                     {issue.locations.map((loc, i) => (
-                      <LocationLink
-                        key={i}
-                        location={loc}
-                        directory={directory}
-                        onClick={() => onClickLocation(loc)}
-                      />
+                      <LocationLink key={i} location={loc} directory={directory} onClick={() => onClickLocation(loc)} />
                     ))}
                   </div>
                 )}
@@ -268,7 +218,6 @@ export function ReviewContent({
         </CollapsibleSection>
       )}
 
-      {/* Design Decisions */}
       {reviewData.designDecisions.length > 0 && (
         <CollapsibleSection title="Design Decisions" count={reviewData.designDecisions.length}>
           <div className="space-y-3">
@@ -285,12 +234,7 @@ export function ReviewContent({
                 {decision.locations.length > 0 && (
                   <div className="mt-1 space-y-0.5">
                     {decision.locations.map((loc, i) => (
-                      <LocationLink
-                        key={i}
-                        location={loc}
-                        directory={directory}
-                        onClick={() => onClickLocation(loc)}
-                      />
+                      <LocationLink key={i} location={loc} directory={directory} onClick={() => onClickLocation(loc)} />
                     ))}
                   </div>
                 )}
@@ -300,7 +244,6 @@ export function ReviewContent({
         </CollapsibleSection>
       )}
 
-      {/* Pending Comments */}
       {comments.length > 0 && (
         <CollapsibleSection title="Pending Comments" count={unpushedCount}>
           <div className="space-y-2">
@@ -308,10 +251,7 @@ export function ReviewContent({
               <div key={comment.id} className="rounded border border-border bg-bg-primary p-2">
                 <div className="flex items-center gap-2 mb-1">
                   <button
-                    onClick={() => onClickLocation({
-                      file: comment.file,
-                      startLine: comment.line,
-                    })}
+                    onClick={() => onClickLocation({ file: comment.file, startLine: comment.line })}
                     className="text-xs text-accent hover:text-accent/80 font-mono truncate transition-colors"
                   >
                     {comment.file.split('/').pop()}:{comment.line}
@@ -330,14 +270,13 @@ export function ReviewContent({
                     </svg>
                   </button>
                 </div>
-                <div className="text-xs text-text-primary">{comment.body}</div>
+                <div className="text-sm text-text-primary">{comment.body}</div>
               </div>
             ))}
           </div>
         </CollapsibleSection>
       )}
 
-      {/* PR Comments from GitHub */}
       {prGitHubComments.length > 0 && (
         <PrCommentsSection
           prGitHubComments={prGitHubComments}
@@ -345,6 +284,9 @@ export function ReviewContent({
           prCommentsHasMore={prCommentsHasMore}
           onLoadOlderComments={onLoadOlderComments}
           onClickLocation={onClickLocation}
+          repoDir={repoDir}
+          prNumber={prNumber}
+          onRefreshComments={onRefreshComments}
         />
       )}
     </>

@@ -1,21 +1,21 @@
 import type { Session } from '../../store/sessions'
 import type { ManagedRepo } from '../../../preload/index'
+import type { FetchingStatus, NormalizedComment } from './useReviewData'
+import type { ReviewData, CodeLocation } from '../../types/review'
 import { CollapsibleSection } from './CollapsibleSection'
 import { GitignoreModal } from './GitignoreModal'
-import { ReviewContent } from './ReviewContent'
+import { MarkdownBody, ReviewContent } from './ReviewContent'
+import { PrCommentsSection } from './PrComments'
 import { useReviewData } from './useReviewData'
 import { useReviewActions } from './useReviewActions'
-import type { FetchingStatus } from './useReviewData'
-import type { ReviewData } from '../../types/review'
 
 function ReviewEmptyState({
-  fetching, waitingForAgent, fetchingStatus, prBaseBranch, prDescription,
+  fetching, waitingForAgent, fetchingStatus, prBaseBranch,
 }: {
   fetching: boolean
   waitingForAgent: boolean
   fetchingStatus: FetchingStatus
   prBaseBranch?: string
-  prDescription: string | null
 }) {
   if (fetching) {
     return (
@@ -62,24 +62,7 @@ function ReviewEmptyState({
     )
   }
 
-  if (prDescription) {
-    return (
-      <div className="px-3 py-2">
-        <CollapsibleSection title="PR Description" defaultOpen={true}>
-          <div className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">{prDescription}</div>
-        </CollapsibleSection>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex items-center justify-center h-full text-text-primary text-sm px-4 text-center">
-      <div>
-        <p className="mb-2">Click "Generate Review" to get an AI-generated structured review of this PR.</p>
-        <p className="text-xs text-text-secondary">The review data will be stored in <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/</code> so your agent can reference it.</p>
-      </div>
-    </div>
-  )
+  return null
 }
 
 function GenerateButton({ fetching, waitingForAgent, reviewData, disabled, onClick }: {
@@ -116,6 +99,51 @@ function GenerateButton({ fetching, waitingForAgent, reviewData, disabled, onCli
   )
 }
 
+function PreReviewContent({
+  session,
+  prDescription,
+  prGitHubComments,
+  prCommentsLoading,
+  prCommentsHasMore,
+  loadOlderComments,
+  refreshComments,
+  handleClickLocation,
+}: {
+  session: Session
+  prDescription: string | null
+  prGitHubComments: NormalizedComment[]
+  prCommentsLoading: boolean
+  prCommentsHasMore: boolean
+  loadOlderComments: () => void
+  refreshComments: () => void
+  handleClickLocation: (location: CodeLocation) => void
+}) {
+  return (
+    <div className="px-3 py-2">
+      {prDescription && (
+        <CollapsibleSection title="PR Description" defaultOpen={false}>
+          <MarkdownBody content={prDescription} />
+        </CollapsibleSection>
+      )}
+      {prGitHubComments.length > 0 && session.prNumber && (
+        <PrCommentsSection
+          prGitHubComments={prGitHubComments}
+          prCommentsLoading={prCommentsLoading}
+          prCommentsHasMore={prCommentsHasMore}
+          onLoadOlderComments={loadOlderComments}
+          onClickLocation={handleClickLocation}
+          repoDir={session.directory}
+          prNumber={session.prNumber}
+          onRefreshComments={refreshComments}
+        />
+      )}
+      <div className="mt-4 text-center text-sm text-text-secondary px-4">
+        <p>Click "Generate Review" to get an AI-generated structured review of this PR.</p>
+      </div>
+    </div>
+  )
+}
+
 interface ReviewPanelProps {
   session: Session
   repo?: ManagedRepo
@@ -126,38 +154,25 @@ export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanel
   const state = useReviewData(session.id, session.directory, session.prBaseBranch, session.prNumber)
 
   const {
-    reviewData,
-    comments,
-    comparison,
-    fetching,
-    waitingForAgent,
-    fetchingStatus,
-    pushing,
-    pushResult,
-    error,
-    showGitignoreModal,
-    unpushedCount,
-    prDescription,
-    prGitHubComments,
-    prCommentsLoading,
-    prCommentsHasMore,
-    loadOlderComments,
+    reviewData, comments, comparison, fetching, waitingForAgent, fetchingStatus,
+    pushing, pushResult, error, showGitignoreModal, unpushedCount,
+    prDescription, prGitHubComments, prCommentsLoading, prCommentsHasMore,
+    loadOlderComments, refreshComments,
   } = state
 
   const {
-    handleGenerateReview,
-    handlePushComments,
-    handleDeleteComment,
-    handleOpenPrUrl,
-    handleClickLocation,
-    handleGitignoreAdd,
-    handleGitignoreContinue,
-    handleGitignoreCancel,
+    handleGenerateReview, handlePushComments, handleDeleteComment, handleOpenPrUrl,
+    handleClickLocation, handleGitignoreAdd, handleGitignoreContinue, handleGitignoreCancel,
   } = useReviewActions(session, repo, onSelectFile, state)
+
+  const hasPreReviewContent = !!(prDescription || prGitHubComments.length > 0)
+  const isIdle = !reviewData && !fetching && !waitingForAgent
+  const showPreReview = isIdle && hasPreReviewContent
+  const showPromo = isIdle && !hasPreReviewContent
+  const showPushButton = comments.length > 0 && !!session.prNumber
 
   return (
     <div className="h-full flex flex-col bg-bg-secondary overflow-hidden">
-      {/* Gitignore Modal */}
       {showGitignoreModal && (
         <GitignoreModal
           onAddToGitignore={handleGitignoreAdd}
@@ -166,7 +181,6 @@ export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanel
         />
       )}
 
-      {/* Header */}
       <div className="px-3 py-2 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2 mb-1">
           <h3 className="text-sm font-medium text-text-primary truncate flex-1">
@@ -190,7 +204,7 @@ export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanel
             disabled={fetching || waitingForAgent || !session.agentPtyId}
             onClick={handleGenerateReview}
           />
-          {comments.length > 0 && session.prNumber && (
+          {showPushButton && (
             <button
               onClick={handlePushComments}
               disabled={pushing || unpushedCount === 0}
@@ -201,25 +215,38 @@ export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanel
             </button>
           )}
         </div>
-        {error && (
-          <div className="text-xs text-red-400 mt-1">{error}</div>
-        )}
-        {pushResult && (
-          <div className="text-xs text-green-400 mt-1">{pushResult}</div>
-        )}
+        {error && <div className="text-xs text-red-400 mt-1">{error}</div>}
+        {pushResult && <div className="text-xs text-green-400 mt-1">{pushResult}</div>}
       </div>
 
-      {/* Review content */}
       <div className="flex-1 overflow-y-auto">
-        {!reviewData ? (
-          <ReviewEmptyState
-            fetching={fetching}
-            waitingForAgent={waitingForAgent}
-            fetchingStatus={fetchingStatus}
-            prBaseBranch={session.prBaseBranch}
+        {!reviewData && (fetching || waitingForAgent) && (
+          <ReviewEmptyState fetching={fetching} waitingForAgent={waitingForAgent} fetchingStatus={fetchingStatus} prBaseBranch={session.prBaseBranch} />
+        )}
+
+        {showPromo && (
+          <div className="flex items-center justify-center h-full text-text-primary text-sm px-4 text-center">
+            <div>
+              <p className="mb-2">Click "Generate Review" to get an AI-generated structured review of this PR.</p>
+              <p className="text-xs text-text-secondary">The review data will be stored in <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/</code> so your agent can reference it.</p>
+            </div>
+          </div>
+        )}
+
+        {showPreReview && (
+          <PreReviewContent
+            session={session}
             prDescription={prDescription}
+            prGitHubComments={prGitHubComments}
+            prCommentsLoading={prCommentsLoading}
+            prCommentsHasMore={prCommentsHasMore}
+            loadOlderComments={loadOlderComments}
+            refreshComments={refreshComments}
+            handleClickLocation={handleClickLocation}
           />
-        ) : (
+        )}
+
+        {reviewData && (
           <ReviewContent
             reviewData={reviewData}
             comparison={comparison}
@@ -233,6 +260,9 @@ export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanel
             onLoadOlderComments={loadOlderComments}
             onClickLocation={handleClickLocation}
             onDeleteComment={handleDeleteComment}
+            repoDir={session.directory}
+            prNumber={session.prNumber || 0}
+            onRefreshComments={refreshComments}
           />
         )}
       </div>

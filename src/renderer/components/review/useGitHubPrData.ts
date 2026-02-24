@@ -7,6 +7,7 @@ export interface GitHubPrDataState {
   prCommentsLoading: boolean
   prCommentsHasMore: boolean
   loadOlderComments: () => void
+  refreshComments: () => void
   resetGitHubPrData: () => void
 }
 
@@ -58,6 +59,7 @@ export function useGitHubPrData(sessionId: string, sessionDirectory: string, prN
         createdAt: c.createdAt,
         url: c.url,
         type: 'issue' as const,
+        reactions: c.reactions,
       }))
 
       const normalizedReview: NormalizedComment[] = reviewComments.map(c => ({
@@ -70,6 +72,7 @@ export function useGitHubPrData(sessionId: string, sessionDirectory: string, prN
         path: c.path,
         line: c.line,
         inReplyToId: c.inReplyToId,
+        reactions: c.reactions,
       }))
 
       const merged = [...normalizedIssue, ...normalizedReview]
@@ -109,12 +112,17 @@ export function useGitHubPrData(sessionId: string, sessionDirectory: string, prN
     void fetchComments(true)
   }, [fetchComments])
 
+  const refreshComments = useCallback(() => {
+    void fetchComments(false)
+  }, [fetchComments])
+
   return {
     prDescription,
     prGitHubComments,
     prCommentsLoading,
     prCommentsHasMore,
     loadOlderComments,
+    refreshComments,
     resetGitHubPrData,
   }
 }

@@ -70,6 +70,7 @@ function makeState(overrides: Partial<ReviewDataState> = {}): ReviewDataState {
     prCommentsLoading: false,
     prCommentsHasMore: false,
     loadOlderComments: vi.fn(),
+    refreshComments: vi.fn(),
     setReviewData: vi.fn(),
     setComments: vi.fn(),
     setComparison: vi.fn(),
