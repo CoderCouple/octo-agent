@@ -200,7 +200,7 @@ success "Created $OUTPUT_DIR/"
 FEATURES=()
 for dir in "$FEATURES_DIR"/*/; do
   name=$(basename "$dir")
-  if [ "$name" != "_shared" ] && [ "$name" != "terminal-scrolling" ]; then
+  if [ "$name" != "_shared" ]; then
     FEATURES+=("$name")
   fi
 done

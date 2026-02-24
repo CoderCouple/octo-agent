@@ -28,7 +28,6 @@ const FEATURES_ROOT = path.join(__dirname, '..')
 
 const steps: FeatureStep[] = []
 
-test.setTimeout(60000)
 
 /** Navigate the explorer panel to the source-control tab */
 async function openSourceControl(page: Page) {

@@ -26,7 +26,6 @@ let electronApp: ElectronApplication
 let page: Page
 const steps: FeatureStep[] = []
 
-test.setTimeout(60000)
 
 /** Set the explorer panel to the source-control tab */
 async function openSourceControl() {

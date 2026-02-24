@@ -10,7 +10,7 @@ export default defineConfig({
   globalTeardown: './tests/global-teardown.ts',
   testDir: './tests/features',
   testIgnore: ['**/_shared/**'],
-  timeout: 60000,
+  timeout: 15000,
   expect: {
     timeout: 5000,
   },
