@@ -80,9 +80,7 @@ Session store debounces saves with 500ms delay. Runtime-only state (`status`, `i
 
 ## Testing
 
-**Always confirm these checks pass before considering work done: `pnpm lint`, `pnpm typecheck`, `pnpm check:all`, `pnpm test:unit`, `pnpm test:e2e`, and a feature doc (see [Feature Documentation](#feature-documentation)).**
-
-**IMPORTANT: Do NOT run E2E tests (`pnpm test:e2e`) without first asking the user for confirmation.** E2E tests launch Electron and are resource-intensive — running them from multiple agents simultaneously will hose the machine. Always run lint, typecheck, and unit tests first, then ask before running E2E.
+Always run lint, typecheck, and unit tests before E2E or feature doc tests.
 
 ### Unit Tests
 
@@ -111,8 +109,21 @@ Playwright tests in `tests/`. The test system:
 5. Run `pnpm check:all` to verify project-specific checks pass (worker config, etc.)
 6. Run `pnpm test:unit` to verify all unit tests pass
 7. Run `pnpm test:unit:coverage` to confirm coverage stays above 90%
-8. **Ask the user for confirmation**, then run `pnpm test:e2e` to verify E2E tests still pass
-9. Create or update a feature doc screenshot walkthrough (see [Feature Documentation](#feature-documentation) below). **Ask the user for confirmation**, then run `pnpm test:feature-docs <feature-slug>` to verify it generates correctly
+8. Run `pnpm test:e2e` to verify E2E tests still pass
+9. Create or update a feature doc screenshot walkthrough (see [Feature Documentation](#feature-documentation) below), then run `pnpm test:feature-docs <feature-slug>` to verify it generates correctly
+
+### Verification Checklist
+
+**When writing a plan, ALWAYS include this complete checklist in the Verification section. Do not omit any items.**
+
+1. `pnpm lint` — no lint errors
+2. `pnpm typecheck` — no type errors
+3. `pnpm check:all` — project-specific checks pass
+4. `pnpm test:unit` — all unit tests pass
+5. `pnpm test:unit:coverage` — coverage above 90%
+6. `pnpm test:e2e` — E2E tests pass
+7. Create/update feature doc screenshot walkthrough in `tests/features/<feature-slug>/` (see [Feature Documentation](#feature-documentation))
+8. `pnpm test:feature-docs <feature-slug>` — feature doc generates correctly
 
 ## Adding New Features
 
@@ -135,7 +146,7 @@ Playwright tests in `tests/`. The test system:
 
 ## Feature Documentation
 
-**Every feature or significant change requires a screenshot walkthrough. Do not consider your work done without one.** Create a screenshot-documented E2E test that exercises the feature flow and generates a visual writeup. This serves as both verification and documentation. The spec file is committed; running `pnpm test:feature-docs` generates the screenshots and HTML locally.
+**Every feature or significant change requires a screenshot walkthrough — this is a required verification step, not optional.** If your plan's verification section doesn't include a feature doc, your plan is incomplete. Create a screenshot-documented E2E test that exercises the feature flow and generates a visual writeup. This serves as both verification and documentation. The spec file is committed; running `pnpm test:feature-docs` generates the screenshots and HTML locally.
 
 ### How to create a feature doc
 
