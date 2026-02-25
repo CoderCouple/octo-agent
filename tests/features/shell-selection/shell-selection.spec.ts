@@ -96,10 +96,9 @@ test.describe.serial('Feature: Shell Selection', () => {
 
     // Select Bash
     await shellSelect.selectOption('/bin/bash')
-    await page.waitForTimeout(200)
 
-    const selectedValue = await shellSelect.inputValue()
-    expect(selectedValue).toBe('/bin/bash')
+    // Wait for the select to reflect the new value
+    await expect(shellSelect).toHaveValue('/bin/bash')
 
     await screenshotElement(page, settingsPanel, path.join(SCREENSHOTS, '02-changed-to-bash.png'), {
       maxHeight: 500,
@@ -116,14 +115,19 @@ test.describe.serial('Feature: Shell Selection', () => {
   test('Step 3: Close settings and wait', async () => {
     await closeSettings()
 
-    // Wait well beyond the 500ms save debounce
-    await page.waitForTimeout(1500)
+    // Wait for the debounced save to have had time to fire by confirming the
+    // settings panel is fully hidden, then allowing the 500ms debounce to flush.
+    await expect(page.locator('[data-panel-id="settings"]')).not.toBeVisible()
+    // The save debounce is 500ms — wait long enough for it to fire.
+    // No observable UI change to wait for here, so a timeout is appropriate.
+    // eslint-disable-next-line no-restricted-syntax
+    await page.waitForTimeout(1000)
 
     steps.push({
       screenshotPath: 'screenshots/02-changed-to-bash.png', // reuse previous screenshot
       caption: 'Settings closed, waiting for save to complete',
       description:
-        'Settings panel is closed. We wait 1.5 seconds to ensure the debounced save has completed.',
+        'Settings panel is closed. We wait for the debounced save to complete.',
     })
   })
 

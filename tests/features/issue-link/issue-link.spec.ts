@@ -55,7 +55,7 @@ async function openSourceControl(page: Page): Promise<void> {
   const explorerClasses = await explorerButton.getAttribute('class').catch(() => '')
   if (!explorerClasses?.includes('bg-accent')) {
     await explorerButton.click()
-    await page.waitForTimeout(300)
+    await expect(page.locator('[data-panel-id="explorer"]')).toBeVisible()
   }
 
   // Switch to source control tab via store
@@ -67,7 +67,7 @@ async function openSourceControl(page: Page): Promise<void> {
     const state = store.getState()
     state.setExplorerFilter(state.activeSessionId, 'source-control')
   })
-  await page.waitForTimeout(1000)
+  await expect(page.locator('[data-panel-id="explorer"]').getByText(/^Changes \(/)).toBeVisible()
 }
 
 test.describe.serial('Feature: Issue Link in Source Control', () => {
@@ -75,7 +75,6 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
     // Click "+ New Session" button
     const newSessionButton = page.locator('button:has-text("+ New Session")')
     await newSessionButton.click()
-    await page.waitForTimeout(500)
 
     // The new session dialog should appear with the repo list
     const dialog = page.locator('.fixed.inset-0.z-50 > div')
@@ -96,7 +95,6 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
 
     // Click Issues
     await issuesButton.click()
-    await page.waitForTimeout(500)
   })
 
   test('Step 2: Issues list — select an issue', async () => {
@@ -120,7 +118,6 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
 
     // Select the issue
     await issueRow.click()
-    await page.waitForTimeout(500)
   })
 
   test('Step 3: New branch view — issue details carried through', async () => {
@@ -143,9 +140,7 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
     // Close dialog without creating (we'll use the pre-existing sessions for the next steps)
     // Press Escape twice: first goes back to home view, second closes the dialog
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(500)
 
     // Ensure the dialog overlay is gone
     const overlay = page.locator('.fixed.inset-0.z-50')
@@ -158,7 +153,6 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
     const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
     await expect(broomySession).toBeVisible()
     await broomySession.click()
-    await page.waitForTimeout(500)
 
     await openSourceControl(page)
 
@@ -188,7 +182,6 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
     // It also has issueNumber: 15, but the PR should take priority
     const backendSession = page.locator('.cursor-pointer:has-text("backend-api")')
     await backendSession.click()
-    await page.waitForTimeout(500)
 
     await openSourceControl(page)
 

@@ -72,6 +72,27 @@ body {
   border-radius: 2px;
 }
 
+/* Disable all animations and transitions during E2E tests for stable screenshots */
+.e2e-stable * {
+  animation: none !important;
+  animation-delay: 0s !important;
+  animation-duration: 0s !important;
+  transition: none !important;
+  transition-delay: 0s !important;
+  transition-duration: 0s !important;
+}
+/* Also disable caret blinking which causes screenshot diffs */
+.e2e-stable textarea,
+.e2e-stable input,
+.e2e-stable [contenteditable] {
+  caret-color: transparent !important;
+}
+/* Hide Monaco editor cursor for stable screenshots */
+.e2e-stable .monaco-editor .cursor,
+.e2e-stable .monaco-editor .cursors-layer {
+  visibility: hidden !important;
+}
+
 /* Draggable region for window */
 .titlebar-drag-region {
   -webkit-app-region: drag;

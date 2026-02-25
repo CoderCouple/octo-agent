@@ -105,6 +105,25 @@ function createWindow(profileId?: string): BrowserWindow {
     console.error('Render process gone:', details)
   })
 
+  // Kill PTY processes when the renderer reloads — prevents FD exhaustion
+  // from accumulated zombie PTY handles during E2E test runs
+  window.webContents.on('did-start-navigation', (_event, url, _isInPlace, isMainFrame) => {
+    if (!isMainFrame) return
+    // Only clean up on same-origin navigation (reload), not initial load
+    const currentUrl = window.webContents.getURL()
+    if (currentUrl && currentUrl !== url) return
+    for (const [id, owner] of ptyOwnerWindows) {
+      if (owner === window) {
+        const proc = ptyProcesses.get(id)
+        if (proc) {
+          proc.kill()
+          ptyProcesses.delete(id)
+        }
+        ptyOwnerWindows.delete(id)
+      }
+    }
+  })
+
   // Prevent navigation to external URLs — open them in the default browser instead
   window.webContents.on('will-navigate', (event, url) => {
     // Allow reloading the app itself (file:// or devserver URLs)
@@ -170,6 +189,11 @@ const context: HandlerContext & { createWindow: (profileId?: string) => BrowserW
   E2E_MOCK_SHELL: process.env.E2E_MOCK_SHELL,
   FAKE_CLAUDE_SCRIPT: process.env.FAKE_CLAUDE_SCRIPT,
   createWindow,
+}
+
+// Expose context on globalThis for E2E tests to clean up PTY processes between reloads
+if (isE2ETest) {
+  (globalThis as Record<string, unknown>).__appContext = context
 }
 
 // Register all IPC handlers

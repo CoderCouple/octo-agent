@@ -58,13 +58,11 @@ test.describe.serial('Feature: Better Default Branch Names', () => {
     const newSessionBtn = page.locator('button:has-text("+ New Session")')
     await expect(newSessionBtn).toBeVisible()
     await newSessionBtn.click()
-    await page.waitForTimeout(500)
 
     // Click Issues button
     const issuesBtn = page.locator('button:has-text("Issues")')
     await expect(issuesBtn).toBeVisible()
     await issuesBtn.click()
-    await page.waitForTimeout(1000)
 
     // Issues view should show mock issues with long titles
     await expect(page.locator('text=dark mode toggle')).toBeVisible()
@@ -86,7 +84,6 @@ test.describe.serial('Feature: Better Default Branch Names', () => {
     // Click on issue #42
     const issue = page.locator('button:has-text("dark mode toggle")')
     await issue.click()
-    await page.waitForTimeout(500)
 
     // Should now be in NewBranchView with the issue shown
     await expect(page.locator('text=Issue #42')).toBeVisible()
@@ -123,15 +120,15 @@ test.describe.serial('Feature: Better Default Branch Names', () => {
     // Go back to issues list
     const backBtn = page.locator('button:has(svg path[d="M15 19l-7-7 7-7"])')
     await backBtn.first().click()
-    await page.waitForTimeout(500)
 
     // Click the second issue
     const issue = page.locator('button:has-text("empty notification list")')
     await expect(issue).toBeVisible()
     await issue.click()
-    await page.waitForTimeout(500)
 
+    // Wait for NewBranchView to load with the input field
     const input = page.locator('input[placeholder="feature/my-feature"]')
+    await expect(input).toBeVisible()
     const branchValue = await input.inputValue()
 
     // Should strip filler words

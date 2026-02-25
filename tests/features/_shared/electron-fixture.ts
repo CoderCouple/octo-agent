@@ -59,6 +59,9 @@ async function getOrLaunchApp(): Promise<{ electronApp: ElectronApplication; pag
   // Wait for sessions to load (sidebar renders session cards with cursor-pointer)
   await sharedPage.waitForSelector('.cursor-pointer', { timeout: 10000 })
 
+  // Disable animations for stable screenshots
+  await sharedPage.evaluate(() => document.documentElement.classList.add('e2e-stable'))
+
   return { electronApp: sharedApp, page: sharedPage }
 }
 
@@ -102,12 +105,38 @@ export async function resetApp(opts?: ResetOptions): Promise<{ electronApp: Elec
       await page.waitForSelector('.cursor-pointer', { timeout: 10000 })
     }
   } else {
+    // Kill all PTY processes before reload to prevent FD/process exhaustion.
+    // Without this, each reload creates 3 new PTYs without cleaning up old ones,
+    // eventually causing posix_spawnp failures.
     // Subsequent calls — reload renderer to reset React/Zustand state
+    // (PTY cleanup happens automatically in main process on did-start-navigation)
     await page.reload()
     await page.waitForLoadState('domcontentloaded')
     await page.waitForSelector('#root > div', { timeout: 15000 })
     await page.waitForSelector('.cursor-pointer', { timeout: 10000 })
   }
+
+  // Disable animations and freeze time for stable screenshots (re-apply after every reload)
+  await page.evaluate(() => {
+    document.documentElement.classList.add('e2e-stable')
+    // Freeze Date.now() to a fixed point so relative timestamps are deterministic
+    const FROZEN_TIME = new Date('2025-02-01T12:00:00Z').getTime()
+    const _OriginalDate = globalThis.Date
+    const _origNow = Date.now
+    globalThis.Date.now = () => FROZEN_TIME
+    const OrigDate = globalThis.Date
+    // @ts-expect-error — override constructor for new Date()
+    globalThis.Date = class FrozenDate extends OrigDate {
+      constructor(...args: unknown[]) {
+        if (args.length === 0) super(FROZEN_TIME)
+        else super(...(args as [string]))
+      }
+    }
+    // Preserve static methods
+    globalThis.Date.now = () => FROZEN_TIME
+    globalThis.Date.parse = _OriginalDate.parse
+    globalThis.Date.UTC = _OriginalDate.UTC
+  })
 
   return { electronApp, page }
 }

@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 
 export default tseslint.config(
   // Ignore build outputs
-  { ignores: ['dist/**', 'out/**', 'node_modules/**'] },
+  { ignores: ['dist/**', 'out/**', 'node_modules/**', 'tests/**/*.mjs'] },
 
   // Base JS recommended rules
   js.configs.recommended,
@@ -84,6 +84,45 @@ export default tseslint.config(
       'no-new-wrappers': 'error',
       'no-throw-literal': 'error',
       'prefer-template': 'error',
+    },
+  },
+
+  // E2E and feature doc tests: not in tsconfig so disable type-checked rules
+  {
+    files: ['tests/**/*.ts'],
+    ...tseslint.configs.disableTypeChecked,
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+      'max-lines': 'off',
+      'max-lines-per-function': 'off',
+    },
+  },
+  // Feature doc tests: enforce screenshot stability rules
+  {
+    files: ['tests/features/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': ['error',
+        {
+          selector: 'CallExpression[callee.property.name="waitForTimeout"]',
+          message: 'Use element-based waits (expect().toBeVisible(), scrollIntoViewIfNeeded, etc.) instead of waitForTimeout for stable screenshots.',
+        },
+      ],
+    },
+  },
+  // Feature doc spec files (not shared helpers): also ban direct electron.launch
+  {
+    files: ['tests/features/**/*.spec.ts'],
+    rules: {
+      'no-restricted-syntax': ['error',
+        {
+          selector: 'CallExpression[callee.property.name="waitForTimeout"]',
+          message: 'Use element-based waits (expect().toBeVisible(), scrollIntoViewIfNeeded, etc.) instead of waitForTimeout for stable screenshots.',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="electron"][callee.property.name="launch"]',
+          message: 'Use the shared Electron instance from resetApp() in electron-fixture.ts instead of launching a new one.',
+        },
+      ],
     },
   },
 

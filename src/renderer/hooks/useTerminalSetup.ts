@@ -363,7 +363,7 @@ export function useTerminalSetup(
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       fontSize: 13,
       lineHeight: 1.2,
-      cursorBlink: true,
+      cursorBlink: !document.documentElement.classList.contains('e2e-stable'),
       cursorStyle: 'bar',
       scrollback: 5000,
       minimumContrastRatio: 7,

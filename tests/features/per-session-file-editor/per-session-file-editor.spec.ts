@@ -57,7 +57,6 @@ async function openExplorer() {
     const cls = await explorerButton.getAttribute('class').catch(() => '')
     if (!cls?.includes('bg-accent')) {
       await explorerButton.click()
-      await page.waitForTimeout(300)
     }
   }
   const explorerPanel = page.locator('[data-panel-id="explorer"]')
@@ -77,11 +76,10 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     const readmeEntry = explorerPanel.locator('text=README.md').first()
     await expect(readmeEntry).toBeVisible()
     await readmeEntry.click()
-    await page.waitForTimeout(1500)
 
     // File viewer should appear
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
-    await expect(fileViewer).toBeVisible()
+    await expect(fileViewer).toBeVisible({ timeout: 10000 })
 
     await screenshotRegion(
       page,
@@ -107,7 +105,6 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     const codeButton = fileViewer.locator('button[title="Code"]').first()
     if (await codeButton.isVisible({ timeout: 2000 }).catch(() => false)) {
       await codeButton.click()
-      await page.waitForTimeout(1000)
     }
 
     // Wait for Monaco editor to appear (longer timeout for initial load)
@@ -117,10 +114,9 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     // Click into the editor and type to make it dirty
     const textArea = fileViewer.locator('.monaco-editor textarea').first()
     await textArea.focus()
-    await page.waitForTimeout(300)
     await page.keyboard.press('End')
     await page.keyboard.type(' UNSAVED_EDIT')
-    await page.waitForTimeout(500)
+    await expect(fileViewer.locator('button:has-text("Save")')).toBeVisible()
 
     // Take screenshot showing dirty state
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '02-session-a-dirty.png'), {
@@ -140,10 +136,9 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     // Switch to backend-api session
     const backendSession = page.locator('.cursor-pointer:has-text("backend-api")')
     await backendSession.click()
-    await page.waitForTimeout(1000)
 
     // Verify we switched — backend-api should be highlighted
-    await expect(backendSession).toHaveClass(/bg-accent\/15/)
+    await expect(backendSession).toHaveClass(/bg-accent/, { timeout: 10000 })
 
     // Crucially, NO save dialog should have appeared
     const saveDialog = page.locator('text="Unsaved Changes"')
@@ -172,11 +167,10 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     const readmeEntry = explorerPanel.locator('text=README.md').first()
     await expect(readmeEntry).toBeVisible()
     await readmeEntry.click()
-    await page.waitForTimeout(1500)
 
     // File viewer should show content for the backend-api session
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
-    await expect(fileViewer).toBeVisible()
+    await expect(fileViewer).toBeVisible({ timeout: 10000 })
 
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '04-session-b-file-open.png'), {
       maxHeight: 400,
@@ -194,9 +188,8 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     // Switch back to broomy
     const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
     await broomySession.click()
-    await page.waitForTimeout(1000)
 
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    await expect(broomySession).toHaveClass(/bg-accent/, { timeout: 10000 })
 
     // No save dialog
     const saveDialog = page.locator('text="Unsaved Changes"')

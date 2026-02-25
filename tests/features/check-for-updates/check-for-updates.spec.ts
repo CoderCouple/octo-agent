@@ -93,7 +93,6 @@ test.describe.serial('Feature: Check for Updates', () => {
     // Click the toolbar Update button to open the popover
     const updateButton = page.locator('button:has-text("Update")').first()
     await updateButton.click()
-    await page.waitForTimeout(300)
 
     // The popover should show version info and release notes
     const popover = page.locator('.shadow-xl:has-text("Current version")')
@@ -113,7 +112,7 @@ test.describe.serial('Feature: Check for Updates', () => {
 
     // Close the popover
     await page.locator('.fixed.inset-0.z-40').click()
-    await page.waitForTimeout(300)
+    await expect(popover).not.toBeVisible()
   })
 
   test('Step 4: Download progress state', async () => {
@@ -128,7 +127,6 @@ test.describe.serial('Feature: Check for Updates', () => {
         })
       }
     })
-    await page.waitForTimeout(300)
 
     // The sidebar banner should show download progress
     const sidebar = page.locator('[data-panel-id="sidebar"]')
@@ -159,7 +157,6 @@ test.describe.serial('Feature: Check for Updates', () => {
         })
       }
     })
-    await page.waitForTimeout(300)
 
     const sidebar = page.locator('[data-panel-id="sidebar"]')
     const restartButton = sidebar.locator('text=Restart')

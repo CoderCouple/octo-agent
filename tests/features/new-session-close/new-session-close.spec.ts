@@ -71,7 +71,6 @@ test.describe.serial('Feature: New Session Dialog Close Behavior', () => {
     // Click the backdrop (the semi-transparent overlay outside the dialog)
     const backdrop = page.locator('.fixed.inset-0.z-50')
     await backdrop.click({ position: { x: 10, y: 10 } })
-    await page.waitForTimeout(300)
 
     // Dialog should still be visible
     const dialog = page.locator('.fixed.inset-0.z-50 .rounded-lg')
@@ -104,7 +103,6 @@ test.describe.serial('Feature: New Session Dialog Close Behavior', () => {
     })
 
     await cancelBtn.click()
-    await page.waitForTimeout(300)
 
     // Dialog should now be gone
     const backdrop = page.locator('.fixed.inset-0.z-50')

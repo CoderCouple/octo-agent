@@ -54,7 +54,7 @@ test.describe.serial('Feature: Markdown Links Open in External Browser', () => {
       const cls = await explorerButton.getAttribute('class').catch(() => '')
       if (!cls?.includes('bg-accent')) {
         await explorerButton.click()
-        await page.waitForTimeout(300)
+        await expect(page.locator('[data-panel-id="explorer"]')).toBeVisible()
       }
     }
 
@@ -65,11 +65,10 @@ test.describe.serial('Feature: Markdown Links Open in External Browser', () => {
     const readmeEntry = explorerPanel.locator('text=README.md').first()
     await expect(readmeEntry).toBeVisible()
     await readmeEntry.click()
-    await page.waitForTimeout(1500)
 
     // The file viewer should show the markdown preview
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
-    await expect(fileViewer).toBeVisible()
+    await expect(fileViewer).toBeVisible({ timeout: 10000 })
 
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '01-markdown-preview.png'), {
       maxHeight: 500,
@@ -112,7 +111,6 @@ test.describe.serial('Feature: Markdown Links Open in External Browser', () => {
 
     // Click the link
     await link.click()
-    await page.waitForTimeout(500)
 
     // Verify the app UI is still showing (not navigated away)
     const rootDiv = page.locator('#root > div')

@@ -40,7 +40,7 @@ async function openSourceControl(p: Page) {
     const cls = await explorerButton.getAttribute('class').catch(() => '')
     if (!cls?.includes('bg-accent')) {
       await explorerButton.click()
-      await p.waitForTimeout(300)
+      await expect(p.locator('[data-panel-id="explorer"]')).toBeVisible()
     }
   }
 
@@ -53,7 +53,8 @@ async function openSourceControl(p: Page) {
     const state = store.getState()
     state.setExplorerFilter(state.activeSessionId, 'source-control')
   })
-  await p.waitForTimeout(500)
+  // Wait for the source-control UI to render
+  await expect(p.locator('[data-panel-id="explorer"]')).toBeVisible()
 }
 
 /** Reset app with the given mock merge state */

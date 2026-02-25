@@ -12,7 +12,7 @@ import type { Page } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import { screenshotElement } from '../_shared/screenshot-helpers'
+import { screenshotElement, waitForDiffEditor } from '../_shared/screenshot-helpers'
 import { generateFeaturePage, generateIndex, FeatureStep } from '../_shared/template'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -33,7 +33,7 @@ async function openSourceControl() {
     const cls = await explorerButton.getAttribute('class').catch(() => '')
     if (!cls?.includes('bg-accent')) {
       await explorerButton.click()
-      await page.waitForTimeout(300)
+      await expect(page.locator('[data-panel-id="explorer"]')).toBeVisible()
     }
   }
 
@@ -45,7 +45,7 @@ async function openSourceControl() {
     const state = store.getState()
     state.setExplorerFilter(state.activeSessionId, 'source-control')
   })
-  await page.waitForTimeout(500)
+  await expect(page.locator('[data-panel-id="explorer"]')).toBeVisible()
 }
 
 /** Type into the Monaco editor to make it dirty */
@@ -53,10 +53,10 @@ async function makeEditorDirty() {
   const fileViewer = page.locator('[data-panel-id="fileViewer"]')
   const textArea = fileViewer.locator('.monaco-editor textarea').first()
   await textArea.focus()
-  await page.waitForTimeout(300)
+  await expect(textArea).toBeFocused()
   await page.keyboard.press('End')
   await page.keyboard.type(' UNSAVED_EDIT')
-  await page.waitForTimeout(500)
+  await expect(fileViewer.locator('button:has-text("Save")')).toBeVisible()
 }
 
 test.beforeAll(async () => {
@@ -89,11 +89,11 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     const readmeEntry = page.locator('text=README.md').first()
     await expect(readmeEntry).toBeVisible()
     await readmeEntry.click()
-    await page.waitForTimeout(1500)
 
     // File viewer should appear in diff mode (since opened from source control)
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
     await expect(fileViewer).toBeVisible()
+    await waitForDiffEditor(fileViewer)
 
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '01-file-open-diff.png'), {
       maxHeight: 500,
@@ -114,7 +114,6 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     const codeButton = fileViewer.locator('button[title="Code"]').first()
     await expect(codeButton).toBeVisible({ timeout: 5000 })
     await codeButton.click()
-    await page.waitForTimeout(1000)
 
     // Wait for Monaco editor
     const monacoEditor = fileViewer.locator('.monaco-editor').first()
@@ -145,7 +144,6 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     const diffButton = fileViewer.locator('button[title="Diff"]')
     await expect(diffButton).toBeVisible()
     await diffButton.click()
-    await page.waitForTimeout(300)
 
     // The unsaved changes dialog should appear
     const dialog = page.locator('text="Unsaved Changes"')
@@ -166,7 +164,7 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     // Click Cancel
     const cancelButton = page.locator('button:has-text("Cancel")').last()
     await cancelButton.click()
-    await page.waitForTimeout(300)
+    await expect(page.locator('text="Unsaved Changes"')).not.toBeVisible()
 
     // Dialog should be gone
     const dialog = page.locator('text="Unsaved Changes"')
@@ -205,7 +203,6 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     // Click Diff again
     const diffButton = fileViewer.locator('button[title="Diff"]')
     await diffButton.click()
-    await page.waitForTimeout(300)
 
     // Dialog should appear again
     await expect(page.locator('text="Unsaved Changes"')).toBeVisible()
@@ -213,11 +210,10 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     // Click Discard
     const discardButton = page.locator('button:has-text("Discard")')
     await discardButton.click()
-    await page.waitForTimeout(1000)
+    await expect(page.locator('text="Unsaved Changes"')).not.toBeVisible()
 
     // Should now be in diff view
-    const diffEditor = page.locator('.monaco-diff-editor').first()
-    await expect(diffEditor).toBeVisible({ timeout: 10000 })
+    await waitForDiffEditor(fileViewer)
 
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '05-discard-diff-view.png'), {
       maxHeight: 500,
@@ -237,19 +233,16 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     // Switch back to Code view
     const codeButton = fileViewer.locator('button[title="Code"]').first()
     await codeButton.click()
-    await page.waitForTimeout(1000)
 
     const monacoEditor = fileViewer.locator('.monaco-editor').first()
     await expect(monacoEditor).toBeVisible({ timeout: 10000 })
 
     // Make another edit
     await makeEditorDirty()
-    await page.waitForTimeout(300)
 
     // Click Diff
     const diffButton = fileViewer.locator('button[title="Diff"]')
     await diffButton.click()
-    await page.waitForTimeout(300)
 
     // Dialog appears
     await expect(page.locator('text="Unsaved Changes"')).toBeVisible()
@@ -258,11 +251,10 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     // Use the dialog's Save button (last one, inside the dialog overlay)
     const saveButton = page.locator('.fixed.inset-0 button:has-text("Save")')
     await saveButton.click()
-    await page.waitForTimeout(1000)
+    await expect(page.locator('text="Unsaved Changes"')).not.toBeVisible()
 
     // Should now be in diff view after save
-    const diffEditor = page.locator('.monaco-diff-editor').first()
-    await expect(diffEditor).toBeVisible({ timeout: 10000 })
+    await waitForDiffEditor(fileViewer)
 
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '06-save-then-diff.png'), {
       maxHeight: 500,
@@ -282,7 +274,7 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     // Switch to Code view (no edits)
     const codeButton = fileViewer.locator('button[title="Code"]').first()
     await codeButton.click()
-    await page.waitForTimeout(1000)
+    await expect(fileViewer.locator('.monaco-editor').first()).toBeVisible({ timeout: 10000 })
 
     // Verify not dirty — no Save button
     await expect(fileViewer.locator('button:has-text("Save")')).not.toBeVisible()
@@ -290,14 +282,12 @@ test.describe.serial('Feature: Save Prompt Before Diff View', () => {
     // Click Diff — should switch immediately without dialog
     const diffButton = fileViewer.locator('button[title="Diff"]')
     await diffButton.click()
-    await page.waitForTimeout(500)
 
     // No dialog
     await expect(page.locator('text="Unsaved Changes"')).not.toBeVisible()
 
     // Should be in diff view
-    const diffEditor = page.locator('.monaco-diff-editor').first()
-    await expect(diffEditor).toBeVisible({ timeout: 10000 })
+    await waitForDiffEditor(fileViewer)
 
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '07-no-dialog-clean.png'), {
       maxHeight: 500,

@@ -55,7 +55,6 @@ test.describe.serial('Feature: File Outline', () => {
     const explorerButton = page.locator('button:has-text("Explorer")')
     await expect(explorerButton).toBeVisible()
     await explorerButton.click()
-    await page.waitForTimeout(500)
 
     const explorerPanel = page.locator('[data-panel-id="explorer"]')
     await expect(explorerPanel).toBeVisible()
@@ -63,21 +62,23 @@ test.describe.serial('Feature: File Outline', () => {
     // Expand src directory
     const srcFolder = explorerPanel.locator('text=src').first()
     await srcFolder.click()
-    await page.waitForTimeout(300)
+    // Wait for directory contents to appear
+    await expect(explorerPanel.locator('text=middleware').first()).toBeVisible()
 
     // Expand middleware directory
     const middlewareFolder = explorerPanel.locator('text=middleware').first()
     await middlewareFolder.click()
-    await page.waitForTimeout(300)
+    // Wait for directory contents to appear
+    await expect(explorerPanel.locator('text=auth.ts').first()).toBeVisible()
 
     // Click auth.ts to open it in the file viewer
     const authFile = explorerPanel.locator('text=auth.ts').first()
     await authFile.click()
-    await page.waitForTimeout(1500)
 
-    // File viewer should now be visible
+    // File viewer should now be visible with Monaco editor loaded
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
     await expect(fileViewer).toBeVisible()
+    await expect(fileViewer.locator('.monaco-editor')).toBeVisible({ timeout: 10000 })
 
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '01-file-open.png'), {
       maxHeight: 500,
@@ -117,13 +118,21 @@ test.describe.serial('Feature: File Outline', () => {
     const quickInput = page.locator('.quick-input-widget:visible')
     await expect(quickInput).toBeVisible({ timeout: 5000 })
 
-    // Wait a moment for the symbol list to populate
-    await page.waitForTimeout(1000)
+    // Wait for the symbol list to populate
+    const symbolRows = page.locator('.quick-input-list .monaco-list-row')
+    await expect(symbolRows.first()).toBeVisible({ timeout: 5000 })
 
     // Verify symbol entries are shown
-    const symbolRows = page.locator('.quick-input-list .monaco-list-row')
     const count = await symbolRows.count()
     expect(count).toBeGreaterThan(0)
+
+    // Wait for the symbol list to fully populate and stabilize
+    // (Monaco renders rows incrementally)
+    await page.waitForFunction(() => {
+      const rows = document.querySelectorAll('.quick-input-list .monaco-list-row')
+      // All rows should have content text
+      return rows.length > 0 && Array.from(rows).every(r => r.textContent && r.textContent.length > 0)
+    })
 
     // Screenshot the file viewer with the outline widget open
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
@@ -143,7 +152,6 @@ test.describe.serial('Feature: File Outline', () => {
   test('Step 4: Dismiss and reopen with keyboard', async () => {
     // Press Escape to close the outline
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
 
     // The quick input widget should be hidden
     const quickInput = page.locator('.quick-input-widget:visible')
@@ -155,7 +163,6 @@ test.describe.serial('Feature: File Outline', () => {
 
     const reopenedWidget = page.locator('.quick-input-widget:visible')
     await expect(reopenedWidget).toBeVisible({ timeout: 5000 })
-    await page.waitForTimeout(500)
 
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
     await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '04-outline-reopened.png'), {
