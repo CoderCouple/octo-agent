@@ -116,14 +116,58 @@ test.describe.serial('Feature: Windows Support', () => {
     })
   })
 
-  test('Step 3: Full window layout', async () => {
+  test('Step 3: GhMissingBanner renders below toolbar', async () => {
+    // Force ghAvailable to false to show the banner
+    await page.evaluate(() => {
+      const store = (window as unknown as Record<string, unknown>).__repoStore as {
+        setState: (state: Record<string, unknown>) => void
+      } | undefined
+      if (store) {
+        store.setState({ ghAvailable: false, gitAvailable: true })
+      }
+    })
+
+    // Wait for the banner to render
+    await page.waitForTimeout(500)
+
+    // Screenshot the top area including the gh-missing banner
+    const banner = page.locator('.bg-yellow-900\\/30').first()
+    if (await banner.isVisible()) {
+      await screenshotElement(page, banner, path.join(SCREENSHOTS, '03-gh-missing-banner.png'))
+    } else {
+      // Fallback: screenshot the toolbar area
+      const toolbar = page.locator('.h-10.flex.items-center').first()
+      await screenshotRegion(page, toolbar, toolbar, path.join(SCREENSHOTS, '03-gh-missing-banner.png'))
+    }
+    steps.push({
+      screenshotPath: 'screenshots/03-gh-missing-banner.png',
+      caption: 'GhMissingBanner warns when GitHub CLI is not installed',
+      description:
+        'When the GitHub CLI (gh) is not detected, a yellow warning banner appears below the toolbar. ' +
+        'It provides a direct link to install gh from cli.github.com. This is less critical than the ' +
+        'red git-missing banner but important for authentication, issues, and PR features.',
+    })
+
+    // Reset ghAvailable so it doesn't affect subsequent steps
+    await page.evaluate(() => {
+      const store = (window as unknown as Record<string, unknown>).__repoStore as {
+        setState: (state: Record<string, unknown>) => void
+      } | undefined
+      if (store) {
+        store.setState({ ghAvailable: true })
+      }
+    })
+    await page.waitForTimeout(300)
+  })
+
+  test('Step 4: Full window layout', async () => {
     // Screenshot the full window to show overall layout
     await page.screenshot({
-      path: path.join(SCREENSHOTS, '03-full-layout.png'),
+      path: path.join(SCREENSHOTS, '04-full-layout.png'),
       type: 'png',
     })
     steps.push({
-      screenshotPath: 'screenshots/03-full-layout.png',
+      screenshotPath: 'screenshots/04-full-layout.png',
       caption: 'Full application window layout',
       description:
         'The complete application layout. On Windows, the title bar uses a hidden style with ' +

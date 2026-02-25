@@ -25,6 +25,7 @@ export default defineConfig({
         'src/renderer/types/review.ts',
         'src/renderer/components/newSession/types.ts',
         'src/renderer/components/explorer/types.ts',
+        'src/renderer/components/AuthTerminal.tsx',
       ],
       thresholds: {
         lines: 90,

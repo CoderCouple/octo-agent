@@ -1,8 +1,12 @@
 import { IpcMain } from 'electron'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import simpleGit from 'simple-git'
 import { getCloneErrorHint } from '../cloneErrorHint'
 import { normalizePath } from '../platform'
 import { HandlerContext, expandHomePath } from './types'
+
+const execFileAsync = promisify(execFile)
 
 async function handleClone(ctx: HandlerContext, url: string, targetDir: string) {
   if (ctx.isE2ETest) {
@@ -14,7 +18,13 @@ async function handleClone(ctx: HandlerContext, url: string, targetDir: string) 
     return { success: true }
   } catch (error) {
     const errorStr = String(error)
-    const hint = getCloneErrorHint(errorStr, url)
+    let ghAvailable = true
+    try {
+      await execFileAsync('gh', ['--version'], { encoding: 'utf-8' })
+    } catch {
+      ghAvailable = false
+    }
+    const hint = getCloneErrorHint(errorStr, url, { ghAvailable })
     return { success: false, error: hint ? errorStr + hint : errorStr }
   }
 }

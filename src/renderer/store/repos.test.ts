@@ -195,4 +195,35 @@ describe('useRepoStore', () => {
       expect(useRepoStore.getState().ghAvailable).toBe(false)
     })
   })
+
+  describe('checkGitAvailability', () => {
+    it('sets gitAvailable to true when installed', async () => {
+      vi.mocked(window.git.isInstalled).mockResolvedValue(true)
+      await useRepoStore.getState().checkGitAvailability()
+      expect(useRepoStore.getState().gitAvailable).toBe(true)
+    })
+
+    it('sets gitAvailable to false when not installed', async () => {
+      vi.mocked(window.git.isInstalled).mockResolvedValue(false)
+      await useRepoStore.getState().checkGitAvailability()
+      expect(useRepoStore.getState().gitAvailable).toBe(false)
+    })
+
+    it('sets gitAvailable to false on error', async () => {
+      vi.mocked(window.git.isInstalled).mockRejectedValue(new Error('fail'))
+      await useRepoStore.getState().checkGitAvailability()
+      expect(useRepoStore.getState().gitAvailable).toBe(false)
+    })
+  })
+
+  describe('setDefaultShell', () => {
+    it('sets default shell and triggers save', async () => {
+      vi.useFakeTimers()
+      useRepoStore.getState().setDefaultShell('/bin/zsh')
+      expect(useRepoStore.getState().defaultShell).toBe('/bin/zsh')
+      await vi.advanceTimersByTimeAsync(600)
+      expect(window.config.save).toHaveBeenCalled()
+      vi.useRealTimers()
+    })
+  })
 })

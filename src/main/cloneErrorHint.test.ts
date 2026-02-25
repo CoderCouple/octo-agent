@@ -85,6 +85,48 @@ describe('getCloneErrorHint', () => {
     })
   })
 
+  describe('HTTPS auth errors when gh is not available', () => {
+    const httpsUrl = 'https://github.com/user/repo'
+
+    it('suggests installing gh CLI instead of running gh auth', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: false })
+      expect(hint).toContain('Install GitHub CLI (cli.github.com)')
+      expect(hint).not.toContain('gh auth setup-git')
+    })
+
+    it('still suggests SSH URL when gh unavailable', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: false })
+      expect(hint).toContain('git@github.com:user/repo.git')
+    })
+  })
+
+  describe('SSH auth errors when gh is not available', () => {
+    const sshUrl = 'git@github.com:user/repo.git'
+
+    it('suggests installing gh CLI instead of running gh auth', () => {
+      const hint = getCloneErrorHint('Permission denied (publickey)', sshUrl, { ghAvailable: false })
+      expect(hint).toContain('Install GitHub CLI (cli.github.com)')
+      expect(hint).not.toContain('Run "gh auth setup-git"')
+    })
+
+    it('still suggests HTTPS URL when gh unavailable', () => {
+      const hint = getCloneErrorHint('Permission denied (publickey)', sshUrl, { ghAvailable: false })
+      expect(hint).toContain('https://github.com/user/repo.git')
+    })
+  })
+
+  describe('gh available hints unchanged', () => {
+    it('keeps gh auth suggestion when ghAvailable is true', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', 'https://github.com/user/repo', { ghAvailable: true })
+      expect(hint).toContain('gh auth setup-git')
+    })
+
+    it('keeps gh auth suggestion when ghAvailable is undefined', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', 'https://github.com/user/repo')
+      expect(hint).toContain('gh auth setup-git')
+    })
+  })
+
   describe('no hint for unrelated errors', () => {
     it('returns null for repository not found', () => {
       expect(getCloneErrorHint('fatal: repository not found', 'https://github.com/user/repo')).toBeNull()
