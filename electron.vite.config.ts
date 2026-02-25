@@ -1,6 +1,32 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
+import type { Plugin } from 'vite'
+
+/**
+ * Vite plugin that injects a minimal `process` shim into the renderer bundle.
+ *
+ * Monaco editor internally references process.cwd(), process.platform, and
+ * process.arch. The renderer runs with nodeIntegration:false, so `process`
+ * is undefined. On macOS Electron happens to expose a limited process object
+ * even without nodeIntegration, but on Windows it doesn't — causing
+ * "process is not defined" crashes when opening any file viewer.
+ */
+function processShimPlugin(): Plugin {
+  const shimCode = `\
+if (typeof globalThis.process === 'undefined') {
+  globalThis.process = { env: {}, platform: 'browser', arch: 'x64', cwd: () => '/' };
+} else if (typeof globalThis.process.cwd !== 'function') {
+  globalThis.process.cwd = () => '/';
+}
+`
+  return {
+    name: 'process-shim',
+    transformIndexHtml(html) {
+      return html.replace('<head>', `<head><script>${shimCode}</script>`)
+    },
+  }
+}
 
 export default defineConfig({
   main: {
@@ -33,6 +59,6 @@ export default defineConfig({
         '@': resolve('src/renderer')
       }
     },
-    plugins: [react()]
+    plugins: [processShimPlugin(), react()]
   }
 })

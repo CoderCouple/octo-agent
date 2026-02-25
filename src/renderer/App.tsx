@@ -100,6 +100,18 @@ function GitMissingBanner() {
   )
 }
 
+function GhMissingBanner() {
+  const { ghAvailable } = useRepoStore()
+  if (ghAvailable !== false) return null
+  return (
+    <div className="bg-yellow-900/30 border-b border-yellow-500/30 px-4 py-2 text-xs text-yellow-300 flex items-center gap-2">
+      <span className="font-medium">GitHub CLI (gh) is not installed.</span>
+      <span className="text-yellow-400">Install it for authentication, issues, and PR features.</span>
+      <button onClick={() => window.shell.openExternal('https://cli.github.com')} className="text-accent hover:underline ml-1">Install gh</button>
+    </div>
+  )
+}
+
 function AppContent() {
   // Data fields use individual selectors to avoid unnecessary re-renders
   const sessions = useSessionStore(s => s.sessions)
@@ -254,8 +266,8 @@ function AppContent() {
 
   return (
     <>
-      <GitMissingBanner />
       <Layout
+        topBanner={<><GitMissingBanner /><GhMissingBanner /></>}
         panels={panelsMap}
         panelVisibility={activeSession?.panelVisibility ?? {}}
         globalPanelVisibility={globalPanelVisibility}
@@ -330,6 +342,7 @@ function App() {
   useEffect(() => {
     (window as unknown as Record<string, unknown>).__sessionStore = useSessionStore
     ;(window as unknown as Record<string, unknown>).__updateStore = useUpdateStore
+    ;(window as unknown as Record<string, unknown>).__repoStore = useRepoStore
   }, [])
 
   return (

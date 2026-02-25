@@ -9,7 +9,7 @@ import { execFile, exec } from 'child_process'
 import { promisify } from 'util'
 import simpleGit from 'simple-git'
 import { buildPrCreateUrl } from '../gitStatusParser'
-import { isWindows, getExecShell } from '../platform'
+import { isWindows, getExecShell, resolveWindowsCommand } from '../platform'
 import { HandlerContext, expandHomePath } from './types'
 import { getScenarioData } from './scenarios'
 
@@ -38,14 +38,20 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   // Agent CLI installation check
   ipcMain.handle('agent:isInstalled', async (_event, command: string) => {
     if (ctx.isE2ETest) return true
+    // Extract the base command name (e.g. "claude --flag" → "claude")
+    const baseCommand = command.trim().split(/\s+/)[0]
     try {
       if (isWindows) {
-        await execFileAsync('where', [command], { encoding: 'utf-8' })
+        await execFileAsync('where', [baseCommand], { encoding: 'utf-8' })
       } else {
-        await runShellCommand(`command -v ${command}`, { timeout: 5000 })
+        await runShellCommand(`command -v ${baseCommand}`, { timeout: 5000 })
       }
       return true
     } catch {
+      // On Windows, fall back to well-known install locations
+      if (isWindows) {
+        return resolveWindowsCommand(baseCommand) !== null
+      }
       return false
     }
   })

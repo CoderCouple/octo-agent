@@ -33,6 +33,7 @@ vi.mock('../platform', () => ({
   isWindows: false,
   normalizePath: (p: string) => p.replace(/\\/g, '/'),
   getExecShell: vi.fn(() => undefined),
+  resolveWindowsCommand: vi.fn(() => null),
 }))
 
 vi.mock('./types', async (importOriginal) => {
@@ -113,6 +114,15 @@ describe('ghCore handlers', () => {
       vi.mocked(exec).mockRejectedValue(new Error('not found'))
       const handlers = setupHandlers()
       expect(await handlers['agent:isInstalled'](null, 'missing-cmd')).toBe(false)
+    })
+
+    it('extracts base command from commands with flags', async () => {
+      vi.mocked(exec).mockResolvedValue({ stdout: '/usr/bin/claude', stderr: '' } as never)
+      const handlers = setupHandlers()
+      expect(await handlers['agent:isInstalled'](null, 'claude --dangerously-skip-permissions')).toBe(true)
+      // The shell command should use the base command, not the full string with flags
+      const callArgs = vi.mocked(exec).mock.calls[0]
+      expect(callArgs[0]).toBe('command -v claude')
     })
   })
 

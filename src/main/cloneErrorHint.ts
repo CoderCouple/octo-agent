@@ -13,7 +13,7 @@
  * Detects common git clone authentication errors and returns actionable hints.
  * Covers both HTTPS-when-SSH-is-needed and SSH-when-HTTPS-is-needed cases.
  */
-export function getCloneErrorHint(errorStr: string, url: string): string | null {
+export function getCloneErrorHint(errorStr: string, url: string, options?: { ghAvailable?: boolean }): string | null {
   const isHttpsUrl = url.startsWith('https://') || url.startsWith('http://')
   const isSshUrl = url.startsWith('git@') || !!(/^ssh:\/\//.exec(url))
 
@@ -29,7 +29,11 @@ export function getCloneErrorHint(errorStr: string, url: string): string | null 
     if (sshUrl) {
       hint += `\n• Use the SSH URL instead: ${sshUrl}`
     }
-    hint += '\n• Run "gh auth setup-git" in your terminal to set up HTTPS credentials'
+    if (options?.ghAvailable === false) {
+      hint += '\n• Install GitHub CLI (cli.github.com) to set up credentials automatically'
+    } else {
+      hint += '\n• Run "gh auth setup-git" in your terminal to set up HTTPS credentials'
+    }
     return hint
   }
 
@@ -47,7 +51,11 @@ export function getCloneErrorHint(errorStr: string, url: string): string | null 
       hint += `\n• Use the HTTPS URL instead: ${httpsUrl}`
     }
     hint += '\n• Check that your SSH key is added: run "ssh -T git@github.com" to test'
-    hint += '\n• Run "gh auth setup-git" to set up HTTPS credentials, then use an HTTPS URL'
+    if (options?.ghAvailable === false) {
+      hint += '\n• Install GitHub CLI (cli.github.com) to set up HTTPS credentials, then use an HTTPS URL'
+    } else {
+      hint += '\n• Run "gh auth setup-git" to set up HTTPS credentials, then use an HTTPS URL'
+    }
     return hint
   }
 

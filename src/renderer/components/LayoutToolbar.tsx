@@ -6,8 +6,9 @@ import ErrorIndicator from './ErrorIndicator'
 import VersionIndicator from './VersionIndicator'
 import type { PanelDefinition } from '../panels'
 
-// Detect if we're on Mac for keyboard shortcut display
+// Detect platform for keyboard shortcut display and layout adjustments
 const isMac = navigator.userAgent.includes('Mac')
+const isWindows = navigator.userAgent.includes('Windows')
 
 // Keyboard shortcut helper
 const formatShortcut = (key: string) => {
@@ -58,7 +59,7 @@ export default function LayoutToolbar({
       </div>
       <div
         className="flex items-center gap-2"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        style={{ WebkitAppRegion: 'no-drag', ...(isWindows ? { paddingRight: 138 } : {}) } as React.CSSProperties}
       >
         {toolbarPanelInfo.map(panel => {
           const isIconOnly = panel.id === settingsPanelId || panel.id === 'tutorial'

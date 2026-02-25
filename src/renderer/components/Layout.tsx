@@ -53,6 +53,7 @@ interface LayoutProps {
   sidebarWidth: number
   layoutSizes: LayoutSizes
   errorMessage?: string | null
+  topBanner?: ReactNode
   title?: string
   profileChip?: ReactNode
   // Callbacks
@@ -83,6 +84,7 @@ export default function Layout({
   sidebarWidth,
   layoutSizes,
   errorMessage,
+  topBanner,
   title,
   profileChip,
   onSidebarWidthChange,
@@ -203,7 +205,7 @@ export default function Layout({
         settingsPanelId={PANEL_IDS.SETTINGS}
       />
 
-      {/* App-level error banner */}
+      {topBanner}
       {appBannerError && <ErrorBanner error={appBannerError} />}
 
       {/* Main content area */}

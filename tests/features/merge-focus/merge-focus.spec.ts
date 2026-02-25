@@ -8,11 +8,12 @@
  *
  * Run with: pnpm test:feature-docs merge-focus
  */
-import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test'
+import { test, expect, resetApp } from '../_shared/electron-fixture'
+import type { Page } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import { screenshotElement, screenshotRegion } from '../_shared/screenshot-helpers'
+import { screenshotElement } from '../_shared/screenshot-helpers'
 import { generateFeaturePage, generateIndex, FeatureStep } from '../_shared/template'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -22,24 +23,23 @@ const FEATURE_DIR = __dirname
 const SCREENSHOTS = path.join(FEATURE_DIR, 'screenshots')
 const FEATURES_ROOT = path.join(__dirname, '..')
 
-let electronApp: ElectronApplication
 let page: Page
 const steps: FeatureStep[] = []
 
 test.setTimeout(60000)
 
 /** Navigate the explorer panel to the source-control tab */
-async function openSourceControl(page: Page) {
-  const explorerButton = page.locator('[data-panel-id="explorer-toggle"], [title*="Explorer"]').first()
+async function openSourceControl(p: Page) {
+  const explorerButton = p.locator('[data-panel-id="explorer-toggle"], [title*="Explorer"]').first()
   if (await explorerButton.isVisible()) {
     const cls = await explorerButton.getAttribute('class').catch(() => '')
     if (!cls?.includes('bg-accent')) {
       await explorerButton.click()
-      await page.waitForTimeout(300)
+      await expect(explorerButton).toHaveClass(/bg-accent/, { timeout: 2000 }).catch(() => {})
     }
   }
 
-  await page.evaluate(() => {
+  await p.evaluate(() => {
     const store = (window as Record<string, unknown>).__sessionStore as {
       getState: () => { activeSessionId: string; setExplorerFilter: (id: string, filter: string) => void }
     }
@@ -47,29 +47,15 @@ async function openSourceControl(page: Page) {
     const state = store.getState()
     state.setExplorerFilter(state.activeSessionId, 'source-control')
   })
-  await page.waitForTimeout(500)
+  // Wait for the source control view to render
+  const scView = p.locator('text=Source Control, text=Merge in progress').first()
+  await scView.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
 }
 
 test.beforeAll(async () => {
   await fs.promises.mkdir(SCREENSHOTS, { recursive: true })
-
-  electronApp = await electron.launch({
-    args: [path.join(__dirname, '..', '..', '..', 'out', 'main', 'index.js')],
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      E2E_TEST: 'true',
-      E2E_HEADLESS: process.env.E2E_HEADLESS ?? 'true',
-      SCREENSHOT_MODE: 'true',
-      E2E_MOCK_MERGE: 'conflicts',
-    },
-  })
-
-  page = await electronApp.firstWindow()
-  await page.setViewportSize({ width: 1400, height: 900 })
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForSelector('#root > div', { timeout: 15000 })
-  await page.waitForTimeout(3000)
+  const result = await resetApp({ scenario: 'marketing', mockMerge: 'conflicts' })
+  page = result.page
 })
 
 test.afterAll(async () => {
@@ -85,10 +71,6 @@ test.afterAll(async () => {
     FEATURE_DIR,
   )
   await generateIndex(FEATURES_ROOT)
-
-  if (electronApp) {
-    await electronApp.close()
-  }
 })
 
 test.describe.serial('Feature: Merge Focus', () => {
@@ -119,7 +101,10 @@ test.describe.serial('Feature: Merge Focus', () => {
     // Add a user terminal tab and switch to it
     const addTabBtn = page.locator('button[title="New terminal tab"]:visible')
     await addTabBtn.click()
-    await page.waitForTimeout(500)
+
+    // Wait for the new tab to appear and be active
+    const userTab = page.locator('[data-tab-type="user"]').first()
+    await expect(userTab).toBeVisible({ timeout: 2000 }).catch(() => {})
 
     // Verify we're on the new tab (not Agent)
     const terminalArea = page.locator('[data-panel-id="terminal"]')
@@ -140,13 +125,16 @@ test.describe.serial('Feature: Merge Focus', () => {
     // Click Resolve Conflicts
     const resolveBtn = page.locator('button:has-text("Resolve Conflicts")')
     await resolveBtn.click()
-    await page.waitForTimeout(500)
+
+    // Wait for the resolving state to appear
+    const resolvingText = page.locator('text=Resolving Conflicts...')
+    await expect(resolvingText).toBeVisible({ timeout: 3000 })
 
     // Verify the Agent tab is now active
     const agentTabActive = await page.evaluate(() => {
       const store = (window as Record<string, unknown>).__sessionStore as {
         getState: () => {
-          sessions: Array<{ id: string; terminalTabs: { activeTabId: string | null } }>
+          sessions: { id: string; terminalTabs: { activeTabId: string | null } }[]
           activeSessionId: string
         }
       }
@@ -167,10 +155,6 @@ test.describe.serial('Feature: Merge Focus', () => {
       return textarea === document.activeElement
     })
     expect(hasFocus).toBe(true)
-
-    // Also verify the "Resolving Conflicts..." state is shown
-    const resolvingText = page.locator('text=Resolving Conflicts...')
-    await expect(resolvingText).toBeVisible()
 
     // Screenshot the terminal area showing the Agent tab is active
     const terminalArea = page.locator('[data-panel-id="terminal"]')

@@ -153,4 +153,17 @@ describe('usePlanDetection', () => {
       '/Users/someone/project/.claude-personal/plans/deep/nested/plan.md',
     )
   })
+
+  it('matches Windows-style backslash paths', () => {
+    const { result } = renderHook(() => usePlanDetection(sessionIdRef, setPlanFileRef))
+
+    act(() => {
+      result.current('Reading C:\\Users\\rob\\.claude-personal\\plans\\my-plan.md')
+    })
+
+    expect(mockSetPlanFile).toHaveBeenCalledWith(
+      'test-session',
+      'C:\\Users\\rob\\.claude-personal\\plans\\my-plan.md',
+    )
+  })
 })

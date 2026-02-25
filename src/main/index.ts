@@ -13,10 +13,10 @@
 import { app, BrowserWindow, ipcMain, Menu, shell, dialog } from 'electron'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { existsSync, readFileSync, FSWatcher } from 'fs'
 import * as pty from 'node-pty'
-import { isWindows, isMac } from './platform'
+import { isWindows, isMac, resolveWindowsCommand } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
 import { resolveShellEnv } from './shellEnv'
 
@@ -31,6 +31,21 @@ const isE2ETest = process.env.E2E_TEST === 'true'
 
 // Check if we should hide the window (headless mode)
 const isHeadless = process.env.E2E_HEADLESS !== 'false'
+
+// On Windows, ensure git and gh are on PATH even if installed in non-standard locations
+if (isWindows) {
+  const dirsToAdd = new Set<string>()
+  for (const cmd of ['git', 'gh'] as const) {
+    const resolved = resolveWindowsCommand(cmd)
+    if (resolved) {
+      dirsToAdd.add(dirname(resolved))
+    }
+  }
+  if (dirsToAdd.size > 0) {
+    const current = process.env.PATH ?? ''
+    process.env.PATH = `${[...dirsToAdd].join(';')};${current}`
+  }
+}
 
 // PTY instances map
 const ptyProcesses = new Map<string, pty.IPty>()
@@ -57,6 +72,11 @@ function createWindow(profileId?: string): BrowserWindow {
       trafficLightPosition: { x: 15, y: 10 },
     } : {
       titleBarStyle: 'hidden' as const,
+      titleBarOverlay: {
+        color: '#252525',
+        symbolColor: '#e0e0e0',
+        height: 40,
+      },
     }),
     // Hide window in E2E test mode for headless-like behavior (unless E2E_HEADLESS=false)
     show: !(isE2ETest && isHeadless),

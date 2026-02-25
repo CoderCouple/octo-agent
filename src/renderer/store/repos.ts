@@ -13,13 +13,18 @@ import { scheduleSave, setLoadedCounts } from './configPersistence'
 
 const generateId = () => `repo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 
+// Normalize backslashes to forward slashes (Windows paths from config/dialog)
+function normalizePath(p: string): string {
+  return p.replace(/\\/g, '/')
+}
+
 // Resolve ~ to the actual home directory using the main process
 async function resolveHome(path: string): Promise<string> {
   if (path.startsWith('~/') || path === '~') {
     const home: string = await window.app.homedir()
     return path === '~' ? home : home + path.slice(1)
   }
-  return path
+  return normalizePath(path)
 }
 
 interface RepoStore {

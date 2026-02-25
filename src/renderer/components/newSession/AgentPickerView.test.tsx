@@ -130,6 +130,64 @@ describe('AgentPickerView', () => {
     expect(screen.getByText(/was not found on your PATH/)).toBeTruthy()
   })
 
+  it('shows install link for known agents when not installed', async () => {
+    vi.mocked(window.agents.isInstalled).mockResolvedValue(false)
+    render(
+      <AgentPickerView
+        directory="/repos/my-project"
+        onBack={vi.fn()}
+        onComplete={vi.fn()}
+      />
+    )
+    await waitFor(() => {
+      expect(screen.getAllByText('not installed')).toHaveLength(2)
+    })
+    fireEvent.click(screen.getByText('Claude'))
+    expect(screen.getByText('Install Claude')).toBeTruthy()
+  })
+
+  it('does not show install link for unknown agents', async () => {
+    useAgentStore.setState({
+      agents: [
+        { id: 'agent-x', name: 'Custom Agent', command: 'my-custom-tool', color: '#ff0000' },
+      ],
+    })
+    vi.mocked(window.agents.isInstalled).mockResolvedValue(false)
+    render(
+      <AgentPickerView
+        directory="/repos/my-project"
+        onBack={vi.fn()}
+        onComplete={vi.fn()}
+      />
+    )
+    await waitFor(() => {
+      expect(screen.getAllByText('not installed')).toHaveLength(1)
+    })
+    fireEvent.click(screen.getByText('Custom Agent'))
+    expect(screen.getByText(/was not found on your PATH/)).toBeTruthy()
+    expect(screen.getByText(/Install it first/)).toBeTruthy()
+    expect(screen.queryByText('Install Custom Agent')).toBeNull()
+  })
+
+  it('opens external URL when install link is clicked', async () => {
+    vi.mocked(window.agents.isInstalled).mockResolvedValue(false)
+    render(
+      <AgentPickerView
+        directory="/repos/my-project"
+        onBack={vi.fn()}
+        onComplete={vi.fn()}
+      />
+    )
+    await waitFor(() => {
+      expect(screen.getAllByText('not installed')).toHaveLength(2)
+    })
+    fireEvent.click(screen.getByText('Claude'))
+    fireEvent.click(screen.getByText('Install Claude'))
+    expect(window.shell.openExternal).toHaveBeenCalledWith(
+      'https://docs.anthropic.com/en/docs/claude-code/overview'
+    )
+  })
+
   it('shows no agents message when agents list is empty', () => {
     useAgentStore.setState({ agents: [] })
     render(

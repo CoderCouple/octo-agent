@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Mock fs before importing platform
 vi.mock('fs', () => ({
   chmodSync: vi.fn(),
+  existsSync: vi.fn(() => false),
 }))
 
 import { chmodSync } from 'fs'
@@ -85,6 +86,30 @@ describe('platform', () => {
       } else {
         expect(chmodSync).toHaveBeenCalledWith('/path/to/script.sh', 0o755)
       }
+    })
+  })
+
+  describe('resolveWindowsCommand', () => {
+    it('finds git via which/where on the current platform', async () => {
+      const { resolveWindowsCommand } = await import('./platform')
+      // git should be on PATH in any CI/dev environment
+      const result = resolveWindowsCommand('git')
+      expect(result).toBeTruthy()
+      expect(result!.toLowerCase()).toContain('git')
+    })
+
+    it('returns null for a command that does not exist', async () => {
+      const { resolveWindowsCommand } = await import('./platform')
+      const result = resolveWindowsCommand('definitely-not-a-real-command-12345')
+      expect(result).toBeNull()
+    })
+
+    it('returns null for unknown command on non-Windows without well-known paths', async () => {
+      const { resolveWindowsCommand, isWindows } = await import('./platform')
+      if (isWindows) return // skip on Windows
+      // On non-Windows, only whichSync is tried — no well-known paths fallback
+      const result = resolveWindowsCommand('nonexistent-tool')
+      expect(result).toBeNull()
     })
   })
 })

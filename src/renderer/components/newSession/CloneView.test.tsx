@@ -6,6 +6,15 @@ import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import { CloneView } from './CloneView'
 
+// Mock AuthTerminal to avoid xterm.js in jsdom
+vi.mock('../AuthTerminal', () => ({
+  AuthTerminal: ({ ptyId, onDone }: { ptyId: string; onDone: () => void }) => (
+    <div data-testid="auth-terminal" data-pty-id={ptyId}>
+      <button onClick={onDone}>Done</button>
+    </div>
+  ),
+}))
+
 afterEach(() => {
   cleanup()
 })
@@ -145,6 +154,99 @@ describe('CloneView', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Auth failed/)).toBeTruthy()
+    })
+  })
+
+  describe('auth error flow', () => {
+    it('shows "Set up Git Authentication" button on auth error when gh is available', async () => {
+      vi.mocked(window.git.clone).mockResolvedValue({ success: false, error: 'fatal: could not read Username for \'https://github.com\'' })
+      useRepoStore.setState({ ghAvailable: true })
+
+      render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+
+      const urlInput = screen.getByPlaceholderText(/https:\/\/github\.com/)
+      fireEvent.change(urlInput, { target: { value: 'https://github.com/user/test.git' } })
+      fireEvent.click(screen.getByText('Clone'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Set up Git Authentication')).toBeTruthy()
+      })
+    })
+
+    it('shows "Install GitHub CLI" button on auth error when gh is not available', async () => {
+      vi.mocked(window.git.clone).mockResolvedValue({ success: false, error: 'fatal: Authentication failed for \'https://github.com/user/test\'' })
+      useRepoStore.setState({ ghAvailable: false })
+
+      render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+
+      const urlInput = screen.getByPlaceholderText(/https:\/\/github\.com/)
+      fireEvent.change(urlInput, { target: { value: 'https://github.com/user/test.git' } })
+      fireEvent.click(screen.getByText('Clone'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Install GitHub CLI')).toBeTruthy()
+      })
+    })
+
+    it('opens cli.github.com when gh not installed and auth button clicked', async () => {
+      vi.mocked(window.git.clone).mockResolvedValue({ success: false, error: 'Permission denied (publickey)' })
+      useRepoStore.setState({ ghAvailable: false })
+
+      render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+
+      const urlInput = screen.getByPlaceholderText(/https:\/\/github\.com/)
+      fireEvent.change(urlInput, { target: { value: 'https://github.com/user/test.git' } })
+      fireEvent.click(screen.getByText('Clone'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Install GitHub CLI')).toBeTruthy()
+      })
+
+      fireEvent.click(screen.getByText('Install GitHub CLI'))
+      await waitFor(() => {
+        expect(window.shell.openExternal).toHaveBeenCalledWith('https://cli.github.com')
+      })
+    })
+
+    it('does not show auth button for non-auth errors', async () => {
+      vi.mocked(window.git.clone).mockResolvedValue({ success: false, error: 'fatal: repository not found' })
+
+      render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+
+      const urlInput = screen.getByPlaceholderText(/https:\/\/github\.com/)
+      fireEvent.change(urlInput, { target: { value: 'https://github.com/user/test.git' } })
+      fireEvent.click(screen.getByText('Clone'))
+
+      await waitFor(() => {
+        expect(screen.getByText(/Clone failed/)).toBeTruthy()
+      })
+
+      expect(screen.queryByText('Set up Git Authentication')).toBeNull()
+      expect(screen.queryByText('Install GitHub CLI')).toBeNull()
+    })
+
+    it('creates PTY and shows auth terminal when gh available and auth button clicked', async () => {
+      vi.mocked(window.git.clone).mockResolvedValue({ success: false, error: 'fatal: could not read Username' })
+      vi.mocked(window.app.homedir).mockResolvedValue('/home/user')
+      vi.mocked(window.pty.create).mockResolvedValue({ id: 'auth-setup-123' })
+      useRepoStore.setState({ ghAvailable: true })
+
+      render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+
+      const urlInput = screen.getByPlaceholderText(/https:\/\/github\.com/)
+      fireEvent.change(urlInput, { target: { value: 'https://github.com/user/test.git' } })
+      fireEvent.click(screen.getByText('Clone'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Set up Git Authentication')).toBeTruthy()
+      })
+
+      fireEvent.click(screen.getByText('Set up Git Authentication'))
+
+      await waitFor(() => {
+        expect(window.pty.create).toHaveBeenCalledWith(expect.objectContaining({ cwd: '/home/user' }))
+        expect(window.pty.write).toHaveBeenCalledWith(expect.stringContaining('auth-setup-'), 'gh auth login\r')
+      })
     })
   })
 })

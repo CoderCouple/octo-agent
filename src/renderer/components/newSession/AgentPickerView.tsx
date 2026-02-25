@@ -3,6 +3,7 @@
  */
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
+import { getAgentInstallUrl } from '../../utils/agentInstallUrls'
 
 export function AgentPickerView({
   directory,
@@ -93,7 +94,26 @@ export function AgentPickerView({
               {showWarning && (
                 <div className="mt-1 ml-6 p-2 rounded bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-300">
                   <span className="font-medium">{agent.command}</span> was not found on your PATH.
-                  Install it first, or click again to proceed anyway.
+                  {(() => {
+                    const installUrl = getAgentInstallUrl(agent.command)
+                    return installUrl ? (
+                      <>
+                        {' '}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void window.shell.openExternal(installUrl)
+                          }}
+                          className="underline hover:text-yellow-200 transition-colors"
+                        >
+                          Install {agent.name}
+                        </button>
+                        , or click again to proceed anyway.
+                      </>
+                    ) : (
+                      <> Install it first, or click again to proceed anyway.</>
+                    )
+                  })()}
                 </div>
               )}
             </div>

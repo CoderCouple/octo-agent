@@ -49,6 +49,18 @@ describe('useRepoStore', () => {
       expect(useRepoStore.getState().defaultCloneDir).toBe('/Users/test/projects')
     })
 
+    it('normalizes Windows backslashes in defaultCloneDir from config', async () => {
+      vi.mocked(window.config.load).mockResolvedValue({
+        agents: [],
+        sessions: [],
+        repos: [],
+        defaultCloneDir: 'C:\\Users\\isaac\\repos',
+      })
+
+      await useRepoStore.getState().loadRepos()
+      expect(useRepoStore.getState().defaultCloneDir).toBe('C:/Users/isaac/repos')
+    })
+
     it('defaults defaultCloneDir to ~/repos when not configured', async () => {
       vi.mocked(window.config.load).mockResolvedValue({
         agents: [],
@@ -174,6 +186,11 @@ describe('useRepoStore', () => {
       await useRepoStore.getState().setDefaultCloneDir('/absolute/path')
       expect(useRepoStore.getState().defaultCloneDir).toBe('/absolute/path')
     })
+
+    it('normalizes Windows backslashes to forward slashes', async () => {
+      await useRepoStore.getState().setDefaultCloneDir('C:\\Users\\isaac\\repos')
+      expect(useRepoStore.getState().defaultCloneDir).toBe('C:/Users/isaac/repos')
+    })
   })
 
   describe('checkGhAvailability', () => {
@@ -193,6 +210,37 @@ describe('useRepoStore', () => {
       vi.mocked(window.gh.isInstalled).mockRejectedValue(new Error('fail'))
       await useRepoStore.getState().checkGhAvailability()
       expect(useRepoStore.getState().ghAvailable).toBe(false)
+    })
+  })
+
+  describe('checkGitAvailability', () => {
+    it('sets gitAvailable to true when installed', async () => {
+      vi.mocked(window.git.isInstalled).mockResolvedValue(true)
+      await useRepoStore.getState().checkGitAvailability()
+      expect(useRepoStore.getState().gitAvailable).toBe(true)
+    })
+
+    it('sets gitAvailable to false when not installed', async () => {
+      vi.mocked(window.git.isInstalled).mockResolvedValue(false)
+      await useRepoStore.getState().checkGitAvailability()
+      expect(useRepoStore.getState().gitAvailable).toBe(false)
+    })
+
+    it('sets gitAvailable to false on error', async () => {
+      vi.mocked(window.git.isInstalled).mockRejectedValue(new Error('fail'))
+      await useRepoStore.getState().checkGitAvailability()
+      expect(useRepoStore.getState().gitAvailable).toBe(false)
+    })
+  })
+
+  describe('setDefaultShell', () => {
+    it('sets default shell and triggers save', async () => {
+      vi.useFakeTimers()
+      useRepoStore.getState().setDefaultShell('/bin/zsh')
+      expect(useRepoStore.getState().defaultShell).toBe('/bin/zsh')
+      await vi.advanceTimersByTimeAsync(600)
+      expect(window.config.save).toHaveBeenCalled()
+      vi.useRealTimers()
     })
   })
 })

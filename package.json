@@ -14,7 +14,7 @@
     "dist": "pnpm build && electron-builder",
     "dist:signed": "bash scripts/dist-signed.sh",
     "dist:mac": "pnpm build && electron-builder --mac",
-    "dist:win": "pnpm build && electron-builder --win",
+    "dist:win": "pnpm build && electron-builder --win --x64",
     "dist:linux": "pnpm build && electron-builder --linux",
     "dist:all": "pnpm build && electron-builder --mac --win --linux",
     "dist:dir": "pnpm build && electron-builder --dir",
