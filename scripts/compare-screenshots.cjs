@@ -281,6 +281,12 @@ function generateHTML(comparison, baselineResults, currentResults, outputDir) {
   .toc-dot-changed { background: #d29922; }
   .toc-dot-added { background: #3fb950; }
   .toc-dot-removed { background: #f85149; }
+  .comparison-images img, .single-image img { cursor: zoom-in; }
+  .lightbox { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; flex-direction: column; cursor: zoom-out; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 95vw; max-height: 85vh; border: 1px solid #30363d; border-radius: 6px; object-fit: contain; }
+  .lightbox-label { color: #8b949e; font-size: 13px; margin-top: 10px; }
+  .lightbox-hint { position: absolute; bottom: 20px; color: #484f58; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -433,7 +439,14 @@ function generateHTML(comparison, baselineResults, currentResults, outputDir) {
   html += `</div>\n` // end view-by-feature
 
   // View toggle script
-  html += `<script>
+  html += `
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-label" id="lightbox-label"></div>
+  <div class="lightbox-hint">Click anywhere or press Escape to close</div>
+</div>
+
+<script>
 function setView(view) {
   document.getElementById('view-by-status').style.display = view === 'by-status' ? '' : 'none';
   document.getElementById('view-by-feature').style.display = view === 'by-feature' ? '' : 'none';
@@ -444,6 +457,20 @@ function setView(view) {
 }
 // Restore view from URL hash
 if (location.hash === '#by-feature') setView('by-feature');
+
+function openLightbox(img, label) {
+  event.stopPropagation();
+  var lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = img.src;
+  document.getElementById('lightbox-label').textContent = label;
+  lb.classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeLightbox();
+});
 </script>\n`
 
   html += `</body>\n</html>\n`
@@ -457,7 +484,8 @@ function renderComparisonCard(item, status, tag, ref) {
     ? `<span class="badge badge-resized">${item.baselineSize.width}×${item.baselineSize.height} → ${item.currentSize.width}×${item.currentSize.height}</span>`
     : ''
 
-  return `<div class="comparison-card">
+  const shotId = screenshotId(item.key)
+  return `<div class="comparison-card" id="${shotId}">
 <div class="comparison-header">
   <h3>${item.key}</h3>
   <div class="comparison-meta">
@@ -466,16 +494,17 @@ function renderComparisonCard(item, status, tag, ref) {
   </div>
 </div>
 <div class="comparison-images">
-  <div><label>Baseline (${tag})</label><img src="baseline/${item.key}" alt="baseline" loading="lazy"></div>
-  <div><label>Current (${ref})</label><img src="current/${item.key}" alt="current" loading="lazy"></div>
-  <div><label>Diff</label><img src="${item.diffPath}" alt="diff" loading="lazy"></div>
+  <div><label>Baseline (${tag})</label><img src="baseline/${item.key}" alt="baseline" loading="lazy" onclick="openLightbox(this,'Baseline: ${item.key}')"></div>
+  <div><label>Current (${ref})</label><img src="current/${item.key}" alt="current" loading="lazy" onclick="openLightbox(this,'Current: ${item.key}')"></div>
+  <div><label>Diff</label><img src="${item.diffPath}" alt="diff" loading="lazy" onclick="openLightbox(this,'Diff: ${item.key}')"></div>
 </div>
 </div>\n`
 }
 
 function renderSingleCard(item, status, imgDir) {
   const feature = item.key.split('/')[0]
-  return `<div class="comparison-card">
+  const shotId = screenshotId(item.key)
+  return `<div class="comparison-card" id="${shotId}">
 <div class="comparison-header">
   <h3>${item.key}</h3>
   <div class="comparison-meta">
@@ -483,8 +512,12 @@ function renderSingleCard(item, status, imgDir) {
     <span class="badge badge-${status}">${status === 'added' ? 'new' : 'removed'}</span>
   </div>
 </div>
-<div class="single-image"><img src="${imgDir}/${item.key}" alt="${status}" loading="lazy"></div>
+<div class="single-image"><img src="${imgDir}/${item.key}" alt="${status}" loading="lazy" onclick="openLightbox(this,'${item.key}')"></div>
 </div>\n`
+}
+
+function screenshotId(key) {
+  return 'shot-' + key.replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').replace(/-$/, '')
 }
 
 function formatFeatureName(slug) {
