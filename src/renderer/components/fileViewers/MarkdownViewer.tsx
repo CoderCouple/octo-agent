@@ -32,7 +32,7 @@ function MarkdownViewerComponent({ content }: FileViewerComponentProps) {
                 className="text-accent hover:underline"
                 onClick={(e) => {
                   e.preventDefault()
-                  if (href) void window.shell.openExternal(href)
+                  if (href && /^https?:\/\//i.test(href)) void window.shell.openExternal(href)
                 }}
               >
                 {children}

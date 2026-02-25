@@ -66,6 +66,13 @@ describe('MarkdownViewerComponent', () => {
     expect(vi.mocked(window.shell.openExternal)).toHaveBeenCalledWith('https://example.com')
   })
 
+  it('does not open non-http links externally', () => {
+    render(<MarkdownViewerComponent filePath="test.md" content="[Evil](file:///etc/passwd)" />)
+    const link = screen.getByText('Evil')
+    fireEvent.click(link)
+    expect(vi.mocked(window.shell.openExternal)).not.toHaveBeenCalled()
+  })
+
   it('renders unordered lists', () => {
     render(<MarkdownViewerComponent filePath="test.md" content={"- Item A\n- Item B"} />)
     expect(screen.getByText('Item A')).toBeTruthy()
