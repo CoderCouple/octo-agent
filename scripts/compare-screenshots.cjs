@@ -133,9 +133,14 @@ for (const key of [...allKeys].sort()) {
     const diffPath = path.join(diffsDir, key)
     const comparison = compareImages(baselineScreenshots[key], currentScreenshots[key], diffPath)
 
+    // Treat sub-pixel rendering noise (<0.1% diff, same dimensions) as unchanged
+    const isNoise = comparison.diffPercent < 0.1 && !comparison.dimensionsChanged
     if (comparison.diffPercent === 0 && !comparison.dimensionsChanged) {
       results.unchanged.push({ key, ...comparison })
       process.stdout.write(`  [${processed}/${total}] ${key} — ${dim('unchanged')}\n`)
+    } else if (isNoise) {
+      results.unchanged.push({ key, ...comparison })
+      process.stdout.write(`  [${processed}/${total}] ${key} — ${dim(`unchanged (${comparison.diffPercent}% noise)`)}\n`)
     } else {
       results.changed.push({ key, ...comparison, diffPath: `diffs/${key}` })
       process.stdout.write(
@@ -194,7 +199,7 @@ function generateHTML(comparison, baselineResults, currentResults, outputDir) {
   const tag = comparison.baselineTag
   const ref = comparison.currentRef
 
-  const hasFailures = summary.baselineFailures > 0 || summary.currentFailures > 0
+  const hasFailures = summary.currentFailures > 0
 
   // Build feature grouping data — group all screenshots by feature name
   const featureMap = {}
@@ -287,7 +292,7 @@ function generateHTML(comparison, baselineResults, currentResults, outputDir) {
   <div class="stat stat-added"><div class="stat-value">${summary.added}</div><div class="stat-label">Added</div></div>
   <div class="stat stat-removed"><div class="stat-value">${summary.removed}</div><div class="stat-label">Removed</div></div>
   <div class="stat stat-unchanged"><div class="stat-value">${summary.unchanged}</div><div class="stat-label">Unchanged</div></div>
-  ${hasFailures ? `<div class="stat stat-failures"><div class="stat-value">${summary.baselineFailures + summary.currentFailures}</div><div class="stat-label">Test Failures</div></div>` : ''}
+  ${hasFailures ? `<div class="stat stat-failures"><div class="stat-value">${summary.currentFailures}</div><div class="stat-label">Test Failures</div></div>` : ''}
 </div>
 
 <div class="view-toggle">
@@ -304,16 +309,10 @@ function generateHTML(comparison, baselineResults, currentResults, outputDir) {
   if (hasFailures) {
     html += `<div class="section">\n<h2 class="section-title">Test Failures</h2>\n`
 
-    if (baselineResults?.failed > 0) {
-      html += `<div class="failures">
-<h4>Baseline failures (${tag}): ${baselineResults.failed} feature(s)</h4>
-<pre>${escapeHtml(baselineResults.errors || 'No error output captured')}</pre>
-</div>\n`
-    }
-
     if (currentResults?.failed > 0) {
       html += `<div class="failures">
 <h4>Current failures (${ref}): ${currentResults.failed} feature(s)</h4>
+<p style="color:#8b949e;font-size:13px;margin-bottom:8px">Failed features: ${currentResults.failedFeatures?.join(', ') || 'unknown'}</p>
 <pre>${escapeHtml(currentResults.errors || 'No error output captured')}</pre>
 </div>\n`
     }
@@ -381,18 +380,13 @@ function generateHTML(comparison, baselineResults, currentResults, outputDir) {
     html += `</ul></div>\n`
   }
 
-  // Assertion failures (duplicated in feature view for convenience)
+  // Test failures (current code only — baseline failures are expected for new features)
   if (hasFailures) {
     html += `<div class="section">\n<h2 class="section-title">Test Failures</h2>\n`
-    if (baselineResults?.failed > 0) {
-      html += `<div class="failures">
-<h4>Baseline failures (${tag}): ${baselineResults.failed} feature(s)</h4>
-<pre>${escapeHtml(baselineResults.errors || 'No error output captured')}</pre>
-</div>\n`
-    }
     if (currentResults?.failed > 0) {
       html += `<div class="failures">
 <h4>Current failures (${ref}): ${currentResults.failed} feature(s)</h4>
+<p style="color:#8b949e;font-size:13px;margin-bottom:8px">Failed features: ${currentResults.failedFeatures?.join(', ') || 'unknown'}</p>
 <pre>${escapeHtml(currentResults.errors || 'No error output captured')}</pre>
 </div>\n`
     }

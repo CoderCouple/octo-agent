@@ -267,8 +267,7 @@ if [ -f "$REPORT" ]; then
     console.log('    Changed:   ' + changed);
     console.log('    Added:     ' + added);
     console.log('    Removed:   ' + removed);
-    if (c.summary.baselineFailures > 0 || c.summary.currentFailures > 0) {
-      console.log('    Baseline test failures: ' + c.summary.baselineFailures);
+    if (c.summary.currentFailures > 0) {
       console.log('    Current test failures:  ' + c.summary.currentFailures);
     }
     "
