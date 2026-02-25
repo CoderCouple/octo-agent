@@ -25,7 +25,7 @@ export function usePlanDetection(
     if (planDetectionBufferRef.current.length > 1000) {
       planDetectionBufferRef.current = planDetectionBufferRef.current.slice(-1000)
     }
-    const planMatch = /\/[^\s)]+\.claude-personal\/plans\/[^\s)]+\.md/.exec(planDetectionBufferRef.current)
+    const planMatch = /(?:[A-Za-z]:)?[/\\][^\s)]+\.claude-personal[/\\]plans[/\\][^\s)]+\.md/.exec(planDetectionBufferRef.current)
     if (planMatch && planMatch[0] !== lastDetectedPlanRef.current) {
       lastDetectedPlanRef.current = planMatch[0]
       setPlanFileRef.current(sessionIdRef.current, planMatch[0])
