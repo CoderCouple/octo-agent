@@ -8,53 +8,15 @@ import type { NormalizedComment } from './useReviewData'
 import { CollapsibleSection } from './CollapsibleSection'
 import { LocationLink, SeverityBadge, ChangeStatusBadge } from './ReviewHelpers'
 import { PrCommentsSection } from './PrComments'
+import { createMarkdownComponents } from '../../utils/markdownComponents'
 
 export { PrCommentsSection }
 
+const compactComponents = createMarkdownComponents('compact')
+
 export function MarkdownBody({ content }: { content: string }) {
   return (
-    <Markdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        h1: ({ children }) => <h1 className="text-base font-bold mt-3 mb-2 text-text-primary">{children}</h1>,
-        h2: ({ children }) => <h2 className="text-sm font-semibold mt-3 mb-1.5 text-text-primary">{children}</h2>,
-        h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1 text-text-primary">{children}</h3>,
-        h4: ({ children }) => <h4 className="text-sm font-medium mt-2 mb-1 text-text-primary">{children}</h4>,
-        p: ({ children }) => <p className="my-1.5 text-sm text-text-primary leading-relaxed">{children}</p>,
-        a: ({ href, children }) => (
-          <a
-            href={href}
-            className="text-accent hover:underline"
-            onClick={(e) => {
-              e.preventDefault()
-              if (href && /^https?:\/\//i.test(href)) void window.shell.openExternal(href)
-            }}
-          >
-            {children}
-          </a>
-        ),
-        code: ({ children, className }) => {
-          const isBlock = className?.includes('language-')
-          if (isBlock) {
-            return <code className="block bg-bg-tertiary p-2 rounded overflow-x-auto text-xs">{children}</code>
-          }
-          return <code className="bg-bg-tertiary px-1 rounded text-xs">{children}</code>
-        },
-        pre: ({ children }) => <pre className="bg-bg-tertiary p-2 rounded overflow-x-auto my-1.5">{children}</pre>,
-        blockquote: ({ children }) => <blockquote className="border-l-2 border-border pl-3 my-1.5 text-text-secondary italic">{children}</blockquote>,
-        ul: ({ children }) => <ul className="list-disc ml-4 my-1.5 text-sm">{children}</ul>,
-        ol: ({ children }) => <ol className="list-decimal ml-4 my-1.5 text-sm">{children}</ol>,
-        li: ({ children }) => <li className="text-text-primary">{children}</li>,
-        hr: () => <hr className="border-border my-3" />,
-        img: ({ src, alt }) => <img src={src} alt={alt} className="max-w-full my-1.5 rounded" />,
-        table: ({ children }) => <table className="border-collapse my-2 w-full">{children}</table>,
-        thead: ({ children }) => <thead className="bg-bg-tertiary">{children}</thead>,
-        tbody: ({ children }) => <tbody>{children}</tbody>,
-        tr: ({ children }) => <tr className="border-b border-border">{children}</tr>,
-        th: ({ children }) => <th className="px-2 py-1 text-left text-xs font-semibold text-text-primary border border-border">{children}</th>,
-        td: ({ children }) => <td className="px-2 py-1 text-xs text-text-primary border border-border">{children}</td>,
-      }}
-    >
+    <Markdown remarkPlugins={[remarkGfm]} components={compactComponents}>
       {content}
     </Markdown>
   )

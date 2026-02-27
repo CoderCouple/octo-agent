@@ -10,56 +10,16 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { FileViewerPlugin, FileViewerComponentProps } from './types'
 import { matchesExtensions } from './types'
+import { createMarkdownComponents } from '../../utils/markdownComponents'
 
 const MARKDOWN_EXTENSIONS = ['md', 'markdown', 'mdx']
+const markdownComponents = createMarkdownComponents('default')
 
 function MarkdownViewerComponent({ content }: FileViewerComponentProps) {
   return (
     <div className="h-full overflow-auto p-4 bg-bg-primary">
       <div className="max-w-3xl mx-auto prose prose-invert prose-sm">
-        <Markdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            // Style overrides to match dark theme
-            h1: ({ children }) => <h1 className="text-2xl font-bold mt-6 mb-4 text-text-primary">{children}</h1>,
-            h2: ({ children }) => <h2 className="text-xl font-semibold mt-5 mb-3 text-text-primary">{children}</h2>,
-            h3: ({ children }) => <h3 className="text-lg font-semibold mt-4 mb-2 text-text-primary">{children}</h3>,
-            h4: ({ children }) => <h4 className="text-base font-semibold mt-4 mb-2 text-text-primary">{children}</h4>,
-            p: ({ children }) => <p className="my-2 text-text-primary">{children}</p>,
-            a: ({ href, children }) => (
-              <a
-                href={href}
-                className="text-accent hover:underline"
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (href && /^https?:\/\//i.test(href)) void window.shell.openExternal(href)
-                }}
-              >
-                {children}
-              </a>
-            ),
-            code: ({ children, className }) => {
-              const isBlock = className?.includes('language-')
-              if (isBlock) {
-                return <code className="block bg-bg-tertiary p-3 rounded overflow-x-auto text-sm">{children}</code>
-              }
-              return <code className="bg-bg-tertiary px-1 rounded text-sm">{children}</code>
-            },
-            pre: ({ children }) => <pre className="bg-bg-tertiary p-3 rounded overflow-x-auto my-2">{children}</pre>,
-            blockquote: ({ children }) => <blockquote className="border-l-4 border-border pl-4 my-2 text-text-secondary italic">{children}</blockquote>,
-            ul: ({ children }) => <ul className="list-disc ml-4 my-2">{children}</ul>,
-            ol: ({ children }) => <ol className="list-decimal ml-4 my-2">{children}</ol>,
-            li: ({ children }) => <li className="text-text-primary">{children}</li>,
-            hr: () => <hr className="border-border my-4" />,
-            img: ({ src, alt }) => <img src={src} alt={alt} className="max-w-full my-2 rounded" />,
-            table: ({ children }) => <table className="border-collapse my-3 w-full">{children}</table>,
-            thead: ({ children }) => <thead className="bg-bg-tertiary">{children}</thead>,
-            tbody: ({ children }) => <tbody>{children}</tbody>,
-            tr: ({ children }) => <tr className="border-b border-border">{children}</tr>,
-            th: ({ children }) => <th className="px-3 py-1.5 text-left text-xs font-semibold text-text-primary border border-border">{children}</th>,
-            td: ({ children }) => <td className="px-3 py-1.5 text-xs text-text-primary border border-border">{children}</td>,
-          }}
-        >
+        <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {content}
         </Markdown>
       </div>
