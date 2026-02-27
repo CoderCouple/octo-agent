@@ -1,21 +1,18 @@
 /**
  * Session store actions for managing terminal tabs (add, remove, rename, reorder, activate).
  */
-import type { Session, TerminalTab, PanelVisibility } from './sessions'
+import type { Session, TerminalTab } from './sessions'
 import { debouncedSave } from './sessionPersistence'
 
 type StoreGet = () => {
   sessions: Session[]
-  globalPanelVisibility: PanelVisibility
-  sidebarWidth: number
-  toolbarPanels: string[]
 }
 type StoreSet = (partial: { sessions: Session[] }) => void
 
 export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
   return {
     addTerminalTab: (sessionId: string, name?: string): string => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const tabId = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
       const session = sessions.find((s) => s.id === sessionId)
       const tabNumber = session ? session.terminalTabs.tabs.length + 1 : 1
@@ -32,12 +29,12 @@ export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
         }
       })
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
       return tabId
     },
 
     removeTerminalTab: (sessionId: string, tabId: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) => {
         if (s.id !== sessionId) return s
         const tabIndex = s.terminalTabs.tabs.findIndex((t) => t.id === tabId)
@@ -63,11 +60,11 @@ export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
         }
       })
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     renameTerminalTab: (sessionId: string, tabId: string, name: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) => {
         if (s.id !== sessionId) return s
         return {
@@ -81,11 +78,11 @@ export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
         }
       })
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     reorderTerminalTabs: (sessionId: string, tabs: TerminalTab[]) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) => {
         if (s.id !== sessionId) return s
         return {
@@ -97,7 +94,7 @@ export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
         }
       })
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     setActiveTerminalTab: (sessionId: string, tabId: string) => {
@@ -117,7 +114,7 @@ export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
     },
 
     closeOtherTerminalTabs: (sessionId: string, tabId: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) => {
         if (s.id !== sessionId) return s
         const tab = s.terminalTabs.tabs.find((t) => t.id === tabId)
@@ -131,11 +128,11 @@ export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
         }
       })
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     closeTerminalTabsToRight: (sessionId: string, tabId: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) => {
         if (s.id !== sessionId) return s
         const tabIndex = s.terminalTabs.tabs.findIndex((t) => t.id === tabId)
@@ -153,7 +150,7 @@ export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
         }
       })
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
   }
 }

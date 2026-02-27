@@ -98,12 +98,12 @@ function handleDuplicateSession(
 ): DuplicateSessionResult {
   const wasArchived = duplicate.isArchived
   if (wasArchived) {
-    const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+    const { sessions } = get()
     const updatedSessions = sessions.map((s) =>
       s.id === duplicate.id ? { ...s, isArchived: false } : s
     )
     set({ sessions: updatedSessions, activeSessionId: duplicate.id })
-    debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+    debouncedSave()
   } else {
     set({ activeSessionId: duplicate.id })
   }
@@ -269,7 +269,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         isArchived: false,
       }
 
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = [...sessions, newSession]
 
       set({
@@ -277,11 +277,11 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         activeSessionId: id,
       })
 
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     removeSession: (id: string) => {
-      const { sessions, activeSessionId, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions, activeSessionId } = get()
       const updatedSessions = sessions.filter((s) => s.id !== id)
 
       let newActiveId = activeSessionId
@@ -294,7 +294,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         activeSessionId: newActiveId,
       })
 
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     setActiveSession: (id: string | null) => {

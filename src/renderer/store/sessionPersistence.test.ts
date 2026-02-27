@@ -72,7 +72,7 @@ describe('sessionPersistence', () => {
   describe('debouncedSave', () => {
     it('calls scheduleSave (via configPersistence)', () => {
       // debouncedSave delegates to scheduleSave which uses setTimeout
-      debouncedSave([], {}, 224, [])
+      debouncedSave()
       // The function should not throw and should schedule a save
       vi.advanceTimersByTime(600)
       // Just verify it doesn't throw

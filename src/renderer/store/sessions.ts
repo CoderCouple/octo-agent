@@ -201,7 +201,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
   },
 
   selectFile: (id: string, filePath: string) => {
-    const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+    const { sessions } = get()
     const updatedSessions = sessions.map((s) => {
       if (s.id !== id) return s
       const newVisibility = {
@@ -218,34 +218,34 @@ export const useSessionStore = create<SessionStore>((set, get) => {
       })
     })
     set({ sessions: updatedSessions })
-    debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+    debouncedSave()
   },
 
   setFileViewerPosition: (id: string, position: FileViewerPosition) => {
-    const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+    const { sessions } = get()
     const updatedSessions = sessions.map((s) =>
       s.id === id ? { ...s, fileViewerPosition: position } : s
     )
     set({ sessions: updatedSessions })
-    debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+    debouncedSave()
   },
 
   updateLayoutSize: (id: string, key: keyof LayoutSizes, value: number) => {
-    const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+    const { sessions } = get()
     const updatedSessions = sessions.map((s) =>
       s.id === id ? { ...s, layoutSizes: { ...s.layoutSizes, [key]: value } } : s
     )
     set({ sessions: updatedSessions })
-    debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+    debouncedSave()
   },
 
   setExplorerFilter: (id: string, filter: ExplorerFilter) => {
-    const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+    const { sessions } = get()
     const updatedSessions = sessions.map((s) =>
       s.id === id ? { ...s, explorerFilter: filter } : s
     )
     set({ sessions: updatedSessions })
-    debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+    debouncedSave()
   },
 
   updateAgentMonitor: (id: string, update: { status?: SessionStatus; lastMessage?: string }) => {

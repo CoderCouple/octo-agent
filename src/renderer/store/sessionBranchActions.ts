@@ -1,15 +1,12 @@
 /**
  * Session store actions for branch status, PR state, and push-to-main tracking.
  */
-import type { Session, PanelVisibility, BranchStatus, PrState } from './sessions'
+import type { Session, BranchStatus, PrState } from './sessions'
 import { debouncedSave } from './sessionPersistence'
 
 type StoreGet = () => {
   sessions: Session[]
   activeSessionId: string | null
-  globalPanelVisibility: PanelVisibility
-  sidebarWidth: number
-  toolbarPanels: string[]
 }
 type StoreSet = (partial: Partial<{
   sessions: Session[]
@@ -19,36 +16,36 @@ type StoreSet = (partial: Partial<{
 export function createBranchActions(get: StoreGet, set: StoreSet) {
   return {
     recordPushToMain: (sessionId: string, commitHash: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) =>
         s.id === sessionId
           ? { ...s, pushedToMainAt: Date.now(), pushedToMainCommit: commitHash }
           : s
       )
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     clearPushToMain: (sessionId: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) =>
         s.id === sessionId
           ? { ...s, pushedToMainAt: undefined, pushedToMainCommit: undefined }
           : s
       )
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     markHasHadCommits: (sessionId: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const session = sessions.find((s) => s.id === sessionId)
       if (!session || session.hasHadCommits) return
       const updatedSessions = sessions.map((s) =>
         s.id === sessionId ? { ...s, hasHadCommits: true } : s
       )
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     updateBranchStatus: (sessionId: string, status: BranchStatus) => {
@@ -60,7 +57,7 @@ export function createBranchActions(get: StoreGet, set: StoreSet) {
     },
 
     updatePrState: (sessionId: string, prState: PrState, prNumber?: number, prUrl?: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) =>
         s.id === sessionId
           ? {
@@ -72,11 +69,11 @@ export function createBranchActions(get: StoreGet, set: StoreSet) {
           : s
       )
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     archiveSession: (sessionId: string) => {
-      const { sessions, activeSessionId, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions, activeSessionId } = get()
       const updatedSessions = sessions.map((s) =>
         s.id === sessionId ? { ...s, isArchived: true } : s
       )
@@ -86,16 +83,16 @@ export function createBranchActions(get: StoreGet, set: StoreSet) {
         newActiveId = nextActive?.id ?? null
       }
       set({ sessions: updatedSessions, activeSessionId: newActiveId })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
 
     unarchiveSession: (sessionId: string) => {
-      const { sessions, globalPanelVisibility, sidebarWidth, toolbarPanels } = get()
+      const { sessions } = get()
       const updatedSessions = sessions.map((s) =>
         s.id === sessionId ? { ...s, isArchived: false } : s
       )
       set({ sessions: updatedSessions })
-      debouncedSave(updatedSessions, globalPanelVisibility, sidebarWidth, toolbarPanels)
+      debouncedSave()
     },
   }
 }

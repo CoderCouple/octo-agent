@@ -40,13 +40,7 @@ export function createPanelVisibilityFromLegacy(data: {
 }
 
 // Debounced save — delegates to the unified configPersistence module.
-// The signature is kept for compatibility with existing callers but the
-// arguments are ignored; configPersistence reads current state from all stores.
-export const debouncedSave = (
-  _sessions: Session[],
-  _globalPanelVisibility: PanelVisibility,
-  _sidebarWidth: number,
-  _toolbarPanels: string[]
-) => {
+// configPersistence reads current state from all stores when saving.
+export const debouncedSave = () => {
   scheduleSave()
 }
