@@ -231,7 +231,7 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
       <div className="flex-1 relative min-h-0">
         {/* Agent terminal — always rendered */}
         <div
-          className={`absolute inset-0 ${activeTabId === AGENT_TAB_ID ? '' : 'invisible'}`}
+          className={`absolute inset-0 ${activeTabId === AGENT_TAB_ID ? '' : 'invisible pointer-events-none'}`}
         >
           <PanelErrorBoundary name="Agent Terminal">
             <Terminal
@@ -249,7 +249,7 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
         {userTabs.map((tab) => (
           <div
             key={tab.id}
-            className={`absolute inset-0 ${tab.id === activeTabId ? '' : 'invisible'}`}
+            className={`absolute inset-0 ${tab.id === activeTabId ? '' : 'invisible pointer-events-none'}`}
           >
             <PanelErrorBoundary name={`Terminal ${tab.name}`}>
               <Terminal

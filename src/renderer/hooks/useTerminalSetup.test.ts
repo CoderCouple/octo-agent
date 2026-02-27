@@ -563,7 +563,7 @@ describe('useTerminalSetup', () => {
       const config = makeConfig()
       const containerRef = makeContainerRef()
 
-      const { result } = renderHook(() => useTerminalSetup(config, containerRef))
+      renderHook(() => useTerminalSetup(config, containerRef))
       await act(async () => { await new Promise(r => setTimeout(r, 0)) })
 
       // Simulate a wheel event with negative deltaY (scrolling up)

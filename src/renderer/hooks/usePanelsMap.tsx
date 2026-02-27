@@ -177,7 +177,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
       {sessions.filter(s => !s.isArchived).map((session) => (
         <div
           key={session.id}
-          className={`absolute inset-0 ${session.id === activeSessionId ? '' : 'invisible'}`}
+          className={`absolute inset-0 ${session.id === activeSessionId ? '' : 'invisible pointer-events-none'}`}
         >
           <PanelErrorBoundary name={`Session ${session.branch || session.id}`}>
             <TabbedTerminal

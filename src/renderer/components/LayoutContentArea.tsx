@@ -22,7 +22,7 @@ function Divider({ type, direction, draggingDivider, handleMouseDown }: DividerP
       className={`flex-shrink-0 group relative ${
         direction === 'vertical'
           ? 'w-px cursor-col-resize'
-          : 'h-px cursor-row-resize'
+          : 'h-px w-full cursor-row-resize'
       }`}
     >
       <div className={`absolute z-10 ${
@@ -116,7 +116,7 @@ export default function LayoutContentArea({
         </div>
 
         {/* Draggable divider between file viewer and terminal */}
-        <div className={showFileViewer && fileViewer ? 'flex' : 'hidden'}>
+        <div className={showFileViewer && fileViewer ? 'flex relative z-10' : 'hidden'}>
           <Divider type="fileViewer" direction={fileViewerPosition === 'left' ? 'vertical' : 'horizontal'} draggingDivider={draggingDivider} handleMouseDown={handleMouseDown} />
         </div>
 
