@@ -9,6 +9,7 @@
  */
 import { create } from 'zustand'
 import type { ProfileData, ProfilesData } from '../../preload/index'
+import { generateId } from './generateId'
 
 export type { ProfileData }
 
@@ -24,8 +25,6 @@ interface ProfileStore {
   updateProfile: (profileId: string, updates: Partial<Omit<ProfileData, 'id'>>) => Promise<void>
   openProfileInNewWindow: (profileId: string) => Promise<void>
 }
-
-const generateId = () => `profile-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 
 // Read the profile ID from the URL query parameter
 function getProfileIdFromUrl(): string {
@@ -72,7 +71,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   },
 
   addProfile: async (name: string, color: string) => {
-    const profile: ProfileData = { id: generateId(), name, color }
+    const profile: ProfileData = { id: generateId('profile'), name, color }
     const { profiles, currentProfileId } = get()
     const updatedProfiles = [...profiles, profile]
     set({ profiles: updatedProfiles })

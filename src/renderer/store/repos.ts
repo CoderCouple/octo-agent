@@ -10,8 +10,7 @@
 import { create } from 'zustand'
 import type { ManagedRepo } from '../../preload/index'
 import { scheduleSave, setLoadedCounts } from './configPersistence'
-
-const generateId = () => `repo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+import { generateId } from './generateId'
 
 // Resolve ~ to the actual home directory using the main process
 async function resolveHome(path: string): Promise<string> {
@@ -73,7 +72,7 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
 
   addRepo: (repoData) => {
     const repo: ManagedRepo = {
-      id: generateId(),
+      id: generateId('repo'),
       ...repoData,
     }
 

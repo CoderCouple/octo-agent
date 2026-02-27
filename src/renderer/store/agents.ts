@@ -9,6 +9,7 @@
 import { create } from 'zustand'
 import type { AgentData } from '../../preload/index'
 import { scheduleSave, setLoadedCounts } from './configPersistence'
+import { generateId } from './generateId'
 
 export type AgentConfig = AgentData
 
@@ -23,8 +24,6 @@ interface AgentStore {
   updateAgent: (id: string, updates: Partial<Omit<AgentConfig, 'id'>>) => void
   removeAgent: (id: string) => void
 }
-
-const generateId = () => `agent-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 
 export const useAgentStore = create<AgentStore>((set, get) => ({
   agents: [],
@@ -46,7 +45,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   addAgent: (agentData) => {
     const agent: AgentConfig = {
-      id: generateId(),
+      id: generateId('agent'),
       ...agentData,
     }
 
