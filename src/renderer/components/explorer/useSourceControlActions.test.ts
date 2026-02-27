@@ -475,7 +475,7 @@ describe('useSourceControlActions', () => {
   })
 
   describe('handleResolveConflicts', () => {
-    it('writes to agent PTY and sets askedAgentToResolve', async () => {
+    it('writes prompt file and sends instruction to agent PTY', async () => {
       const data = makeData()
       const { result } = renderHook(() =>
         useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-123', data })
@@ -485,10 +485,34 @@ describe('useSourceControlActions', () => {
         await result.current.handleResolveConflicts()
       })
 
-      expect(window.pty.write).toHaveBeenCalledWith('pty-123', 'resolve all merge conflicts\r')
+      expect(window.fs.mkdir).toHaveBeenCalledWith('/repos/project/.broomy')
+      expect(window.fs.writeFile).toHaveBeenCalledWith(
+        '/repos/project/.broomy/merge-prompt.md',
+        expect.stringContaining('# Resolve Merge Conflicts')
+      )
+      expect(window.pty.write).toHaveBeenCalledWith(
+        'pty-123',
+        'Please read and follow the instructions in .broomy/merge-prompt.md'
+      )
       expect(data.setAskedAgentToResolve).toHaveBeenCalledWith(true)
       expect(data.setAgentMergeMessage).toHaveBeenCalledWith(
-        'Asked agent to resolve merge conflicts. Wait for the agent to finish, then commit the merge.'
+        'Asked agent to resolve merge conflicts. Wait for the agent to finish.'
+      )
+    })
+
+    it('uses branchBaseName in prompt', async () => {
+      const data = makeData({ branchBaseName: 'develop' })
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-123', data })
+      )
+
+      await act(async () => {
+        await result.current.handleResolveConflicts()
+      })
+
+      expect(window.fs.writeFile).toHaveBeenCalledWith(
+        '/repos/project/.broomy/merge-prompt.md',
+        expect.stringContaining('develop')
       )
     })
 
@@ -504,6 +528,20 @@ describe('useSourceControlActions', () => {
 
       expect(window.pty.write).not.toHaveBeenCalled()
       expect(data.setAskedAgentToResolve).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when no directory', async () => {
+      const data = makeData()
+      const { result } = renderHook(() =>
+        useSourceControlActions({ agentPtyId: 'pty-123', data })
+      )
+
+      await act(async () => {
+        await result.current.handleResolveConflicts()
+      })
+
+      expect(window.fs.mkdir).not.toHaveBeenCalled()
+      expect(window.pty.write).not.toHaveBeenCalled()
     })
   })
 

@@ -6,6 +6,7 @@ import { focusAgentTerminal } from '../../utils/focusHelpers'
 import { withGitProgress } from '../../utils/gitOperationProgress'
 import { useSessionStore } from '../../store/sessions'
 import { buildCreatePrPrompt } from '../../utils/prPromptBuilder'
+import { buildMergePrompt } from '../../utils/mergePromptBuilder'
 
 export interface SourceControlActionsProps {
   directory?: string
@@ -222,11 +223,24 @@ export function useSourceControlActions({
   }
 
   const handleResolveConflicts = async () => {
-    if (!agentPtyId) return
-    await window.pty.write(agentPtyId, 'resolve all merge conflicts\r')
+    if (!directory || !agentPtyId) return
+
+    const broomyDir = `${directory}/.broomy`
+    const promptPath = `${broomyDir}/merge-prompt.md`
+    const baseBranch = data.branchBaseName || 'main'
+
+    // Ensure .broomy directory exists
+    await window.fs.mkdir(broomyDir)
+
+    // Write the prompt file
+    const prompt = buildMergePrompt(baseBranch)
+    await window.fs.writeFile(promptPath, prompt)
+
+    // Send instruction to agent
+    await window.pty.write(agentPtyId, 'Please read and follow the instructions in .broomy/merge-prompt.md')
     focusAgentTerminal()
     setAskedAgentToResolve(true)
-    setAgentMergeMessage('Asked agent to resolve merge conflicts. Wait for the agent to finish, then commit the merge.')
+    setAgentMergeMessage('Asked agent to resolve merge conflicts. Wait for the agent to finish.')
   }
 
   const handleRevertFile = async (filePath: string) => {

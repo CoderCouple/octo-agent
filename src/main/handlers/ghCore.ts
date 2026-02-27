@@ -16,6 +16,16 @@ import { getScenarioData } from './scenarios'
 const execFileAsync = promisify(execFile)
 const execAsync = promisify(exec)
 
+function parseIssuesJson(result: string) {
+  const issues = JSON.parse(result)
+  return issues.map((issue: { number: number; title: string; labels: { name: string }[]; url: string }) => ({
+    number: issue.number,
+    title: issue.title,
+    labels: issue.labels.map((l: { name: string }) => l.name),
+    url: issue.url,
+  }))
+}
+
 async function runCommand(command: string, args: string[], options: { cwd?: string; timeout?: number }): Promise<string> {
   const { stdout } = await execFileAsync(command, args, {
     ...options,
@@ -92,13 +102,29 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
         cwd: expandHomePath(repoDir),
         timeout: 30000,
       })
-      const issues = JSON.parse(result)
-      return issues.map((issue: { number: number; title: string; labels: { name: string }[]; url: string }) => ({
-        number: issue.number,
-        title: issue.title,
-        labels: issue.labels.map((l: { name: string }) => l.name),
-        url: issue.url,
-      }))
+      return parseIssuesJson(result)
+    } catch {
+      return []
+    }
+  })
+
+  ipcMain.handle('gh:searchIssues', async (_event, repoDir: string, query: string) => {
+    if (ctx.isE2ETest) {
+      const allIssues = [
+        { number: 42, title: 'Add support for the dark mode toggle in the user settings panel', labels: ['feature', 'priority'], url: 'https://github.com/user/demo-project/issues/42' },
+        { number: 17, title: 'Fix the crash that happens when clicking on an empty notification list', labels: ['bug'], url: 'https://github.com/user/demo-project/issues/17' },
+        { number: 8, title: 'Implement search functionality for the dashboard', labels: ['feature'], url: 'https://github.com/user/demo-project/issues/8' },
+      ]
+      const q = query.toLowerCase()
+      return allIssues.filter(i => i.title.toLowerCase().includes(q) || i.labels.some(l => l.toLowerCase().includes(q)))
+    }
+
+    try {
+      const result = await runCommand('gh', ['issue', 'list', '--search', query, '--state', 'open', '--json', 'number,title,labels,url', '--limit', '50'], {
+        cwd: expandHomePath(repoDir),
+        timeout: 30000,
+      })
+      return parseIssuesJson(result)
     } catch {
       return []
     }

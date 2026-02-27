@@ -1,7 +1,7 @@
 /**
  * View for browsing GitHub issues and selecting one to start a new session from.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ManagedRepo, GitHubIssue } from '../../../preload/index'
 import { DialogErrorBanner } from '../ErrorBanner'
 
@@ -17,11 +17,16 @@ export function IssuesView({
   const [issues, setIssues] = useState<GitHubIssue[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<GitHubIssue[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const mainDir = `${repo.rootDir}/main`
 
   useEffect(() => {
     const fetchIssues = async () => {
       try {
-        const mainDir = `${repo.rootDir}/main`
         const result = await window.gh.issues(mainDir)
         setIssues(result)
       } catch (err) {
@@ -31,7 +36,47 @@ export function IssuesView({
       }
     }
     void fetchIssues()
-  }, [repo])
+  }, [repo, mainDir])
+
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query)
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    if (!query.trim()) {
+      setSearchResults([])
+      setSearchLoading(false)
+      return
+    }
+
+    setSearchLoading(true)
+    debounceRef.current = setTimeout(() => {
+      window.gh.searchIssues(mainDir, query.trim()).then(
+        (results) => {
+          setSearchResults(results)
+          setSearchLoading(false)
+        },
+        () => {
+          setSearchResults([])
+          setSearchLoading(false)
+        },
+      )
+    }, 300)
+  }, [mainDir])
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [])
+
+  const isSearching = searchQuery.trim().length > 0
+  const displayedIssues = isSearching ? searchResults : issues
+  const isLoading = isSearching ? searchLoading : loading
 
   return (
     <>
@@ -43,34 +88,44 @@ export function IssuesView({
         </button>
         <div>
           <h2 className="text-lg font-medium text-text-primary">Issues</h2>
-          <p className="text-xs text-text-secondary">{repo.name} &middot; Assigned to me</p>
+          <p className="text-xs text-text-secondary">{repo.name} &middot; {isSearching ? 'Search results' : 'Assigned to me'}</p>
         </div>
       </div>
 
+      <div className="px-4 pt-3">
+        <input
+          type="text"
+          placeholder="Search issues..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="w-full px-3 py-1.5 text-sm rounded border border-border bg-bg-primary text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent"
+        />
+      </div>
+
       <div className="p-4 max-h-80 overflow-y-auto">
-        {loading && (
+        {isLoading && (
           <div className="flex items-center justify-center py-8 text-text-secondary text-sm">
             <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            Loading issues...
+            {isSearching ? 'Searching...' : 'Loading issues...'}
           </div>
         )}
 
-        {error && (
+        {error && !isSearching && (
           <DialogErrorBanner error={error} onDismiss={() => setError(null)} />
         )}
 
-        {!loading && !error && issues.length === 0 && (
+        {!isLoading && !error && displayedIssues.length === 0 && (
           <div className="text-center text-text-secondary text-sm py-8">
-            No open issues assigned to you.
+            {isSearching ? 'No issues found.' : 'No open issues assigned to you.'}
           </div>
         )}
 
-        {!loading && !error && issues.length > 0 && (
+        {!isLoading && displayedIssues.length > 0 && (
           <div className="space-y-1">
-            {issues.map((issue) => (
+            {displayedIssues.map((issue) => (
               <button
                 key={issue.number}
                 onClick={() => onSelectIssue(issue)}
