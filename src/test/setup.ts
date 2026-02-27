@@ -101,6 +101,7 @@ const mockProfiles: Mocked<ProfilesApi> = {
 const mockGh: Mocked<GhApi> = {
   isInstalled: vi.fn().mockResolvedValue(true),
   issues: vi.fn().mockResolvedValue([]),
+  searchIssues: vi.fn().mockResolvedValue([]),
   repoSlug: vi.fn().mockResolvedValue(null),
   prStatus: vi.fn().mockResolvedValue(null),
   hasWriteAccess: vi.fn().mockResolvedValue(false),

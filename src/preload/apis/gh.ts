@@ -7,6 +7,7 @@ import type { GitHubIssue, GitHubPrStatus, GitHubPrComment, GitHubIssueComment, 
 export type GhApi = {
   isInstalled: () => Promise<boolean>
   issues: (repoDir: string) => Promise<GitHubIssue[]>
+  searchIssues: (repoDir: string, query: string) => Promise<GitHubIssue[]>
   repoSlug: (repoDir: string) => Promise<string | null>
   prStatus: (repoDir: string) => Promise<GitHubPrStatus>
   hasWriteAccess: (repoDir: string) => Promise<boolean>
@@ -24,6 +25,7 @@ export type GhApi = {
 export const ghApi: GhApi = {
   isInstalled: () => ipcRenderer.invoke('gh:isInstalled'),
   issues: (repoDir) => ipcRenderer.invoke('gh:issues', repoDir),
+  searchIssues: (repoDir, query) => ipcRenderer.invoke('gh:searchIssues', repoDir, query),
   repoSlug: (repoDir) => ipcRenderer.invoke('gh:repoSlug', repoDir),
   prStatus: (repoDir) => ipcRenderer.invoke('gh:prStatus', repoDir),
   hasWriteAccess: (repoDir) => ipcRenderer.invoke('gh:hasWriteAccess', repoDir),
