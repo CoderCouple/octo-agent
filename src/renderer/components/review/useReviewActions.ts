@@ -89,26 +89,35 @@ Please cover:
 `
 }
 
-function buildResponsePlanPrompt(reviewData: { overview: { purpose: string; approach: string }; potentialIssues: { severity: string; title: string; description: string }[] }): string {
+function buildResponsePlanPrompt(
+  reviewData: { overview: { purpose: string; approach: string }; potentialIssues: { severity: string; title: string; description: string }[] },
+  prComments: { body: string; author: string; path?: string; line?: number | null }[],
+): string {
   const issuesList = reviewData.potentialIssues
     .map(i => `- [${i.severity}] ${i.title}: ${i.description}`)
     .join('\n')
+  const commentsList = prComments
+    .map(c => `- **${c.author}**${c.path ? ` (${c.path}${c.line ? `:${c.line}` : ''})` : ''}: ${c.body.slice(0, 200)}`)
+    .join('\n')
   return `# Draft Response Plan
 
-Based on the code review, please help me create a response plan.
+Reviewers have left comments on this PR. Help me draft a response plan.
 
 ## Review Summary
 **Purpose:** ${reviewData.overview.purpose}
 **Approach:** ${reviewData.overview.approach}
 
-## Issues Found
+## Reviewer Comments
+${commentsList || 'No comments.'}
+
+## Issues Found by AI Review
 ${issuesList || 'No issues found.'}
 
 ## Instructions
-1. First, ask me clarifying questions about which issues I want to address and how
+1. First, ask me clarifying questions about which comments I want to address and how
 2. Once we've discussed the approach, write a response plan to \`.broomy/plan.md\` that includes:
-   - Which issues to fix and the approach for each
-   - Which issues to skip and why
+   - Which reviewer comments to address and the approach for each
+   - Which AI-flagged issues are also relevant to the reviewer feedback
    - Suggested order of changes
    - Any risks or considerations
 `
@@ -363,7 +372,8 @@ export function useReviewActions(
     }
     if (!state.reviewData) return
     try {
-      await sendAgentPrompt(session.agentPtyId, broomyDir, 'response-plan-prompt.md', buildResponsePlanPrompt(state.reviewData))
+      const prComments = state.prGitHubComments.map(c => ({ body: c.body, author: c.author, path: c.path, line: c.line }))
+      await sendAgentPrompt(session.agentPtyId, broomyDir, 'response-plan-prompt.md', buildResponsePlanPrompt(state.reviewData, prComments))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }

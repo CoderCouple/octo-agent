@@ -211,7 +211,7 @@ export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanel
   const showPreReview = isIdle && hasPreReviewContent
   const showPromo = isIdle && !hasPreReviewContent
   const showPushButton = comments.length > 0 && !!session.prNumber
-  const showDraftPlan = !!reviewData && !!session.agentPtyId
+  const showDraftPlan = !!reviewData && !!session.agentPtyId && prGitHubComments.length > 0
   const showEmptyState = !reviewData && (fetching || waitingForAgent)
 
   return (

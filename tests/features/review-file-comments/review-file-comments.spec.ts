@@ -11,7 +11,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import { screenshotElement, screenshotClip, scrollToVisible, waitForMonaco } from '../_shared/screenshot-helpers'
+import { screenshotElement, scrollToVisible } from '../_shared/screenshot-helpers'
 import { generateFeaturePage, generateIndex, FeatureStep } from '../_shared/template'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -46,7 +46,7 @@ test.afterAll(async () => {
   await generateIndex(FEATURES_ROOT)
 })
 
-/** Set up the first session as a review session */
+/** Set up the first session as a review session and ensure file viewer is visible */
 async function setupReviewSession(p: Page) {
   await p.evaluate(() => {
     const store = (window as Record<string, unknown>).__sessionStore as {
@@ -62,7 +62,7 @@ async function setupReviewSession(p: Page) {
           const pv = (s.panelVisibility || {}) as Record<string, boolean>
           return {
             ...s,
-            panelVisibility: { ...pv, explorer: true },
+            panelVisibility: { ...pv, explorer: true, fileViewer: true },
             prNumber: 123,
             prTitle: 'Add dark mode support',
             prUrl: 'https://github.com/user/demo-project/pull/123',
@@ -89,23 +89,26 @@ async function setupReviewSession(p: Page) {
     if (!store) return
     const state = store.getState()
     state.setPanelVisibility(state.activeSessionId, 'explorer', true)
+    state.setPanelVisibility(state.activeSessionId, 'fileViewer', true)
     state.setExplorerFilter(state.activeSessionId, 'review')
   })
   await expect(p.locator('text=Overview')).toBeVisible({ timeout: 10000 })
 }
 
 test.describe.serial('Feature: File Viewer Review Comments', () => {
-  test('Step 1: Open a file from review location link', async () => {
+  test('Step 1: Open a file from review location link — file viewer visible', async () => {
     await setupReviewSession(page)
 
-    // Click a location link in the review
+    // Click a location link in the review to open a file in diff mode
     const locationLink = page.locator('button:has-text(".ts:")').first()
     if (await locationLink.isVisible()) {
       await scrollToVisible(locationLink)
       await locationLink.click()
-      // Wait for the click to register
-      await expect(locationLink).toBeVisible()
     }
+
+    // File viewer should be visible since we toggled it on
+    const fileViewer = page.locator('[data-panel-id="fileViewer"]')
+    await expect(fileViewer).toBeVisible({ timeout: 5000 })
 
     await page.screenshot({
       path: path.join(SCREENSHOTS, '01-file-opened.png'),
@@ -150,25 +153,23 @@ test.describe.serial('Feature: File Viewer Review Comments', () => {
   })
 
   test('Step 3: Diff viewer with glyph margin enabled', async () => {
-    // Click a location link to re-open diff viewer
+    // Click a location link to open a file in the diff viewer
     const locationLink = page.locator('button:has-text(".ts:")').first()
     if (await locationLink.isVisible()) {
       await scrollToVisible(locationLink)
       await locationLink.click()
-      await expect(locationLink).toBeVisible()
     }
 
-    // The diff viewer should be visible with glyph margin
+    // Wait for the file viewer to be visible with content
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
-    if (await fileViewer.isVisible()) {
-      await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '03-diff-glyph-margin.png'), {
-        maxHeight: 500,
-      })
-    } else {
-      await page.screenshot({
-        path: path.join(SCREENSHOTS, '03-diff-glyph-margin.png'),
-      })
-    }
+    await expect(fileViewer).toBeVisible({ timeout: 5000 })
+
+    // Give the file viewer a moment to load file content
+    await expect(fileViewer.locator('div').first()).toBeVisible()
+
+    await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '03-diff-glyph-margin.png'), {
+      maxHeight: 500,
+    })
     steps.push({
       screenshotPath: 'screenshots/03-diff-glyph-margin.png',
       caption: 'Diff viewer with glyph margin for adding comments',
@@ -180,18 +181,27 @@ test.describe.serial('Feature: File Viewer Review Comments', () => {
   })
 
   test('Step 4: Inline comment input in diff viewer', async () => {
-    // Look for the comment input (may appear if glyph was clicked)
-    // In E2E mock mode, we verify the UI structure is present
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
-    if (await fileViewer.isVisible()) {
-      await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '04-diff-comment-input.png'), {
-        maxHeight: 400,
-      })
-    } else {
-      await page.screenshot({
-        path: path.join(SCREENSHOTS, '04-diff-comment-input.png'),
-      })
+    await expect(fileViewer).toBeVisible()
+
+    // Try clicking glyph margin if the diff editor rendered
+    const glyphMargin = fileViewer.locator('.margin-view-overlays').first()
+    const glyphVisible = await glyphMargin.isVisible().catch(() => false)
+    if (glyphVisible) {
+      const box = await glyphMargin.boundingBox()
+      if (box) {
+        await page.mouse.click(box.x + 5, box.y + 40)
+      }
+      const commentInput = fileViewer.locator('input[placeholder="Type your comment..."]')
+      const hasInput = await commentInput.isVisible().catch(() => false)
+      if (hasInput) {
+        await commentInput.fill('This needs error handling for the edge case')
+      }
     }
+
+    await screenshotElement(page, fileViewer, path.join(SCREENSHOTS, '04-diff-comment-input.png'), {
+      maxHeight: 500,
+    })
     steps.push({
       screenshotPath: 'screenshots/04-diff-comment-input.png',
       caption: 'Inline comment input appears above the diff editor',
