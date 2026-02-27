@@ -180,4 +180,209 @@ describe('ReviewPrsView', () => {
       expect(screen.getByText('PRs to Review')).toBeTruthy()
     })
   })
+
+  describe('createReviewWorktree', () => {
+    it('reuses existing worktree and syncs', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue([
+        { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: [] },
+      ])
+      vi.mocked(window.git.worktreeList).mockResolvedValue([
+        { path: '/repos/my-project/add-tests', branch: 'add-tests' },
+      ])
+      vi.mocked(window.git.syncReviewBranch).mockResolvedValue({ success: true })
+      const onComplete = vi.fn()
+
+      render(
+        <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={onComplete} />
+      )
+      await waitFor(() => {
+        expect(screen.getByText('Add tests')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Add tests'))
+      await waitFor(() => {
+        expect(screen.getByText('Start Review')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Start Review'))
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalledWith(
+          '/repos/my-project/add-tests',
+          'agent-1',
+          expect.objectContaining({ sessionType: 'review', prNumber: 101 }),
+        )
+      })
+      expect(window.git.syncReviewBranch).toHaveBeenCalledWith('/repos/my-project/add-tests', 'add-tests', 101)
+    })
+
+    it('creates worktree for same-repo PR (non-fork)', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue([
+        { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: [] },
+      ])
+      vi.mocked(window.git.worktreeList).mockResolvedValue([])
+      vi.mocked(window.git.fetchBranch).mockResolvedValue({ success: true })
+      vi.mocked(window.git.worktreeAdd).mockResolvedValue({ success: true })
+      vi.mocked(window.repos.getInitScript).mockResolvedValue('')
+      const onComplete = vi.fn()
+
+      render(
+        <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={onComplete} />
+      )
+      await waitFor(() => {
+        expect(screen.getByText('Add tests')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Add tests'))
+      await waitFor(() => {
+        expect(screen.getByText('Start Review')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Start Review'))
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalled()
+      })
+      expect(window.git.fetchBranch).toHaveBeenCalledWith('/repos/my-project/main', 'add-tests')
+      expect(window.git.worktreeAdd).toHaveBeenCalledWith(
+        '/repos/my-project/main',
+        '/repos/my-project/add-tests',
+        'add-tests',
+        'origin/add-tests',
+      )
+      // Should not have called fetchReviewPrHead (not a fork)
+      expect(window.git.fetchReviewPrHead).not.toHaveBeenCalled()
+    })
+
+    it('creates worktree for fork PR', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue([
+        { number: 101, title: 'Fork PR', author: 'contributor', headRefName: 'fork-branch', baseRefName: 'main', url: '', labels: [] },
+      ])
+      vi.mocked(window.git.worktreeList).mockResolvedValue([])
+      vi.mocked(window.git.fetchBranch).mockResolvedValue({ success: false })
+      vi.mocked(window.git.fetchReviewPrHead).mockResolvedValue({ success: true })
+      vi.mocked(window.git.worktreeAdd).mockResolvedValue({ success: true })
+      vi.mocked(window.git.setConfig).mockResolvedValue({ success: true })
+      vi.mocked(window.repos.getInitScript).mockResolvedValue(null)
+      const onComplete = vi.fn()
+
+      render(
+        <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={onComplete} />
+      )
+      await waitFor(() => {
+        expect(screen.getByText('Fork PR')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Fork PR'))
+      await waitFor(() => {
+        expect(screen.getByText('Start Review')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Start Review'))
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalled()
+      })
+      expect(window.git.fetchReviewPrHead).toHaveBeenCalledWith('/repos/my-project/main', 101, 'fork-branch')
+      // Should have configured git pull for fork PRs
+      expect(window.git.setConfig).toHaveBeenCalledWith(
+        '/repos/my-project/fork-branch',
+        'branch.fork-branch.remote',
+        'origin',
+      )
+      expect(window.git.setConfig).toHaveBeenCalledWith(
+        '/repos/my-project/fork-branch',
+        'branch.fork-branch.merge',
+        'refs/pull/101/head',
+      )
+    })
+
+    it('runs init script on new worktree', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue([
+        { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: [] },
+      ])
+      vi.mocked(window.git.worktreeList).mockResolvedValue([])
+      vi.mocked(window.git.fetchBranch).mockResolvedValue({ success: true })
+      vi.mocked(window.git.worktreeAdd).mockResolvedValue({ success: true })
+      vi.mocked(window.repos.getInitScript).mockResolvedValue('pnpm install')
+      const onComplete = vi.fn()
+
+      render(
+        <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={onComplete} />
+      )
+      await waitFor(() => {
+        expect(screen.getByText('Add tests')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Add tests'))
+      await waitFor(() => {
+        expect(screen.getByText('Start Review')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Start Review'))
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalled()
+      })
+      expect(window.shell.exec).toHaveBeenCalledWith('pnpm install', '/repos/my-project/add-tests')
+    })
+
+    it('handles worktree creation failure', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue([
+        { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: [] },
+      ])
+      vi.mocked(window.git.worktreeList).mockResolvedValue([])
+      vi.mocked(window.git.fetchBranch).mockResolvedValue({ success: true })
+      vi.mocked(window.git.worktreeAdd).mockResolvedValue({ success: false, error: 'Branch already exists' })
+
+      render(
+        <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />
+      )
+      await waitFor(() => {
+        expect(screen.getByText('Add tests')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Add tests'))
+      await waitFor(() => {
+        expect(screen.getByText('Start Review')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Start Review'))
+
+      await waitFor(() => {
+        expect(screen.getByText(/Branch already exists/)).toBeTruthy()
+      })
+    })
+
+    it('handles sync failure gracefully for existing worktree', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue([
+        { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: [] },
+      ])
+      vi.mocked(window.git.worktreeList).mockResolvedValue([
+        { path: '/repos/my-project/add-tests', branch: 'add-tests' },
+      ])
+      vi.mocked(window.git.syncReviewBranch).mockRejectedValue(new Error('No network'))
+      const onComplete = vi.fn()
+
+      render(
+        <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={onComplete} />
+      )
+      await waitFor(() => {
+        expect(screen.getByText('Add tests')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Add tests'))
+      await waitFor(() => {
+        expect(screen.getByText('Start Review')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByText('Start Review'))
+
+      // Should still succeed (sync failure is non-fatal)
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalled()
+      })
+    })
+  })
+
+  it('shows labels on PR items in the list', async () => {
+    vi.mocked(window.gh.prsToReview).mockResolvedValue([
+      { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: ['bug', 'urgent'] },
+    ])
+    render(
+      <ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />
+    )
+    await waitFor(() => {
+      expect(screen.getByText('bug')).toBeTruthy()
+      expect(screen.getByText('urgent')).toBeTruthy()
+    })
+  })
 })

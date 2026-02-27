@@ -16,6 +16,9 @@ vi.mock('./SearchPanel', () => ({
 vi.mock('./RecentFiles', () => ({
   RecentFiles: () => <div data-testid="recent-files">RecentFiles</div>,
 }))
+vi.mock('../review', () => ({
+  default: (props: Record<string, unknown>) => <div data-testid="review-panel">ReviewPanel</div>,
+}))
 
 import Explorer from './index'
 
@@ -234,5 +237,81 @@ describe('Explorer', () => {
       expect(screen.getByText('Show plan')).toBeTruthy()
       expect(screen.queryByText('Ask agent to plan this issue')).toBeNull()
     })
+  })
+
+  it('renders review tab button', () => {
+    render(<Explorer {...defaultProps} directory="/repos/project" />)
+    expect(screen.getByTitle('Review')).toBeTruthy()
+  })
+
+  it('calls onFilterChange with review when review tab is clicked', () => {
+    const onFilterChange = vi.fn()
+    render(<Explorer {...defaultProps} directory="/repos/project" onFilterChange={onFilterChange} />)
+    fireEvent.click(screen.getByTitle('Review'))
+    expect(onFilterChange).toHaveBeenCalledWith('review')
+  })
+
+  it('shows ReviewPanel when filter is review and session is provided', () => {
+    const session = { id: 'session-1', name: 'Test' } as never
+    render(
+      <Explorer
+        {...defaultProps}
+        directory="/repos/project"
+        filter="review"
+        session={session}
+      />
+    )
+    expect(screen.getByTestId('review-panel')).toBeTruthy()
+  })
+
+  it('does not show ReviewPanel when filter is review but no session', () => {
+    render(
+      <Explorer
+        {...defaultProps}
+        directory="/repos/project"
+        filter="review"
+      />
+    )
+    expect(screen.queryByTestId('review-panel')).toBeNull()
+  })
+
+  it('highlights review tab when active', () => {
+    const session = { id: 'session-1', name: 'Test' } as never
+    render(
+      <Explorer
+        {...defaultProps}
+        directory="/repos/project"
+        filter="review"
+        session={session}
+      />
+    )
+    const reviewButton = screen.getByTitle('Review')
+    expect(reviewButton.className).toContain('bg-accent')
+  })
+
+  it('highlights plan chip when it matches selectedFilePath', () => {
+    render(
+      <Explorer
+        {...defaultProps}
+        directory="/repos/project"
+        planFilePath="/repos/project/PLAN.md"
+        selectedFilePath="/repos/project/PLAN.md"
+      />
+    )
+    const planButton = screen.getByText('Plan').closest('button')!
+    expect(planButton.className).toContain('bg-accent')
+  })
+
+  it('does not highlight plan chip when it does not match selectedFilePath', () => {
+    render(
+      <Explorer
+        {...defaultProps}
+        directory="/repos/project"
+        planFilePath="/repos/project/PLAN.md"
+        selectedFilePath="/repos/project/other.ts"
+      />
+    )
+    const planButton = screen.getByText('Plan').closest('button')!
+    expect(planButton.className).not.toContain('bg-accent text-white')
   })
 })

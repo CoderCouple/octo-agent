@@ -13,11 +13,15 @@ vi.mock('@monaco-editor/react', () => ({
   loader: { config: vi.fn() },
 }))
 
+const mockRegisterEditorOpener = vi.fn().mockReturnValue({ dispose: vi.fn() })
 vi.mock('monaco-editor', () => ({
   editor: {
-    registerEditorOpener: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+    registerEditorOpener: (...args: unknown[]) => mockRegisterEditorOpener(...args),
+    MouseTargetType: { GUTTER_GLYPH_MARGIN: 2 },
   },
   Range: vi.fn(),
+  KeyMod: { CtrlCmd: 2048 },
+  KeyCode: { KeyS: 49 },
 }))
 
 vi.mock('monaco-editor/esm/vs/editor/editor.worker?worker', () => ({ default: vi.fn() }))
@@ -226,5 +230,369 @@ describe('MonacoViewerComponent', () => {
         }),
       })
     )
+  })
+
+  it('renders review comment CSS when reviewContext is provided', () => {
+    const { container } = render(
+      <MonacoViewerComponent
+        filePath="/test/file.ts"
+        content=""
+        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.broomy/comments.json' }}
+      />
+    )
+    const style = container.querySelector('style')
+    expect(style).toBeTruthy()
+    expect(style!.textContent).toContain('review-comment-glyph')
+  })
+
+  it('does not render review comment CSS without reviewContext', () => {
+    const { container } = render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+    const style = container.querySelector('style')
+    expect(style).toBeNull()
+  })
+
+  it('calls onDirtyChange(false) when content prop changes', () => {
+    const onDirtyChange = vi.fn()
+    const { rerender } = render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="original" onDirtyChange={onDirtyChange} />
+    )
+    onDirtyChange.mockClear()
+    rerender(
+      <MonacoViewerComponent filePath="/test/file.ts" content="updated" onDirtyChange={onDirtyChange} />
+    )
+    expect(onDirtyChange).toHaveBeenCalledWith(false, 'updated')
+  })
+
+  it('passes filePath as path to Monaco', () => {
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+    expect(mockEditor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: '/test/file.ts',
+      })
+    )
+  })
+})
+
+describe('MonacoViewerComponent onMount lifecycle', () => {
+  function getLastEditorProps() {
+    const calls = mockEditor.mock.calls
+    return calls[calls.length - 1][0] as Record<string, unknown>
+  }
+
+  function makeMockEditorInstance() {
+    return {
+      addCommand: vi.fn(),
+      onMouseDown: vi.fn(),
+      focus: vi.fn(),
+      trigger: vi.fn(),
+      getValue: vi.fn().mockReturnValue('content'),
+      revealLineInCenter: vi.fn(),
+      getModel: vi.fn().mockReturnValue({
+        getLineContent: vi.fn().mockReturnValue('some line content'),
+      }),
+      setSelection: vi.fn(),
+      createDecorationsCollection: vi.fn().mockReturnValue({ clear: vi.fn() }),
+    }
+  }
+
+  function makeMockMonaco() {
+    return {
+      KeyMod: { CtrlCmd: 2048 },
+      KeyCode: { KeyS: 49 },
+      editor: { MouseTargetType: { GUTTER_GLYPH_MARGIN: 2 } },
+    }
+  }
+
+  it('calls onMount and registers Cmd+S handler', () => {
+    const onSave = vi.fn().mockResolvedValue(true)
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="original" onSave={onSave} />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+
+    expect(editor.addCommand).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Function),
+    )
+  })
+
+  it('Cmd+S save handler calls onSave with editor content', async () => {
+    const onSave = vi.fn().mockResolvedValue(true)
+    const onDirtyChange = vi.fn()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="original" onSave={onSave} onDirtyChange={onDirtyChange} />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    editor.getValue.mockReturnValue('modified')
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+
+    // Get the save callback (second arg to addCommand)
+    const saveCallback = editor.addCommand.mock.calls[0][1] as () => void
+    saveCallback()
+
+    await vi.waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith('modified')
+    })
+  })
+
+  it('does not call onSave when content is unchanged', () => {
+    const onSave = vi.fn()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="original" onSave={onSave} />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    editor.getValue.mockReturnValue('original')
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+
+    const saveCallback = editor.addCommand.mock.calls[0][1] as () => void
+    saveCallback()
+
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('registers glyph margin click handler when reviewContext is provided', () => {
+    render(
+      <MonacoViewerComponent
+        filePath="/test/file.ts"
+        content=""
+        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.broomy/comments.json' }}
+      />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+
+    expect(editor.onMouseDown).toHaveBeenCalled()
+  })
+
+  it('does not register glyph margin handler without reviewContext', () => {
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+
+    expect(editor.onMouseDown).not.toHaveBeenCalled()
+  })
+
+  it('calls onEditorReady with showOutline action', () => {
+    const onEditorReady = vi.fn()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onEditorReady={onEditorReady} />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+
+    expect(onEditorReady).toHaveBeenCalledWith(
+      expect.objectContaining({ showOutline: expect.any(Function) }),
+    )
+
+    // Test the showOutline action
+    const actions = onEditorReady.mock.calls[0][0]
+    actions.showOutline()
+    expect(editor.focus).toHaveBeenCalled()
+    expect(editor.trigger).toHaveBeenCalledWith('keyboard', 'editor.action.quickOutline', {})
+  })
+
+  it('scrolls to line on mount when scrollToLine is set', () => {
+    vi.useFakeTimers()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="content" scrollToLine={15} />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+    vi.advanceTimersByTime(200)
+
+    expect(editor.revealLineInCenter).toHaveBeenCalledWith(15)
+    vi.useRealTimers()
+  })
+
+  it('highlights search text when scrollToLine and searchHighlight are set', () => {
+    vi.useFakeTimers()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="content" scrollToLine={5} searchHighlight="some" />
+    )
+    const props = getLastEditorProps()
+    const onMount = props.onMount as (editor: unknown, monaco: unknown) => void
+    const editor = makeMockEditorInstance()
+    editor.getModel.mockReturnValue({
+      getLineContent: vi.fn().mockReturnValue('some line content'),
+    })
+    const monacoInst = makeMockMonaco()
+
+    onMount(editor, monacoInst)
+    vi.advanceTimersByTime(200)
+
+    expect(editor.revealLineInCenter).toHaveBeenCalledWith(5)
+    expect(editor.setSelection).toHaveBeenCalled()
+    expect(editor.createDecorationsCollection).toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+})
+
+describe('MonacoViewerComponent editor opener', () => {
+  it('registers an editor opener for cross-file navigation', () => {
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+    expect(mockRegisterEditorOpener).toHaveBeenCalled()
+  })
+
+  it('editor opener calls onOpenFile with path and line', () => {
+    const onOpenFile = vi.fn()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
+    )
+    // Get the opener callback
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    const result = openerArg.openCodeEditor(
+      null,
+      { path: '/test/other.ts' },
+      { startLineNumber: 42 },
+    )
+    expect(result).toBe(true)
+    expect(onOpenFile).toHaveBeenCalledWith('/test/other.ts', 42)
+  })
+
+  it('editor opener handles position with lineNumber', () => {
+    const onOpenFile = vi.fn()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
+    )
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    const result = openerArg.openCodeEditor(
+      null,
+      { path: '/test/other.ts' },
+      { lineNumber: 10 },
+    )
+    expect(result).toBe(true)
+    expect(onOpenFile).toHaveBeenCalledWith('/test/other.ts', 10)
+  })
+
+  it('editor opener returns false when no onOpenFile', () => {
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    const result = openerArg.openCodeEditor(
+      null,
+      { path: '/test/other.ts' },
+      null,
+    )
+    // onOpenFile is undefined, so should still try to call it
+    // Actually it checks if onOpenFileRef.current exists
+    expect(result).toBe(false)
+  })
+
+  it('editor opener handles no selectionOrPosition', () => {
+    const onOpenFile = vi.fn()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
+    )
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    openerArg.openCodeEditor(null, { path: '/test/other.ts' }, undefined)
+    expect(onOpenFile).toHaveBeenCalledWith('/test/other.ts', undefined)
+  })
+
+  it('disposes editor opener on unmount', () => {
+    const disposeFn = vi.fn()
+    mockRegisterEditorOpener.mockReturnValue({ dispose: disposeFn })
+
+    const { unmount } = render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+    unmount()
+    expect(disposeFn).toHaveBeenCalled()
+  })
+
+  it('calls onEditorReady(null) on unmount', () => {
+    const onEditorReady = vi.fn()
+    const { unmount } = render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onEditorReady={onEditorReady} />
+    )
+    unmount()
+    expect(onEditorReady).toHaveBeenCalledWith(null)
+  })
+})
+
+describe('getLanguageFromPath (via MonacoViewer)', () => {
+  it('maps common extensions correctly', () => {
+    const cases: [string, string][] = [
+      ['/file.ts', 'typescript'],
+      ['/file.tsx', 'typescript'],
+      ['/file.js', 'javascript'],
+      ['/file.jsx', 'javascript'],
+      ['/file.json', 'json'],
+      ['/file.md', 'markdown'],
+      ['/file.css', 'css'],
+      ['/file.scss', 'scss'],
+      ['/file.html', 'html'],
+      ['/file.py', 'python'],
+      ['/file.rb', 'ruby'],
+      ['/file.go', 'go'],
+      ['/file.rs', 'rust'],
+      ['/file.java', 'java'],
+      ['/file.sh', 'shell'],
+      ['/file.sql', 'sql'],
+      ['/file.yaml', 'yaml'],
+      ['/file.yml', 'yaml'],
+      ['/file.xml', 'xml'],
+      ['/file.svg', 'xml'],
+      ['/file.c', 'c'],
+      ['/file.cpp', 'cpp'],
+      ['/file.cs', 'csharp'],
+      ['/file.php', 'php'],
+      ['/file.lua', 'lua'],
+      ['/file.swift', 'swift'],
+      ['/file.dart', 'dart'],
+      ['/file.toml', 'ini'],
+      ['/file.ini', 'ini'],
+      ['/file.bat', 'bat'],
+      ['/file.ps1', 'powershell'],
+      ['/file.graphql', 'graphql'],
+      ['/file.txt', 'plaintext'],
+      ['/file.log', 'plaintext'],
+      ['/file.unknown', 'plaintext'],
+    ]
+    for (const [filePath, expectedLanguage] of cases) {
+      mockEditor.mockClear()
+      cleanup()
+      render(<MonacoViewerComponent filePath={filePath} content="" />)
+      expect(mockEditor).toHaveBeenCalledWith(
+        expect.objectContaining({ language: expectedLanguage }),
+      )
+    }
   })
 })

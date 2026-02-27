@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import '../../../test/react-setup'
-import { ReviewContent } from './ReviewContent'
+import { ReviewContent, MarkdownBody } from './ReviewContent'
 import type { ReviewData, ReviewComparison, PendingComment } from '../../types/review'
 
 afterEach(() => {
@@ -294,5 +294,206 @@ describe('ReviewContent', () => {
       />
     )
     expect(screen.queryByText('Design Decisions')).toBeNull()
+  })
+
+  it('renders PR description section when prDescription is provided', () => {
+    render(
+      <ReviewContent
+        reviewData={makeReviewData()}
+        comparison={null}
+        comments={[]}
+        unpushedCount={0}
+        directory="/test"
+        onClickLocation={vi.fn()}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+        prDescription="## My PR\n\nThis is the description."
+      />
+    )
+    expect(screen.getByText('PR Description')).toBeTruthy()
+  })
+
+  it('does not render PR description section when prDescription is null', () => {
+    render(
+      <ReviewContent
+        reviewData={makeReviewData()}
+        comparison={null}
+        comments={[]}
+        unpushedCount={0}
+        directory="/test"
+        onClickLocation={vi.fn()}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+        prDescription={null}
+      />
+    )
+    expect(screen.queryByText('PR Description')).toBeNull()
+  })
+
+  it('renders PrCommentsSection when prGitHubComments is non-empty', () => {
+    render(
+      <ReviewContent
+        reviewData={makeReviewData()}
+        comparison={null}
+        comments={[]}
+        unpushedCount={0}
+        directory="/test"
+        onClickLocation={vi.fn()}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+        prGitHubComments={[
+          { id: 1, body: 'Comment', author: 'alice', createdAt: '2024-01-01T00:00:00Z', url: 'url1', type: 'issue' },
+        ]}
+      />
+    )
+    expect(screen.getByText('PR Comments')).toBeTruthy()
+  })
+
+  it('does not render PrCommentsSection when prGitHubComments is empty', () => {
+    render(
+      <ReviewContent
+        reviewData={makeReviewData()}
+        comparison={null}
+        comments={[]}
+        unpushedCount={0}
+        directory="/test"
+        onClickLocation={vi.fn()}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+      />
+    )
+    expect(screen.queryByText('PR Comments')).toBeNull()
+  })
+
+  it('shows new commits count in comparison section', () => {
+    const comparison: ReviewComparison = {
+      newCommitsSince: ['abc123', 'def456'],
+      newFileChanges: [],
+      requestedChangeStatus: [
+        { change: { id: 'rc-1', description: 'Fix bug' }, status: 'addressed' },
+      ],
+    }
+    render(
+      <ReviewContent
+        reviewData={makeReviewData()}
+        comparison={comparison}
+        comments={[]}
+        unpushedCount={0}
+        directory="/test"
+        onClickLocation={vi.fn()}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+      />
+    )
+    expect(screen.getByText(/2 new commits since last review/)).toBeTruthy()
+  })
+
+  it('renders since last review with responses to comments', () => {
+    render(
+      <ReviewContent
+        reviewData={makeReviewData({
+          changesSinceLastReview: {
+            summary: 'Summary text',
+            responsesToComments: [
+              { comment: 'Original question', response: 'Addressed it' },
+            ],
+            otherNotableChanges: [],
+          },
+        })}
+        comparison={null}
+        comments={[]}
+        unpushedCount={0}
+        directory="/test"
+        onClickLocation={vi.fn()}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+      />
+    )
+    expect(screen.getByText('Summary text')).toBeTruthy()
+    expect(screen.getByText('Responses to Comments')).toBeTruthy()
+    expect(screen.getByText('Original question')).toBeTruthy()
+    expect(screen.getByText('Addressed it')).toBeTruthy()
+  })
+
+  it('renders since last review with other notable changes', () => {
+    render(
+      <ReviewContent
+        reviewData={makeReviewData({
+          changesSinceLastReview: {
+            summary: 'Summary',
+            responsesToComments: [],
+            otherNotableChanges: ['Added tests', 'Fixed lint'],
+          },
+        })}
+        comparison={null}
+        comments={[]}
+        unpushedCount={0}
+        directory="/test"
+        onClickLocation={vi.fn()}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+      />
+    )
+    expect(screen.getByText('Other Notable Changes')).toBeTruthy()
+    expect(screen.getByText('Added tests')).toBeTruthy()
+    expect(screen.getByText('Fixed lint')).toBeTruthy()
+  })
+
+  it('navigates to pending comment location on click', () => {
+    const onClickLocation = vi.fn()
+    const comments: PendingComment[] = [
+      { id: 'c-1', file: '/test/src/app.ts', line: 5, body: 'Fix this', createdAt: '2024-01-01' },
+    ]
+    render(
+      <ReviewContent
+        reviewData={makeReviewData()}
+        comparison={null}
+        comments={comments}
+        unpushedCount={1}
+        directory="/test"
+        onClickLocation={onClickLocation}
+        onDeleteComment={vi.fn()}
+        {...defaultGitHubProps}
+      />
+    )
+    fireEvent.click(screen.getByText('Pending Comments'))
+    const fileLink = screen.getByText('app.ts:5')
+    fireEvent.click(fileLink)
+    expect(onClickLocation).toHaveBeenCalledWith({ file: '/test/src/app.ts', startLine: 5 })
+  })
+})
+
+describe('MarkdownBody', () => {
+  it('renders markdown content', () => {
+    render(<MarkdownBody content="**bold text**" />)
+    expect(screen.getByText('bold text')).toBeTruthy()
+  })
+
+  it('renders links that open externally', () => {
+    render(<MarkdownBody content="[Link](https://example.com)" />)
+    const link = screen.getByText('Link')
+    fireEvent.click(link)
+    expect(window.shell.openExternal).toHaveBeenCalledWith('https://example.com')
+  })
+
+  it('renders inline code', () => {
+    render(<MarkdownBody content="Use `foo()` here" />)
+    expect(screen.getByText('foo()')).toBeTruthy()
+  })
+
+  it('renders paragraphs', () => {
+    render(<MarkdownBody content="Hello world" />)
+    const el = screen.getByText('Hello world')
+    expect(el.tagName).toBe('P')
+  })
+
+  it('renders headings', () => {
+    render(<MarkdownBody content={"# Title\n\nBody"} />)
+    expect(screen.getByText('Title').tagName).toBe('H1')
+  })
+
+  it('renders horizontal rules', () => {
+    const { container } = render(<MarkdownBody content={"Above\n\n---\n\nBelow"} />)
+    expect(container.querySelector('hr')).toBeTruthy()
   })
 })
