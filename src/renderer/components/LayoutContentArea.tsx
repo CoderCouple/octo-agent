@@ -6,36 +6,7 @@ import type { LayoutSizes, FileViewerPosition } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
 import type { DividerType } from '../hooks/useDividerResize'
 import PanelErrorBoundary from './PanelErrorBoundary'
-
-interface DividerProps {
-  type: NonNullable<DividerType>
-  direction: 'horizontal' | 'vertical'
-  draggingDivider: DividerType
-  handleMouseDown: (type: DividerType) => (e: React.MouseEvent) => void
-}
-
-// Divider component - wide hit area, visible line
-function Divider({ type, direction, draggingDivider, handleMouseDown }: DividerProps) {
-  return (
-    <div
-      onMouseDown={handleMouseDown(type)}
-      className={`flex-shrink-0 group relative ${
-        direction === 'vertical'
-          ? 'w-px cursor-col-resize'
-          : 'h-px cursor-row-resize'
-      }`}
-    >
-      <div className={`absolute z-10 ${
-        direction === 'vertical'
-          ? 'w-4 h-full -left-2 top-0'
-          : 'h-4 w-full -top-2 left-0'
-      }`} />
-      <div className={`absolute transition-colors ${
-        draggingDivider === type ? 'bg-accent' : 'bg-[#4a4a4a] group-hover:bg-accent/70'
-      } ${direction === 'vertical' ? 'w-px h-full left-0 top-0' : 'h-px w-full top-0 left-0'}`} />
-    </div>
-  )
-}
+import { Divider } from './Divider'
 
 function FlashOverlay({ panelId, flashedPanel }: { panelId: string; flashedPanel: string | null }) {
   return flashedPanel === panelId ? (
@@ -68,7 +39,7 @@ interface LayoutContentAreaProps {
   terminal: ReactNode
   flashedPanel: string | null
   draggingDivider: DividerType
-  handleMouseDown: (type: DividerType) => (e: React.MouseEvent) => void
+  onMouseDown: (type: DividerType) => (e: React.MouseEvent) => void
 }
 
 export default function LayoutContentArea({
@@ -83,7 +54,7 @@ export default function LayoutContentArea({
   terminal,
   flashedPanel,
   draggingDivider,
-  handleMouseDown,
+  onMouseDown,
 }: LayoutContentAreaProps) {
   const flexDirection = getContentFlexDirection(showSettings, settingsPanel, fileViewerPosition, showFileViewer, fileViewer)
 
@@ -117,7 +88,7 @@ export default function LayoutContentArea({
 
         {/* Draggable divider between file viewer and terminal */}
         <div className={showFileViewer && fileViewer ? '' : 'hidden'}>
-          <Divider type="fileViewer" direction={fileViewerPosition === 'left' ? 'vertical' : 'horizontal'} draggingDivider={draggingDivider} handleMouseDown={handleMouseDown} />
+          <Divider type="fileViewer" direction={fileViewerPosition === 'left' ? 'vertical' : 'horizontal'} draggingDivider={draggingDivider} onMouseDown={onMouseDown} />
         </div>
 
         {/* Combined terminal area — always visible */}
