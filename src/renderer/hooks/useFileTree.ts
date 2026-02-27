@@ -1,7 +1,7 @@
 /**
  * Manages the file explorer tree state including directory loading, node expansion, inline creation and rename inputs, and drag-and-drop operations.
  */
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import type { GitFileStatus } from '../../preload/index'
 import type { TreeNode } from '../components/explorer/types'
 
@@ -118,17 +118,16 @@ export function useFileTree({ directory, onFileSelect, gitStatus = [] }: UseFile
     const newEntries = await loadDirectory(directory)
 
     const reloadChildren = async (nodes: TreeNode[]): Promise<TreeNode[]> => {
-      const result: TreeNode[] = []
-      for (const node of nodes) {
-        if (node.isDirectory && expandedPaths.has(node.path)) {
-          const children = await loadDirectory(node.path)
-          const loadedChildren = await reloadChildren(children)
-          result.push({ ...node, children: loadedChildren })
-        } else {
-          result.push(node)
-        }
-      }
-      return result
+      return Promise.all(
+        nodes.map(async (node) => {
+          if (node.isDirectory && expandedPaths.has(node.path)) {
+            const children = await loadDirectory(node.path)
+            const loadedChildren = await reloadChildren(children)
+            return { ...node, children: loadedChildren }
+          }
+          return node
+        })
+      )
     }
 
     const refreshedTree = await reloadChildren(newEntries)
@@ -161,11 +160,11 @@ export function useFileTree({ directory, onFileSelect, gitStatus = [] }: UseFile
     }
   }
 
-  // Get git status for a file
-  const getFileStatus = (filePath: string): GitFileStatus | undefined => {
-    const relativePath = directory ? filePath.replace(`${directory  }/`, '') : filePath
-    return gitStatus.find((s) => s.path === relativePath)
-  }
+  const gitStatusMap = useMemo(() => new Map(gitStatus.map((s) => [s.path, s])), [gitStatus])
+  const getFileStatus = useCallback(
+    (filePath: string): GitFileStatus | undefined => gitStatusMap.get(directory ? filePath.replace(`${directory}/`, '') : filePath),
+    [directory, gitStatusMap]
+  )
 
   // Context menu handler for directories
   const handleContextMenu = async (e: React.MouseEvent, parentPath: string) => {

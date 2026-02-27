@@ -51,8 +51,7 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
 
   try {
     const git = simpleGit(repoPath)
-    // Use -uall to list individual files inside untracked directories
-    const status = await git.status(['-uall'])
+    const status = await git.status()
     const files: { path: string; status: string; staged: boolean; indexStatus: string; workingDirStatus: string }[] = []
 
     for (const file of status.files) {
