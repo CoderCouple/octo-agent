@@ -2,7 +2,7 @@
  * Preload API for shell execution, native dialogs, app metadata, and auto-updates.
  */
 import { ipcRenderer } from 'electron'
-import type { ShellOption } from './types'
+import type { ShellOption, CrashReport } from './types'
 
 export type ShellApi = {
   exec: (command: string, cwd: string) => Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }>
@@ -20,6 +20,9 @@ export type AppApi = {
   platform: () => Promise<string>
   tmpdir: () => Promise<string>
   getVersion: () => Promise<string>
+  getCrashLog: () => Promise<CrashReport | null>
+  dismissCrashLog: () => Promise<void>
+  getCrashReportUrl: () => Promise<string | null>
 }
 
 export type UpdateCheckResult = {
@@ -52,6 +55,9 @@ export const appApi: AppApi = {
   platform: () => ipcRenderer.invoke('app:platform'),
   tmpdir: () => ipcRenderer.invoke('app:tmpdir'),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
+  getCrashLog: () => ipcRenderer.invoke('app:getCrashLog'),
+  dismissCrashLog: () => ipcRenderer.invoke('app:dismissCrashLog'),
+  getCrashReportUrl: () => ipcRenderer.invoke('app:getCrashReportUrl'),
 }
 
 export const updateApi: UpdateApi = {

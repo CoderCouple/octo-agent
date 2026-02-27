@@ -19,6 +19,7 @@ import * as pty from 'node-pty'
 import { isWindows, isMac, resolveWindowsCommand } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
 import { resolveShellEnv } from './shellEnv'
+import { writeCrashLog } from './crashLog'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
 app.name = 'Broomy'
@@ -45,6 +46,31 @@ if (isWindows) {
     const current = process.env.PATH ?? ''
     process.env.PATH = `${[...dirsToAdd].join(';')};${current}`
   }
+}
+
+// Crash handlers — write crash report to disk so the next launch can show recovery UI
+if (!isE2ETest) {
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception:', error)
+    try {
+      writeCrashLog(error, 'main')
+      dialog.showErrorBox('Broomy crashed', error.message || String(error))
+    } catch {
+      // Best-effort — avoid infinite crash loops
+    }
+    app.exit(1)
+  })
+
+  process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason)
+    try {
+      writeCrashLog(reason, 'main')
+      dialog.showErrorBox('Broomy crashed', reason instanceof Error ? reason.message : String(reason))
+    } catch {
+      // Best-effort
+    }
+    app.exit(1)
+  })
 }
 
 // PTY instances map
@@ -123,6 +149,13 @@ function createWindow(profileId?: string): BrowserWindow {
 
   window.webContents.on('render-process-gone', (_event, details) => {
     console.error('Render process gone:', details)
+    if (details.reason !== 'clean-exit') {
+      try {
+        writeCrashLog(new Error(`Renderer process gone: ${details.reason} (exit code ${details.exitCode})`), 'renderer')
+      } catch {
+        // best-effort
+      }
+    }
   })
 
   // Kill PTY processes when the renderer reloads — prevents FD exhaustion

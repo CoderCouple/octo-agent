@@ -14,6 +14,12 @@ vi.mock('electron', () => ({
   app: { getVersion: vi.fn(() => '0.6.1') },
 }))
 
+vi.mock('../crashLog', () => ({
+  readLatestCrashLog: vi.fn(() => null),
+  deleteCrashLog: vi.fn(),
+  buildCrashReportUrl: vi.fn(() => 'https://github.com/Broomy-AI/broomy/issues/new?title=test'),
+}))
+
 import { register } from './app'
 import { E2EScenario, type HandlerContext } from './types'
 import type { IpcMain } from 'electron'
@@ -80,9 +86,9 @@ describe('app handler register', () => {
     expect(handler()).toBe('0.6.1')
   })
 
-  it('registers exactly 5 handlers', () => {
+  it('registers exactly 8 handlers', () => {
     register(mockIpcMain as unknown as IpcMain, mockCtx)
-    expect(mockIpcMain.handle).toHaveBeenCalledTimes(5)
+    expect(mockIpcMain.handle).toHaveBeenCalledTimes(8)
   })
 
   it('app:isDev handler returns ctx.isDev', () => {
@@ -111,5 +117,45 @@ describe('app handler register', () => {
     const tmpdirCall = mockIpcMain.handle.mock.calls.find((c: unknown[]) => c[0] === 'app:tmpdir')
     const handler = tmpdirCall![1] as () => string
     expect(handler()).toBe('/mock/tmp')
+  })
+
+  it('registers app:getCrashLog handler', () => {
+    register(mockIpcMain as unknown as IpcMain, mockCtx)
+    const channels = mockIpcMain.handle.mock.calls.map((c: unknown[]) => c[0])
+    expect(channels).toContain('app:getCrashLog')
+  })
+
+  it('registers app:dismissCrashLog handler', () => {
+    register(mockIpcMain as unknown as IpcMain, mockCtx)
+    const channels = mockIpcMain.handle.mock.calls.map((c: unknown[]) => c[0])
+    expect(channels).toContain('app:dismissCrashLog')
+  })
+
+  it('registers app:getCrashReportUrl handler', () => {
+    register(mockIpcMain as unknown as IpcMain, mockCtx)
+    const channels = mockIpcMain.handle.mock.calls.map((c: unknown[]) => c[0])
+    expect(channels).toContain('app:getCrashReportUrl')
+  })
+
+  it('app:getCrashLog returns null when no crash log exists', () => {
+    register(mockIpcMain as unknown as IpcMain, mockCtx)
+    const call = mockIpcMain.handle.mock.calls.find((c: unknown[]) => c[0] === 'app:getCrashLog')
+    const handler = call![1] as () => unknown
+    expect(handler()).toBeNull()
+  })
+
+  it('app:getCrashLog returns null in E2E test mode', () => {
+    const e2eCtx = { ...mockCtx, isE2ETest: true } as unknown as HandlerContext
+    register(mockIpcMain as unknown as IpcMain, e2eCtx)
+    const call = mockIpcMain.handle.mock.calls.find((c: unknown[]) => c[0] === 'app:getCrashLog')
+    const handler = call![1] as () => unknown
+    expect(handler()).toBeNull()
+  })
+
+  it('app:getCrashReportUrl returns null when no crash log exists', () => {
+    register(mockIpcMain as unknown as IpcMain, mockCtx)
+    const call = mockIpcMain.handle.mock.calls.find((c: unknown[]) => c[0] === 'app:getCrashReportUrl')
+    const handler = call![1] as () => unknown
+    expect(handler()).toBeNull()
   })
 })

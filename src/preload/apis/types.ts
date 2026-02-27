@@ -212,3 +212,13 @@ export type TsProjectContext = {
   compilerOptions: Record<string, unknown>
   files: { path: string; content: string }[]
 }
+
+export type CrashReport = {
+  timestamp: string
+  message: string
+  stack: string | null
+  electronVersion: string
+  appVersion: string
+  platform: string
+  processType: 'main' | 'renderer'
+}

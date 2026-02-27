@@ -31,6 +31,7 @@ import { useHelpMenu } from './hooks/useHelpMenu'
 import { useGitBranchWatcher } from './hooks/useGitBranchWatcher'
 import { useSessionKeyboardCallbacks } from './hooks/useSessionKeyboardCallbacks'
 import { focusSearchInput } from './utils/focusHelpers'
+import CrashRecoveryBanner from './components/CrashRecoveryBanner'
 
 // Re-export types for backwards compatibility
 export type { Session, SessionStatus }
@@ -267,7 +268,7 @@ function AppContent() {
   return (
     <>
       <Layout
-        topBanner={<><GitMissingBanner /><GhMissingBanner /></>}
+        topBanner={<><CrashRecoveryBanner /><GitMissingBanner /><GhMissingBanner /></>}
         panels={panelsMap}
         panelVisibility={activeSession?.panelVisibility ?? {}}
         globalPanelVisibility={globalPanelVisibility}

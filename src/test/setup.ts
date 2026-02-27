@@ -77,6 +77,9 @@ const mockApp: Mocked<AppApi> = {
   platform: vi.fn().mockResolvedValue('darwin'),
   tmpdir: vi.fn().mockResolvedValue('/tmp'),
   getVersion: vi.fn().mockResolvedValue('0.6.1'),
+  getCrashLog: vi.fn().mockResolvedValue(null),
+  dismissCrashLog: vi.fn().mockResolvedValue(undefined),
+  getCrashReportUrl: vi.fn().mockResolvedValue(null),
 }
 
 // Mock window.update
