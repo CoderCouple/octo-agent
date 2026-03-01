@@ -71,6 +71,14 @@ function mapCompilerOptions(opts: Record<string, unknown>, projectRoot: string):
     // the TS service throws "Could not find source file: 'inmemory://model/1'".
     allowNonTsExtensions: true,
     allowJs: true,
+    // Sensible defaults for projects whose tsconfig omits these fields.
+    // Each is overridden below when the tsconfig provides an explicit value.
+    target: ts.ScriptTarget.ES2020,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeJs,
+    jsx: ts.JsxEmit.ReactJSX,
+    esModuleInterop: true,
+    allowSyntheticDefaultImports: true,
   }
 
   if (typeof opts.target === 'string') {
@@ -134,7 +142,7 @@ export async function loadMonacoProjectContext(projectRoot: string): Promise<voi
     // 2307: Cannot find module (for node_modules packages we don't load)
     // 2875: JSX tag requires 'react/jsx-runtime' (React types not loaded)
     monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
-      diagnosticCodesToIgnore: [2875],
+      diagnosticCodesToIgnore: [2307, 2875],
     })
 
     // Disable JavaScript semantic validation — when we load TS project files as

@@ -60,13 +60,14 @@ describe('typescript handlers', () => {
         compilerOptions: {
           target: 'es2020',
           module: 'esnext',
+          moduleResolution: 'node',
           jsx: 'react-jsx',
           strict: true,
           esModuleInterop: true,
         },
         files: [
-          { path: 'src/index.ts', content: 'export const test = true;\n' },
-          { path: 'src/utils.ts', content: 'export function add(a: number, b: number) { return a + b; }\n' },
+          { path: 'src/utils.ts', content: 'export function add(a: number, b: number): number {\n  return a + b\n}\n\nexport function multiply(a: number, b: number): number {\n  return a * b\n}\n' },
+          { path: 'src/index.ts', content: expect.stringContaining('add') },
         ],
       })
       expect(runInWorker).not.toHaveBeenCalled()

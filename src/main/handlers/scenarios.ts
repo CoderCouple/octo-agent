@@ -455,11 +455,23 @@ const DEFAULT: ScenarioData = {
     return `export function main() {\n  console.log('Hello')\n}`
   },
   fileTree: {
-    readDir(): DirListing[] | null {
+    readDir(dirSuffix: string): DirListing[] | null {
+      if (dirSuffix.endsWith('/src')) {
+        return [
+          { name: 'index.ts', isDirectory: false },
+          { name: 'utils.ts', isDirectory: false },
+        ]
+      }
       return null // use default minimal listing
     },
   },
   readFile(filePath: string): string | null {
+    if (filePath.endsWith('src/index.ts')) {
+      return `${IM} { add } from './utils'\n\nexport function main(): void {\n  const result = add(2, 3)\n  console.log('Result:', result)\n}\n`
+    }
+    if (filePath.endsWith('src/utils.ts')) {
+      return 'export function add(a: number, b: number): number {\n  return a + b\n}\n\nexport function multiply(a: number, b: number): number {\n  return a * b\n}\n'
+    }
     // Default scenario review data (dark mode theme)
     if (/\.broomy[/\\]review\.json$/.exec(filePath) || /broomy-review-[^/\\]+[/\\]review\.json$/.exec(filePath)) {
       return JSON.stringify({
