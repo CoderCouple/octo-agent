@@ -6,7 +6,7 @@ import ErrorIndicator from './ErrorIndicator'
 import VersionIndicator from './VersionIndicator'
 import type { PanelDefinition } from '../panels'
 
-// Detect platform for keyboard shortcut display and layout adjustments
+// Detect platform for keyboard shortcut display
 const isMac = navigator.userAgent.includes('Mac')
 
 // Keyboard shortcut helper
@@ -23,6 +23,7 @@ interface ToolbarPanelInfo extends PanelDefinition {
 interface LayoutToolbarProps {
   title?: string
   isDev: boolean
+  platform: string
   profileChip?: ReactNode
   toolbarPanelInfo: ToolbarPanelInfo[]
   onToggle: (panelId: string) => void
@@ -34,6 +35,7 @@ interface LayoutToolbarProps {
 export default function LayoutToolbar({
   title,
   isDev,
+  platform,
   profileChip,
   toolbarPanelInfo,
   onToggle,
@@ -41,6 +43,7 @@ export default function LayoutToolbar({
   onMenuButtonClick,
   settingsPanelId,
 }: LayoutToolbarProps) {
+  const isLinuxPlatform = platform === 'linux'
   return (
     <div
       className="h-10 flex items-center justify-between px-4 bg-bg-secondary border-b border-border"
@@ -60,7 +63,7 @@ export default function LayoutToolbar({
       </div>
       <div
         className="flex items-center gap-2"
-        style={{ WebkitAppRegion: 'no-drag', ...(!isMac ? { paddingRight: 138 } : {}) } as React.CSSProperties}
+        style={{ WebkitAppRegion: 'no-drag', ...(platform === 'win32' ? { paddingRight: 138 } : {}) } as React.CSSProperties}
       >
         {toolbarPanelInfo.map(panel => {
           const isIconOnly = panel.id === settingsPanelId || panel.id === 'tutorial'
@@ -129,6 +132,39 @@ export default function LayoutToolbar({
               <circle cx="5" cy="12" r="1" />
             </svg>
           </button>
+        )}
+
+        {isLinuxPlatform && (
+          <div className="flex items-center ml-1 gap-0.5" data-testid="linux-window-controls">
+            <button
+              onClick={() => window.windowControls.minimize()}
+              className="p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-bg-tertiary"
+              title="Minimize"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="2" y1="6" x2="10" y2="6" />
+              </svg>
+            </button>
+            <button
+              onClick={() => window.windowControls.maximize()}
+              className="p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-bg-tertiary"
+              title="Maximize"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="2" y="2" width="8" height="8" rx="1" />
+              </svg>
+            </button>
+            <button
+              onClick={() => window.windowControls.close()}
+              className="p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-red-500/20"
+              title="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="2" y1="2" x2="10" y2="10" />
+                <line x1="10" y1="2" x2="2" y2="10" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
     </div>

@@ -137,6 +137,26 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     })
   })
 
+  ipcMain.handle('window:minimize', (_event) => {
+    if (ctx.isE2ETest) return
+    BrowserWindow.fromWebContents(_event.sender)?.minimize()
+  })
+
+  ipcMain.handle('window:maximize', (_event) => {
+    if (ctx.isE2ETest) return
+    const win = BrowserWindow.fromWebContents(_event.sender)
+    if (win?.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win?.maximize()
+    }
+  })
+
+  ipcMain.handle('window:close', (_event) => {
+    if (ctx.isE2ETest) return
+    BrowserWindow.fromWebContents(_event.sender)?.close()
+  })
+
   ipcMain.handle('menu:popup', async (_event, items: { id: string; label: string; enabled?: boolean; type?: 'separator' }[]) => {
     const senderWindow = BrowserWindow.fromWebContents(_event.sender) || ctx.mainWindow
     return new Promise<string | null>((resolve) => {

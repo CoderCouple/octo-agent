@@ -59,6 +59,7 @@ interface LayoutProps {
   onNextTerminalTab?: () => void
   onPrevTerminalTab?: () => void
   onExplorerTab?: (filter: string) => void
+  platform?: string
 }
 
 export default function Layout({
@@ -87,9 +88,8 @@ export default function Layout({
   onArchiveSession,
   onToggleSettings,
   onShowShortcuts,
-  onNextTerminalTab,
-  onPrevTerminalTab,
-  onExplorerTab,
+  onNextTerminalTab, onPrevTerminalTab,
+  onExplorerTab, platform = 'darwin',
 }: LayoutProps) {
   const [isDev, setIsDev] = useState(false)
   const { registry, toolbarPanels, getShortcutKey } = usePanelContext()
@@ -167,6 +167,7 @@ export default function Layout({
       <LayoutToolbar
         title={title}
         isDev={isDev}
+        platform={platform}
         profileChip={profileChip}
         toolbarPanelInfo={toolbarPanelInfo}
         onToggle={handleToggle}

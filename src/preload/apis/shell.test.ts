@@ -7,7 +7,7 @@ vi.mock('electron', () => ({
   },
 }))
 
-import { shellApi, dialogApi, appApi } from './shell'
+import { shellApi, dialogApi, appApi, windowControlsApi } from './shell'
 
 describe('preload shell API', () => {
   beforeEach(() => {
@@ -53,6 +53,23 @@ describe('preload shell API', () => {
     it('tmpdir invokes app:tmpdir', async () => {
       await appApi.tmpdir()
       expect(mockInvoke).toHaveBeenCalledWith('app:tmpdir')
+    })
+  })
+
+  describe('windowControlsApi', () => {
+    it('minimize invokes window:minimize', async () => {
+      await windowControlsApi.minimize()
+      expect(mockInvoke).toHaveBeenCalledWith('window:minimize')
+    })
+
+    it('maximize invokes window:maximize', async () => {
+      await windowControlsApi.maximize()
+      expect(mockInvoke).toHaveBeenCalledWith('window:maximize')
+    })
+
+    it('close invokes window:close', async () => {
+      await windowControlsApi.close()
+      expect(mockInvoke).toHaveBeenCalledWith('window:close')
     })
   })
 })

@@ -237,7 +237,7 @@ function AppContent() {
   }, [activeSessionId, activeSession, togglePanel, setExplorerFilter])
 
   const handleToggleGlobalPanel = useCallback((panelId: string) => { toggleGlobalPanel(panelId) }, [toggleGlobalPanel])
-  const { isMac, handleMenuButtonClick } = useMenuButton({
+  const { isMac, platform, handleMenuButtonClick } = useMenuButton({
     setShowPanelPicker, setShowHelpModal, setShowShortcutsModal,
   })
 
@@ -284,7 +284,7 @@ function AppContent() {
         onTogglePanel={handleTogglePanel}
         onToggleGlobalPanel={handleToggleGlobalPanel}
         onOpenPanelPicker={isMac ? () => setShowPanelPicker(true) : undefined}
-        onMenuButtonClick={!isMac ? handleMenuButtonClick : undefined}
+        platform={platform} onMenuButtonClick={!isMac ? handleMenuButtonClick : undefined}
         onSearchFiles={handleSearchFiles}
         onNewSession={handleNewSession}
         onNextSession={handleNextSession}

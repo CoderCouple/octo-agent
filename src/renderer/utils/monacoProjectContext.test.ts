@@ -285,7 +285,7 @@ describe('monacoProjectContext', () => {
       await loadMonacoProjectContext('/project')
 
       expect(tsDefaults.setDiagnosticsOptions).toHaveBeenCalledWith({
-        diagnosticCodesToIgnore: [2875],
+        diagnosticCodesToIgnore: [2307, 2875],
       })
     })
 
@@ -313,6 +313,27 @@ describe('monacoProjectContext', () => {
       expect(opts.module).toBe(99) // fallback ESNext
       expect(opts.moduleResolution).toBe(2) // fallback NodeJs
       expect(opts.jsx).toBe(4) // fallback ReactJSX
+    })
+
+    it('provides sensible defaults when tsconfig specifies nothing', async () => {
+      vi.mocked(window.ts.getProjectContext).mockResolvedValue({
+        projectRoot: '/p',
+        compilerOptions: {},
+        files: [],
+      })
+
+      clearMonacoProjectContext()
+      await loadMonacoProjectContext('/p')
+
+      const opts = tsDefaults.setCompilerOptions.mock.calls[0][0]
+      expect(opts.allowNonTsExtensions).toBe(true)
+      expect(opts.allowJs).toBe(true)
+      expect(opts.target).toBe(7) // ES2020
+      expect(opts.module).toBe(99) // ESNext
+      expect(opts.moduleResolution).toBe(2) // NodeJs
+      expect(opts.jsx).toBe(4) // ReactJSX
+      expect(opts.esModuleInterop).toBe(true)
+      expect(opts.allowSyntheticDefaultImports).toBe(true)
     })
   })
 

@@ -30,6 +30,12 @@ describe('useMenuButton', () => {
     expect(result.current.isMac).toBe(true)
   })
 
+  it('returns platform string', async () => {
+    const { result } = renderHook(() => useMenuButton(deps))
+    await act(async () => {})
+    expect(result.current.platform).toBe('linux')
+  })
+
   it('opens panel picker on configure-toolbar', async () => {
     vi.mocked(window.menu.appMenuPopup).mockResolvedValue('configure-toolbar')
     const { result } = renderHook(() => useMenuButton(deps))

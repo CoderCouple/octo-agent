@@ -40,5 +40,5 @@ export function useMenuButton(deps: {
     }
   }, [deps.setShowPanelPicker, deps.setShowHelpModal, deps.setShowShortcutsModal])
 
-  return { isMac, handleMenuButtonClick }
+  return { isMac, platform, handleMenuButtonClick }
 }

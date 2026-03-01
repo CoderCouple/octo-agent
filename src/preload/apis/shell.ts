@@ -39,6 +39,18 @@ export type UpdateApi = {
   onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void
 }
 
+export type WindowControlsApi = {
+  minimize: () => Promise<void>
+  maximize: () => Promise<void>
+  close: () => Promise<void>
+}
+
+export const windowControlsApi: WindowControlsApi = {
+  minimize: () => ipcRenderer.invoke('window:minimize'),
+  maximize: () => ipcRenderer.invoke('window:maximize'),
+  close: () => ipcRenderer.invoke('window:close'),
+}
+
 export const shellApi: ShellApi = {
   exec: (command, cwd) => ipcRenderer.invoke('shell:exec', command, cwd),
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),

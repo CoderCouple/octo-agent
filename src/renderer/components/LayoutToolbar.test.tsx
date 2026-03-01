@@ -59,6 +59,7 @@ function renderToolbar(overrides: Record<string, unknown> = {}) {
   const defaultProps = {
     title: 'Test Session',
     isDev: false,
+    platform: 'darwin',
     profileChip: undefined as React.ReactNode,
     toolbarPanelInfo: makeToolbarPanelInfo(),
     onToggle: vi.fn(),
@@ -175,5 +176,41 @@ describe('LayoutToolbar', () => {
   it('renders error indicator', () => {
     renderToolbar()
     expect(screen.getByTestId('error-indicator')).toBeTruthy()
+  })
+
+  it('renders Linux window controls when platform is linux', () => {
+    renderToolbar({ platform: 'linux' })
+    expect(screen.getByTestId('linux-window-controls')).toBeTruthy()
+    expect(screen.getByTitle('Minimize')).toBeTruthy()
+    expect(screen.getByTitle('Maximize')).toBeTruthy()
+    expect(screen.getByTitle('Close')).toBeTruthy()
+  })
+
+  it('does not render Linux window controls on macOS', () => {
+    renderToolbar({ platform: 'darwin' })
+    expect(screen.queryByTestId('linux-window-controls')).toBeNull()
+  })
+
+  it('does not render Linux window controls on Windows', () => {
+    renderToolbar({ platform: 'win32' })
+    expect(screen.queryByTestId('linux-window-controls')).toBeNull()
+  })
+
+  it('calls windowControls.minimize when minimize button clicked', () => {
+    renderToolbar({ platform: 'linux' })
+    fireEvent.click(screen.getByTitle('Minimize'))
+    expect(window.windowControls.minimize).toHaveBeenCalled()
+  })
+
+  it('calls windowControls.maximize when maximize button clicked', () => {
+    renderToolbar({ platform: 'linux' })
+    fireEvent.click(screen.getByTitle('Maximize'))
+    expect(window.windowControls.maximize).toHaveBeenCalled()
+  })
+
+  it('calls windowControls.close when close button clicked', () => {
+    renderToolbar({ platform: 'linux' })
+    fireEvent.click(screen.getByTitle('Close'))
+    expect(window.windowControls.close).toHaveBeenCalled()
   })
 })
