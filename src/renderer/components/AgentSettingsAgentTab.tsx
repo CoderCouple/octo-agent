@@ -1,11 +1,9 @@
 /**
  * Agent configuration tab for creating, editing, and deleting agent definitions.
  */
-import { type RefObject, useState, useEffect } from 'react'
+import { type RefObject } from 'react'
 import type { AgentConfig } from '../store/agents'
 import { EnvVarEditor, type EnvVarEditorRef } from './EnvVarEditor'
-import { SKIP_PERMISSIONS_FLAGS } from '../hooks/useAppCallbacks'
-import type { DockerStatus } from '../../preload/apis/types'
 
 interface AgentSettingsAgentTabProps {
   agents: AgentConfig[]
@@ -15,17 +13,13 @@ interface AgentSettingsAgentTabProps {
   command: string
   color: string
   env: Record<string, string>
-  isolated: boolean
-  dockerImage: string
-  skipPermissions: boolean
+  skipApprovalFlag: string
   envEditorRef: RefObject<EnvVarEditorRef>
   onNameChange: (v: string) => void
   onCommandChange: (v: string) => void
   onColorChange: (v: string) => void
   onEnvChange: (v: Record<string, string>) => void
-  onIsolatedChange: (v: boolean) => void
-  onDockerImageChange: (v: string) => void
-  onSkipPermissionsChange: (v: boolean) => void
+  onSkipApprovalFlagChange: (v: string) => void
   onEdit: (agent: AgentConfig) => void
   onUpdate: () => void
   onDelete: (id: string) => void
@@ -42,17 +36,13 @@ export function AgentSettingsAgentTab({
   command,
   color,
   env,
-  isolated,
-  dockerImage,
-  skipPermissions,
+  skipApprovalFlag,
   envEditorRef,
   onNameChange,
   onCommandChange,
   onColorChange,
   onEnvChange,
-  onIsolatedChange,
-  onDockerImageChange,
-  onSkipPermissionsChange,
+  onSkipApprovalFlagChange,
   onEdit,
   onUpdate,
   onDelete,
@@ -82,17 +72,13 @@ export function AgentSettingsAgentTab({
                 command={command}
                 color={color}
                 env={env}
-                isolated={isolated}
-                dockerImage={dockerImage}
-                skipPermissions={skipPermissions}
+                skipApprovalFlag={skipApprovalFlag}
                 envEditorRef={envEditorRef}
                 onNameChange={onNameChange}
                 onCommandChange={onCommandChange}
                 onColorChange={onColorChange}
                 onEnvChange={onEnvChange}
-                onIsolatedChange={onIsolatedChange}
-                onDockerImageChange={onDockerImageChange}
-                onSkipPermissionsChange={onSkipPermissionsChange}
+                onSkipApprovalFlagChange={onSkipApprovalFlagChange}
                 onSave={onUpdate}
                 onCancel={onCancel}
               />
@@ -137,15 +123,19 @@ export function AgentSettingsAgentTab({
             className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent"
           />
           <EnvVarEditor ref={envEditorRef} env={env} onChange={onEnvChange} command={command} />
-          <IsolationSettings
-            isolated={isolated}
-            dockerImage={dockerImage}
-            skipPermissions={skipPermissions}
-            command={command}
-            onIsolatedChange={onIsolatedChange}
-            onDockerImageChange={onDockerImageChange}
-            onSkipPermissionsChange={onSkipPermissionsChange}
-          />
+          <div className="space-y-1">
+            <label className="text-xs text-text-secondary">Auto-approve flag</label>
+            <input
+              type="text"
+              value={skipApprovalFlag}
+              onChange={(e) => onSkipApprovalFlagChange(e.target.value)}
+              placeholder="e.g., --dangerously-skip-permissions"
+              className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary font-mono placeholder-text-secondary focus:outline-none focus:border-accent"
+            />
+            <p className="text-xs text-text-tertiary">
+              Appended to the command when the repo has auto-approve enabled.
+            </p>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={onAdd}
@@ -184,17 +174,13 @@ function AgentEditForm({
   command,
   color,
   env,
-  isolated,
-  dockerImage,
-  skipPermissions,
+  skipApprovalFlag,
   envEditorRef,
   onNameChange,
   onCommandChange,
   onColorChange,
   onEnvChange,
-  onIsolatedChange,
-  onDockerImageChange,
-  onSkipPermissionsChange,
+  onSkipApprovalFlagChange,
   onSave,
   onCancel,
 }: {
@@ -202,17 +188,13 @@ function AgentEditForm({
   command: string
   color: string
   env: Record<string, string>
-  isolated: boolean
-  dockerImage: string
-  skipPermissions: boolean
+  skipApprovalFlag: string
   envEditorRef: RefObject<EnvVarEditorRef>
   onNameChange: (v: string) => void
   onCommandChange: (v: string) => void
   onColorChange: (v: string) => void
   onEnvChange: (v: Record<string, string>) => void
-  onIsolatedChange: (v: boolean) => void
-  onDockerImageChange: (v: string) => void
-  onSkipPermissionsChange: (v: boolean) => void
+  onSkipApprovalFlagChange: (v: string) => void
   onSave: () => void
   onCancel: () => void
 }) {
@@ -240,15 +222,19 @@ function AgentEditForm({
         className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent"
       />
       <EnvVarEditor ref={envEditorRef} env={env} onChange={onEnvChange} command={command} />
-      <IsolationSettings
-        isolated={isolated}
-        dockerImage={dockerImage}
-        skipPermissions={skipPermissions}
-        command={command}
-        onIsolatedChange={onIsolatedChange}
-        onDockerImageChange={onDockerImageChange}
-        onSkipPermissionsChange={onSkipPermissionsChange}
-      />
+      <div className="space-y-1">
+        <label className="text-xs text-text-secondary">Auto-approve flag</label>
+        <input
+          type="text"
+          value={skipApprovalFlag}
+          onChange={(e) => onSkipApprovalFlagChange(e.target.value)}
+          placeholder="e.g., --dangerously-skip-permissions"
+          className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary font-mono placeholder-text-secondary focus:outline-none focus:border-accent"
+        />
+        <p className="text-xs text-text-tertiary">
+          Appended to the command when the repo has auto-approve enabled.
+        </p>
+      </div>
       <div className="flex gap-2">
         <button
           onClick={onSave}
@@ -264,107 +250,6 @@ function AgentEditForm({
           Cancel
         </button>
       </div>
-    </div>
-  )
-}
-
-/** Docker status indicator and isolation/skip-permissions checkboxes for agent settings. */
-function IsolationSettings({
-  isolated,
-  dockerImage,
-  skipPermissions,
-  command,
-  onIsolatedChange,
-  onDockerImageChange,
-  onSkipPermissionsChange,
-}: {
-  isolated: boolean
-  dockerImage: string
-  skipPermissions: boolean
-  command: string
-  onIsolatedChange: (v: boolean) => void
-  onDockerImageChange: (v: string) => void
-  onSkipPermissionsChange: (v: boolean) => void
-}) {
-  const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null)
-
-  useEffect(() => {
-    if (isolated || dockerStatus === null) {
-      void window.docker.status().then(setDockerStatus)
-    }
-  }, [isolated])
-
-  const baseCmd = command.trim().split(/\s+/)[0]
-  const skipFlag = SKIP_PERMISSIONS_FLAGS[baseCmd]
-
-  return (
-    <div className="space-y-3 border-t border-border pt-3">
-      {/* Isolation checkbox */}
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={isolated}
-          onChange={(e) => onIsolatedChange(e.target.checked)}
-          className="rounded border-border"
-        />
-        <span className="text-sm text-text-primary">Run in Docker container</span>
-      </label>
-
-      {isolated && (
-        <>
-          <input
-            type="text"
-            value={dockerImage}
-            onChange={(e) => onDockerImageChange(e.target.value)}
-            placeholder="broomy/isolation:latest"
-            className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent"
-          />
-          {dockerStatus && (
-            <div className={`text-xs flex items-center gap-1.5 ${dockerStatus.available ? 'text-green-400' : 'text-yellow-400'}`}>
-              <span className={`w-2 h-2 rounded-full ${dockerStatus.available ? 'bg-green-400' : 'bg-yellow-400'}`} />
-              {dockerStatus.available ? 'Docker available' : (dockerStatus.error || 'Docker not available')}
-              {!dockerStatus.available && dockerStatus.installUrl && (
-                <button
-                  onClick={() => void window.shell.openExternal(dockerStatus.installUrl!)}
-                  className="underline hover:text-text-primary transition-colors ml-1"
-                >
-                  Install
-                </button>
-              )}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Skip permissions checkbox */}
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={skipPermissions}
-          onChange={(e) => onSkipPermissionsChange(e.target.checked)}
-          className="rounded border-border"
-        />
-        <span className="text-sm text-text-primary">Skip permission prompts</span>
-      </label>
-
-      {skipPermissions && skipFlag && (
-        <p className="text-xs text-text-secondary ml-6">
-          Will append <code className="text-text-tertiary font-mono">{skipFlag}</code> to the command.
-        </p>
-      )}
-
-      {skipPermissions && !skipFlag && (
-        <p className="text-xs text-text-secondary ml-6">
-          No known auto-approve flag for this agent. You may need to add it to the command manually.
-        </p>
-      )}
-
-      {skipPermissions && !isolated && (
-        <p className="text-xs text-yellow-400 ml-6">
-          Warning: Skipping permissions without container isolation gives this agent unrestricted access to your machine.
-          Enable &quot;Run in Docker container&quot; above for safe auto-approval.
-        </p>
-      )}
     </div>
   )
 }
@@ -390,10 +275,7 @@ function AgentRow({
         <div>
           <div className="font-medium text-sm text-text-primary flex items-center gap-2">
             {agent.name}
-            {agent.isolated && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-normal">docker</span>
-            )}
-            {agent.skipPermissions && (
+            {agent.skipApprovalFlag && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-normal">auto</span>
             )}
           </div>

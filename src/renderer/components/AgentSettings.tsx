@@ -38,9 +38,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
   const [command, setCommand] = useState('')
   const [color, setColor] = useState('')
   const [env, setEnv] = useState<Record<string, string>>({})
-  const [isolated, setIsolated] = useState(false)
-  const [dockerImage, setDockerImage] = useState('')
-  const [skipPermissions, setSkipPermissions] = useState(false)
+  const [skipApprovalFlag, setSkipApprovalFlag] = useState('')
   const envEditorRef = useRef<EnvVarEditorRef>(null)
 
   const resetForm = () => {
@@ -48,9 +46,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
     setCommand('')
     setColor('')
     setEnv({})
-    setIsolated(false)
-    setDockerImage('')
-    setSkipPermissions(false)
+    setSkipApprovalFlag('')
     setShowAddForm(false)
     setEditingId(null)
   }
@@ -64,9 +60,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
       command: command.trim(),
       color: color.trim() || undefined,
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
-      isolated: isolated || undefined,
-      dockerImage: dockerImage.trim() || undefined,
-      skipPermissions: skipPermissions || undefined,
+      skipApprovalFlag: skipApprovalFlag.trim() || undefined,
     })
     resetForm()
   }
@@ -78,9 +72,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
     setCommand(agent.command)
     setColor(agent.color || '')
     setEnv(agent.env || {})
-    setIsolated(agent.isolated || false)
-    setDockerImage(agent.dockerImage || '')
-    setSkipPermissions(agent.skipPermissions || false)
+    setSkipApprovalFlag(agent.skipApprovalFlag || '')
     setShowAddForm(false)
   }
 
@@ -93,9 +85,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
       command: command.trim(),
       color: color.trim() || undefined,
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
-      isolated: isolated || undefined,
-      dockerImage: dockerImage.trim() || undefined,
-      skipPermissions: skipPermissions || undefined,
+      skipApprovalFlag: skipApprovalFlag.trim() || undefined,
     })
     resetForm()
   }
@@ -194,17 +184,13 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
           command={command}
           color={color}
           env={env}
-          isolated={isolated}
-          dockerImage={dockerImage}
-          skipPermissions={skipPermissions}
+          skipApprovalFlag={skipApprovalFlag}
           envEditorRef={envEditorRef}
           onNameChange={setName}
           onCommandChange={setCommand}
           onColorChange={setColor}
           onEnvChange={setEnv}
-          onIsolatedChange={setIsolated}
-          onDockerImageChange={setDockerImage}
-          onSkipPermissionsChange={setSkipPermissions}
+          onSkipApprovalFlagChange={setSkipApprovalFlag}
           onEdit={handleEdit}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
