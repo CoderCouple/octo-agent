@@ -87,10 +87,15 @@ git add package.json website/package.json
 git commit -m "Release $TAG"
 git tag "$TAG"
 
-# --- Build, sign, notarize ---
+# --- Build, sign, notarize (macOS) ---
 echo ""
-echo "Building, signing, and notarizing..."
+echo "Building, signing, and notarizing macOS..."
 pnpm dist:signed
+
+# --- Build Linux ---
+echo ""
+echo "Building Linux packages..."
+pnpm dist:linux
 
 # --- Confirm before publishing ---
 echo ""
@@ -100,7 +105,7 @@ echo "============================================"
 echo "  Version:  $NEW_VERSION"
 echo "  Tag:      $TAG"
 echo "  Artifacts:"
-for f in dist/*.dmg dist/*.zip dist/*.yml; do
+for f in dist/*.dmg dist/*.zip dist/*.AppImage dist/*.yml; do
   [ -f "$f" ] && echo "    $(basename "$f")"
 done
 echo "============================================"
@@ -123,7 +128,7 @@ echo ""
 echo "Creating GitHub release..."
 
 RELEASE_FILES=()
-for f in dist/*.dmg dist/*.zip dist/*.yml; do
+for f in dist/*.dmg dist/*.zip dist/*.AppImage dist/*.yml; do
   [ -f "$f" ] && RELEASE_FILES+=("$f")
 done
 

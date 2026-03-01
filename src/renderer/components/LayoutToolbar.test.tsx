@@ -141,6 +141,23 @@ describe('LayoutToolbar', () => {
     expect(onOpenPanelPicker).toHaveBeenCalled()
   })
 
+  it('shows hamburger menu button when onMenuButtonClick is provided', () => {
+    renderToolbar({ onMenuButtonClick: vi.fn() })
+    expect(screen.getByTitle('Menu')).toBeTruthy()
+  })
+
+  it('does not show hamburger menu button when onMenuButtonClick is undefined', () => {
+    renderToolbar({ onMenuButtonClick: undefined })
+    expect(screen.queryByTitle('Menu')).toBeNull()
+  })
+
+  it('calls onMenuButtonClick when hamburger button is clicked', () => {
+    const onMenuButtonClick = vi.fn()
+    renderToolbar({ onMenuButtonClick })
+    fireEvent.click(screen.getByTitle('Menu'))
+    expect(onMenuButtonClick).toHaveBeenCalled()
+  })
+
   it('applies active style to visible panels', () => {
     renderToolbar()
     // Sessions is visible, so its button should have bg-accent

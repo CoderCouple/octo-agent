@@ -31,6 +31,7 @@ import { useHelpMenu } from './hooks/useHelpMenu'
 import { useGitBranchWatcher } from './hooks/useGitBranchWatcher'
 import { useSessionKeyboardCallbacks } from './hooks/useSessionKeyboardCallbacks'
 import { focusSearchInput } from './utils/focusHelpers'
+import { useMenuButton } from './hooks/useMenuButton'
 import CrashRecoveryBanner from './components/CrashRecoveryBanner'
 
 // Re-export types for backwards compatibility
@@ -114,7 +115,6 @@ function GhMissingBanner() {
 }
 
 function AppContent() {
-  // Data fields use individual selectors to avoid unnecessary re-renders
   const sessions = useSessionStore(s => s.sessions)
   const activeSessionId = useSessionStore(s => s.activeSessionId)
   const isLoading = useSessionStore(s => s.isLoading)
@@ -127,8 +127,7 @@ function AppContent() {
     togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
     selectFile, setExplorerFilter, setFileViewerPosition, updateLayoutSize,
     markSessionRead, recordPushToMain, clearPushToMain, markHasHadCommits,
-    updateBranchStatus, updatePrState, archiveSession, unarchiveSession, setPanelVisibility,
-    updateSessionBranch,
+    updateBranchStatus, updatePrState, archiveSession, unarchiveSession, setPanelVisibility, updateSessionBranch,
   } = useSessionStore()
 
   useGitBranchWatcher({ sessions, updateSessionBranch })
@@ -239,6 +238,9 @@ function AppContent() {
   const handleToggleGlobalPanel = useCallback((panelId: string) => {
     toggleGlobalPanel(panelId)
   }, [toggleGlobalPanel])
+  const { isMac, handleMenuButtonClick } = useMenuButton({
+    setShowPanelPicker, setShowHelpModal, setShowShortcutsModal,
+  })
 
   // Panels map hook
   const panelsMap = usePanelsMap({
@@ -282,7 +284,8 @@ function AppContent() {
         profileChip={<ProfileChip onSwitchProfile={handleSwitchProfile} />}
         onTogglePanel={handleTogglePanel}
         onToggleGlobalPanel={handleToggleGlobalPanel}
-        onOpenPanelPicker={() => setShowPanelPicker(true)}
+        onOpenPanelPicker={isMac ? () => setShowPanelPicker(true) : undefined}
+        onMenuButtonClick={!isMac ? handleMenuButtonClick : undefined}
         onSearchFiles={handleSearchFiles}
         onNewSession={handleNewSession}
         onNextSession={handleNextSession}

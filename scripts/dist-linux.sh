@@ -13,7 +13,14 @@ PREBUILDS_DIR="$PROJECT_DIR/build/node-pty-prebuilds"
 # Check that prebuilds exist
 if [ ! -d "$PREBUILDS_DIR/linux-x64" ] || [ ! -f "$PREBUILDS_DIR/linux-x64/pty.node" ]; then
   echo "ERROR: Linux prebuilds not found."
-  echo "Run: bash scripts/build-linux-prebuilds.sh"
+  echo "Run: pnpm build:linux-prebuilds"
+  exit 1
+fi
+
+# .deb packaging uses 'ar' which requires the Xcode license on macOS
+if [[ "$OSTYPE" == darwin* ]] && ! /usr/bin/xcrun --find ar &>/dev/null; then
+  echo "ERROR: Xcode license not accepted. The .deb build requires 'ar' which won't run until you agree."
+  echo "Run: sudo xcodebuild -license"
   exit 1
 fi
 

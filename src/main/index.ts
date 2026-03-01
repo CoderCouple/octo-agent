@@ -103,6 +103,7 @@ function createWindow(profileId?: string): BrowserWindow {
         symbolColor: '#e0e0e0',
         height: 40,
       },
+      autoHideMenuBar: true,
     }),
     // Hide window in E2E test mode for headless-like behavior (unless E2E_HEADLESS=false)
     show: !(isE2ETest && isHeadless),

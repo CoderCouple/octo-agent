@@ -31,7 +31,7 @@ async function resolveGitDir(sessionDir: string): Promise<string | null> {
   try {
     const content = await window.fs.readFile(dotGit)
     // Worktree .git files contain: "gitdir: /absolute/path/to/.git/worktrees/name"
-    const match = content.trim().match(/^gitdir:\s*(.+)$/)
+    const match = /^gitdir:\s*(.+)$/.exec(content.trim())
     if (match?.[1]) {
       const gitDir = match[1]
       const gitDirExists = await window.fs.exists(gitDir)
@@ -64,6 +64,7 @@ export function useGitBranchWatcher({ sessions, updateSessionBranch }: UseGitBra
         if (cancelled) return
 
         const gitDir = await resolveGitDir(session.directory)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cancelled may change during async iteration
         if (!gitDir || cancelled) continue
 
         const watcherId = `git-head-${session.id}`
@@ -89,6 +90,7 @@ export function useGitBranchWatcher({ sessions, updateSessionBranch }: UseGitBra
         })
 
         const result = await window.fs.watch(watcherId, gitDir)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cancelled may change during async iteration
         if (cancelled) {
           removeListener()
           if (result.success) void window.fs.unwatch(watcherId)

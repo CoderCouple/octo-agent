@@ -56,6 +56,87 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     return normalizePath(result.filePaths[0])
   })
 
+  ipcMain.handle('menu:appMenuPopup', async (_event) => {
+    if (ctx.isE2ETest) {
+      return null
+    }
+    const senderWindow = BrowserWindow.fromWebContents(_event.sender) || ctx.mainWindow
+    return new Promise<string | null>((resolve) => {
+      const template: Electron.MenuItemConstructorOptions[] = [
+        {
+          label: 'Edit',
+          submenu: [
+            { role: 'undo' },
+            { role: 'redo' },
+            { type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            {
+              label: 'Select All',
+              accelerator: 'CmdOrCtrl+A',
+              click: () => {
+                senderWindow?.webContents.send('menu:select-all')
+              },
+            },
+          ],
+        },
+        {
+          label: 'View',
+          submenu: [
+            { role: 'reload' },
+            { role: 'forceReload' },
+            { role: 'toggleDevTools' },
+            { type: 'separator' },
+            { role: 'resetZoom' },
+            { role: 'zoomIn' },
+            { role: 'zoomOut' },
+            { type: 'separator' },
+            { role: 'togglefullscreen' },
+          ],
+        },
+        {
+          label: 'Window',
+          submenu: [
+            { role: 'minimize' },
+            { role: 'zoom' },
+            { role: 'close' },
+          ],
+        },
+        {
+          label: 'Help',
+          submenu: [
+            { label: 'Getting Started', click: () => resolve('help:getting-started') },
+            { label: 'Keyboard Shortcuts', click: () => resolve('help:shortcuts') },
+            { type: 'separator' },
+            { label: 'Reset Tutorial Progress', click: () => resolve('help:reset-tutorial') },
+            { type: 'separator' },
+            { label: 'Check for Updates...', click: () => resolve('check-for-updates') },
+            { type: 'separator' },
+            {
+              label: 'Report Issue...',
+              click: () => {
+                void shell.openExternal('https://github.com/Broomy-AI/broomy/issues')
+                resolve(null)
+              },
+            },
+          ],
+        },
+        { type: 'separator' },
+        { label: 'Configure Toolbar...', click: () => resolve('configure-toolbar') },
+        { label: 'About Broomy', click: () => resolve('about') },
+      ]
+
+      const menu = Menu.buildFromTemplate(template)
+      menu.popup({
+        window: senderWindow!,
+        callback: () => {
+          resolve(null)
+        },
+      })
+    })
+  })
+
   ipcMain.handle('menu:popup', async (_event, items: { id: string; label: string; enabled?: boolean; type?: 'separator' }[]) => {
     const senderWindow = BrowserWindow.fromWebContents(_event.sender) || ctx.mainWindow
     return new Promise<string | null>((resolve) => {

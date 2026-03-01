@@ -6,6 +6,7 @@ import type { MenuItemDef, TsProjectContext } from './types'
 
 export type MenuApi = {
   popup: (items: MenuItemDef[]) => Promise<string | null>
+  appMenuPopup: () => Promise<string | null>
 }
 
 export type TsApi = {
@@ -14,6 +15,7 @@ export type TsApi = {
 
 export const menuApi: MenuApi = {
   popup: (items) => ipcRenderer.invoke('menu:popup', items),
+  appMenuPopup: () => ipcRenderer.invoke('menu:appMenuPopup'),
 }
 
 export const tsApi: TsApi = {

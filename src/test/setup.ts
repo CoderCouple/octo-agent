@@ -154,6 +154,7 @@ const mockHelp = {
 // Mock window.menu
 const mockMenu: Mocked<MenuApi> = {
   popup: vi.fn().mockResolvedValue(null),
+  appMenuPopup: vi.fn().mockResolvedValue(null),
 }
 
 // Mock window.fs

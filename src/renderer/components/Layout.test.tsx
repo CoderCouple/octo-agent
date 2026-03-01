@@ -128,4 +128,10 @@ describe('Layout', () => {
     renderLayout()
     expect(screen.getByTitle('Configure panels')).toBeTruthy()
   })
+
+  it('renders hamburger menu button when onMenuButtonClick provided', () => {
+    renderLayout({ onOpenPanelPicker: undefined, onMenuButtonClick: vi.fn() })
+    expect(screen.getByTitle('Menu')).toBeTruthy()
+    expect(screen.queryByTitle('Configure panels')).toBeNull()
+  })
 })
