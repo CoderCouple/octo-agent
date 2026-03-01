@@ -11,19 +11,22 @@ type StoreSet = (partial: { sessions: Session[] }) => void
 
 export function createTerminalTabActions(get: StoreGet, set: StoreSet) {
   return {
-    addTerminalTab: (sessionId: string, name?: string): string => {
+    addTerminalTab: (sessionId: string, name?: string, isolated?: boolean): string => {
       const { sessions } = get()
       const tabId = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
       const session = sessions.find((s) => s.id === sessionId)
       const tabNumber = session ? session.terminalTabs.tabs.length + 1 : 1
-      const tabName = name || `Terminal ${tabNumber}`
+      const defaultName = isolated ? `Container ${tabNumber}` : `Terminal ${tabNumber}`
+      const tabName = name || defaultName
+      const newTab: { id: string; name: string; isolated?: boolean } = { id: tabId, name: tabName }
+      if (isolated) newTab.isolated = true
 
       const updatedSessions = sessions.map((s) => {
         if (s.id !== sessionId) return s
         return {
           ...s,
           terminalTabs: {
-            tabs: [...s.terminalTabs.tabs, { id: tabId, name: tabName }],
+            tabs: [...s.terminalTabs.tabs, newTab],
             activeTabId: tabId,
           },
         }
