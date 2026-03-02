@@ -79,8 +79,8 @@ export default function LayoutContentArea({
         <div
           data-panel-id={PANEL_IDS.FILE_VIEWER}
           tabIndex={-1}
-          className={`relative flex-shrink-0 bg-bg-secondary min-h-0 outline-none ${showFileViewer && fileViewer ? '' : 'hidden'}`}
-          style={showFileViewer && fileViewer ? getFileViewerStyle(fileViewerPosition, layoutSizes.fileViewerSize) : undefined}
+          className={`relative bg-bg-secondary min-h-0 outline-none ${showFileViewer && fileViewer ? '' : 'hidden'} ${showAgent ? 'flex-shrink-0' : 'flex-1'}`}
+          style={showFileViewer && fileViewer && showAgent ? getFileViewerStyle(fileViewerPosition, layoutSizes.fileViewerSize) : undefined}
         >
           <FlashOverlay panelId={PANEL_IDS.FILE_VIEWER} flashedPanel={flashedPanel} />
           <PanelErrorBoundary name="File Viewer">
@@ -89,7 +89,7 @@ export default function LayoutContentArea({
         </div>
 
         {/* Draggable divider between file viewer and terminal */}
-        <div className={showFileViewer && fileViewer ? 'flex relative z-10' : 'hidden'}>
+        <div className={showFileViewer && fileViewer && showAgent ? 'flex relative z-10' : 'hidden'}>
           <Divider type="fileViewer" direction={fileViewerPosition === 'left' ? 'vertical' : 'horizontal'} draggingDivider={draggingDivider} onMouseDown={onMouseDown} />
         </div>
 

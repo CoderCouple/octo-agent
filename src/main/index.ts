@@ -162,8 +162,8 @@ function createWindow(profileId?: string): BrowserWindow {
     }
   })
 
-  // Kill PTY processes when the renderer reloads — prevents FD exhaustion
-  // from accumulated zombie PTY handles during E2E test runs
+  // Kill PTY processes and close file watchers when the renderer reloads —
+  // prevents FD exhaustion from accumulated zombie handles
   window.webContents.on('did-start-navigation', (_event, url, _isInPlace, isMainFrame) => {
     if (!isMainFrame) return
     // Only clean up on same-origin navigation (reload), not initial load
@@ -177,6 +177,16 @@ function createWindow(profileId?: string): BrowserWindow {
           ptyProcesses.delete(id)
         }
         ptyOwnerWindows.delete(id)
+      }
+    }
+    for (const [id, owner] of watcherOwnerWindows) {
+      if (owner === window) {
+        const watcher = fileWatchers.get(id)
+        if (watcher) {
+          watcher.close()
+          fileWatchers.delete(id)
+        }
+        watcherOwnerWindows.delete(id)
       }
     }
   })

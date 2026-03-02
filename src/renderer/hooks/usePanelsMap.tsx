@@ -160,6 +160,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
                 diffBaseRef={isActive ? diffBaseRef : undefined}
                 diffCurrentRef={isActive ? diffCurrentRef : undefined}
                 diffLabel={isActive ? diffLabel : undefined}
+                isActive={isActive}
                 reviewContext={session.sessionType === 'review' ? {
                   sessionDirectory: session.directory,
                   commentsFilePath: `${tmpdir}/broomy-review-${session.id}/comments.json`,

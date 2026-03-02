@@ -204,6 +204,8 @@ async function handleReadFileBase64(ctx: HandlerContext, filePath: string) {
   return buffer.toString('base64')
 }
 
+const MAX_WATCHERS = 128
+
 function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string, dirPath: string) {
   if (ctx.isE2ETest) {
     return { success: true }
@@ -214,6 +216,9 @@ function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string
   const existingWatcher = ctx.fileWatchers.get(id)
   if (existingWatcher) {
     existingWatcher.close()
+  } else if (ctx.fileWatchers.size >= MAX_WATCHERS) {
+    console.error(`File watcher limit reached (${MAX_WATCHERS}), refusing new watcher: ${id}`)
+    return { success: false, error: 'Too many file watchers' }
   }
 
   if (senderWindow) {
@@ -234,7 +239,9 @@ function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string
 
     watcher.on('error', (error) => {
       console.error('File watcher error:', error)
+      watcher.close()
       ctx.fileWatchers.delete(id)
+      ctx.watcherOwnerWindows.delete(id)
     })
 
     return { success: true }
