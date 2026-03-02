@@ -130,7 +130,7 @@ function AppContent() {
     updateBranchStatus, updatePrState, archiveSession, unarchiveSession, setPanelVisibility, updateSessionBranch,
   } = useSessionStore()
 
-  useGitBranchWatcher({ sessions, updateSessionBranch })
+  useGitBranchWatcher({ sessions, activeSessionId, updateSessionBranch })
 
   const { agents, loadAgents } = useAgentStore()
   const { repos, loadRepos, checkGhAvailability, checkGitAvailability } = useRepoStore()
@@ -187,6 +187,7 @@ function AppContent() {
     refreshPrStatus,
     getAgentCommand,
     getAgentEnv,
+    getRepoIsolation,
     handleLayoutSizeChange,
     handleFileViewerPositionChange,
     handleSelectSession,
@@ -235,9 +236,7 @@ function AppContent() {
     }
   }, [activeSessionId, activeSession, togglePanel, setExplorerFilter])
 
-  const handleToggleGlobalPanel = useCallback((panelId: string) => {
-    toggleGlobalPanel(panelId)
-  }, [toggleGlobalPanel])
+  const handleToggleGlobalPanel = useCallback((panelId: string) => { toggleGlobalPanel(panelId) }, [toggleGlobalPanel])
   const { isMac, platform, handleMenuButtonClick } = useMenuButton({
     setShowPanelPicker, setShowHelpModal, setShowShortcutsModal,
   })
@@ -253,7 +252,7 @@ function AppContent() {
     removeSession: (id, deleteWorktree) => { handleDeleteSession(id, deleteWorktree) },
     refreshPrStatus, archiveSession, unarchiveSession,
     handleToggleFileViewer, handleFileViewerPositionChange,
-    fetchGitStatus, getAgentCommand, getAgentEnv,
+    fetchGitStatus, getAgentCommand, getAgentEnv, getRepoIsolation,
     globalPanelVisibility, toggleGlobalPanel, selectFile, setExplorerFilter,
     recordPushToMain, clearPushToMain, updatePrState,
     setPanelVisibility, setToolbarPanels, repos,

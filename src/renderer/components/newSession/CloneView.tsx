@@ -1,11 +1,13 @@
 /**
  * View for cloning a GitHub repository and registering it as a managed repo.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import { DialogErrorBanner } from '../ErrorBanner'
 import { AuthTerminal } from '../AuthTerminal'
+import { IsolationSettings } from '../IsolationSettings'
+import type { DockerStatus } from '../../../preload/index'
 
 const AUTH_ERROR_MARKERS = [
   'could not authenticate',
@@ -102,8 +104,18 @@ export function CloneView({
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(agents[0]?.id || null)
   const [initScript, setInitScript] = useState('')
   const [showInitScript, setShowInitScript] = useState(false)
+  const [isolated, setIsolated] = useState(false)
+  const [dockerImage, setDockerImage] = useState('')
+  const [skipApproval, setSkipApproval] = useState(false)
+  const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isolated || dockerStatus === null) {
+      void window.docker.status().then(setDockerStatus)
+    }
+  }, [isolated])
 
   // Derive repo name from URL
   const repoName = url
@@ -147,6 +159,9 @@ export function CloneView({
         defaultBranch,
         defaultAgentId: selectedAgentId || undefined,
         allowPushToMain,
+        isolated: isolated || undefined,
+        dockerImage: dockerImage.trim() || undefined,
+        skipApproval: skipApproval || undefined,
       })
 
       // Get the repo ID that was just created
@@ -234,6 +249,12 @@ export function CloneView({
             <option value="">Shell Only</option>
           </select>
         </div>
+
+        <IsolationSettings
+          isolated={isolated} dockerImage={dockerImage} skipApproval={skipApproval}
+          dockerStatus={dockerStatus} onIsolatedChange={setIsolated}
+          onDockerImageChange={setDockerImage} onSkipApprovalChange={setSkipApproval}
+        />
 
         <div>
           <button

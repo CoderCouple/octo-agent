@@ -129,7 +129,10 @@ export default function TerminalTabBar({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className={`truncate max-w-32 ${tab.id === activeTabId ? 'border-b-2 border-accent pb-0.5' : ''}`}>{tab.name}</span>
+              <span className={`truncate max-w-32 flex items-center gap-1 ${tab.id === activeTabId ? 'border-b-2 border-accent pb-0.5' : ''}`}>
+                {tab.isolated && <span className="text-blue-400 text-[9px] font-medium">[C]</span>}
+                {tab.name}
+              </span>
             )}
             {!isAgent && editingTabId !== tab.id && (
               <button

@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
-import type { ManagedRepo } from '../../../preload/index'
+import type { ManagedRepo, DockerStatus } from '../../../preload/index'
+import { IsolationSettings } from '../IsolationSettings'
 
 export function RepoSettingsView({
   repo,
@@ -17,11 +18,21 @@ export function RepoSettingsView({
   const { updateRepo, removeRepo } = useRepoStore()
 
   const [defaultAgentId, setDefaultAgentId] = useState<string | null>(repo.defaultAgentId || null)
+  const [isolated, setIsolated] = useState(repo.isolated ?? false)
+  const [dockerImage, setDockerImage] = useState(repo.dockerImage || '')
+  const [skipApproval, setSkipApproval] = useState(repo.skipApproval ?? false)
+  const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null)
   const [initScript, setInitScript] = useState('')
   const [reviewInstructions, setReviewInstructions] = useState(repo.reviewInstructions || '')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (isolated || dockerStatus === null) {
+      void window.docker.status().then(setDockerStatus)
+    }
+  }, [isolated])
 
   // Load init script
   useEffect(() => {
@@ -43,9 +54,12 @@ export function RepoSettingsView({
     setSaved(false)
 
     try {
-      // Update repo default agent and review instructions
+      // Update repo default agent, isolation, and review instructions
       updateRepo(repo.id, {
         defaultAgentId: defaultAgentId || undefined,
+        isolated: isolated || undefined,
+        dockerImage: dockerImage.trim() || undefined,
+        skipApproval: skipApproval || undefined,
         reviewInstructions: reviewInstructions || undefined,
       })
 
@@ -131,6 +145,12 @@ export function RepoSettingsView({
                 Script that runs in each new worktree after creation. Useful for copying config files.
               </p>
             </div>
+
+            <IsolationSettings
+              isolated={isolated} dockerImage={dockerImage} skipApproval={skipApproval}
+              dockerStatus={dockerStatus} onIsolatedChange={setIsolated}
+              onDockerImageChange={setDockerImage} onSkipApprovalChange={setSkipApproval}
+            />
 
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Review Instructions</label>

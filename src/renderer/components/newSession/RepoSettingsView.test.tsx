@@ -181,6 +181,35 @@ describe('RepoSettingsView', () => {
     })
   })
 
+  it('renders isolation settings', async () => {
+    render(<RepoSettingsView repo={mockRepo} onBack={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByText('Run agent in isolated Docker container')).toBeTruthy()
+      expect(screen.getByText('Auto-approve agent commands')).toBeTruthy()
+    })
+  })
+
+  it('saves isolation fields when Save is clicked', async () => {
+    vi.mocked(window.repos.saveInitScript).mockResolvedValue({ success: true })
+    const updateRepo = vi.fn()
+    useRepoStore.setState({ updateRepo })
+
+    render(<RepoSettingsView repo={{ ...mockRepo, isolated: true, skipApproval: true }} onBack={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Save')).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => {
+      expect(updateRepo).toHaveBeenCalledWith('repo-1', expect.objectContaining({
+        isolated: true,
+        skipApproval: true,
+      }))
+    })
+  })
+
   it('shows review instructions textarea', async () => {
     render(<RepoSettingsView repo={mockRepo} onBack={vi.fn()} />)
     await waitFor(() => {

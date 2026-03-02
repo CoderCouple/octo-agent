@@ -187,11 +187,21 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
       if (!config.agents || config.agents.length === 0) {
         config.agents = DEFAULT_AGENTS
       } else {
-        // Merge in any new default agents that aren't already present
+        // Merge in any new default agents that aren't already present,
+        // and backfill new default fields (like skipApprovalFlag) on existing agents
+        const defaultsById = new Map(DEFAULT_AGENTS.map((a) => [a.id, a]))
         const existingIds = new Set(config.agents.map((a: { id: string }) => a.id))
         for (const defaultAgent of DEFAULT_AGENTS) {
           if (!existingIds.has(defaultAgent.id)) {
             config.agents.push(defaultAgent)
+          }
+        }
+        // Backfill skipApprovalFlag on existing agents that match a default.
+        // User-set values win; only fill if the field is completely absent.
+        for (const agent of config.agents) {
+          const def = defaultsById.get(agent.id)
+          if (def && 'skipApprovalFlag' in def && agent.skipApprovalFlag === undefined) {
+            agent.skipApprovalFlag = def.skipApprovalFlag
           }
         }
       }

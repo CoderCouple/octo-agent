@@ -30,6 +30,7 @@ export type FileViewerPosition = 'top' | 'left'
 export interface TerminalTab {
   id: string
   name: string
+  isolated?: boolean
 }
 
 export interface TerminalTabsState {
@@ -148,7 +149,7 @@ interface SessionStore {
   updateAgentMonitor: (id: string, update: { status?: SessionStatus; lastMessage?: string }) => void
   markSessionRead: (id: string) => void
   // Terminal tab actions
-  addTerminalTab: (sessionId: string, name?: string) => string
+  addTerminalTab: (sessionId: string, name?: string, isolated?: boolean) => string
   removeTerminalTab: (sessionId: string, tabId: string) => void
   renameTerminalTab: (sessionId: string, tabId: string, name: string) => void
   reorderTerminalTabs: (sessionId: string, tabs: TerminalTab[]) => void

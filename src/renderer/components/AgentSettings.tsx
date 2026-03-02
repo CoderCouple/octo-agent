@@ -38,6 +38,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
   const [command, setCommand] = useState('')
   const [color, setColor] = useState('')
   const [env, setEnv] = useState<Record<string, string>>({})
+  const [skipApprovalFlag, setSkipApprovalFlag] = useState('')
   const envEditorRef = useRef<EnvVarEditorRef>(null)
 
   const resetForm = () => {
@@ -45,6 +46,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
     setCommand('')
     setColor('')
     setEnv({})
+    setSkipApprovalFlag('')
     setShowAddForm(false)
     setEditingId(null)
   }
@@ -58,6 +60,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
       command: command.trim(),
       color: color.trim() || undefined,
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
+      skipApprovalFlag: skipApprovalFlag.trim() || undefined,
     })
     resetForm()
   }
@@ -69,6 +72,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
     setCommand(agent.command)
     setColor(agent.color || '')
     setEnv(agent.env || {})
+    setSkipApprovalFlag(agent.skipApprovalFlag || '')
     setShowAddForm(false)
   }
 
@@ -81,6 +85,7 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
       command: command.trim(),
       color: color.trim() || undefined,
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
+      skipApprovalFlag: skipApprovalFlag.trim() || undefined,
     })
     resetForm()
   }
@@ -179,11 +184,13 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
           command={command}
           color={color}
           env={env}
+          skipApprovalFlag={skipApprovalFlag}
           envEditorRef={envEditorRef}
           onNameChange={setName}
           onCommandChange={setCommand}
           onColorChange={setColor}
           onEnvChange={setEnv}
+          onSkipApprovalFlagChange={setSkipApprovalFlag}
           onEdit={handleEdit}
           onUpdate={handleUpdate}
           onDelete={handleDelete}

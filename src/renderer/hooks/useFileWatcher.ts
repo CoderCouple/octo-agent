@@ -11,6 +11,7 @@ interface UseFileWatcherParams {
   isDirty: boolean
   onDirtyStateChange?: (isDirty: boolean) => void
   setIsDirty: (isDirty: boolean) => void
+  enabled?: boolean
 }
 
 interface UseFileWatcherResult {
@@ -27,6 +28,7 @@ export function useFileWatcher({
   isDirty,
   onDirtyStateChange,
   setIsDirty,
+  enabled = true,
 }: UseFileWatcherParams): UseFileWatcherResult {
   const [fileChangedOnDisk, setFileChangedOnDisk] = useState(false)
   const contentRef = useRef(content)
@@ -43,7 +45,7 @@ export function useFileWatcher({
 
   // Watch parent directory for external changes (handles atomic writes)
   useEffect(() => {
-    if (!filePath) return
+    if (!filePath || !enabled) return
 
     const parentDir = dirname(filePath)
     const fileName = basename(filePath)
@@ -82,7 +84,16 @@ export function useFileWatcher({
       removeListener()
       void window.fs.unwatch(watcherId)
     }
-  }, [filePath])
+  }, [filePath, enabled])
+
+  // When transitioning from disabled to enabled, check for external changes
+  const wasEnabledRef = useRef(enabled)
+  useEffect(() => {
+    if (enabled && !wasEnabledRef.current && filePath) {
+      void checkForExternalChanges()
+    }
+    wasEnabledRef.current = enabled
+  }, [enabled, filePath])
 
   // Reset fileChangedOnDisk when file changes
   useEffect(() => {

@@ -20,6 +20,7 @@ interface UseFileViewerParams {
   onSaveFunctionChange?: (fn: (() => Promise<void>) | null) => void
   diffBaseRef?: string
   diffCurrentRef?: string
+  isActive?: boolean
 }
 
 export function useFileViewer({
@@ -33,6 +34,7 @@ export function useFileViewer({
   onSaveFunctionChange,
   diffBaseRef,
   diffCurrentRef,
+  isActive = true,
 }: UseFileViewerParams) {
   const [selectedViewerId, setSelectedViewerId] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
@@ -74,6 +76,7 @@ export function useFileViewer({
     isDirty,
     onDirtyStateChange,
     setIsDirty,
+    enabled: isActive,
   })
 
   // Reset editorActions when file changes

@@ -157,6 +157,40 @@ describe('CloneView', () => {
     })
   })
 
+  it('renders isolation settings', () => {
+    render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+    expect(screen.getByText('Run agent in isolated Docker container')).toBeTruthy()
+    expect(screen.getByText('Auto-approve agent commands')).toBeTruthy()
+  })
+
+  it('passes isolation fields to addRepo', async () => {
+    vi.mocked(window.git.clone).mockResolvedValue({ success: true })
+    vi.mocked(window.git.defaultBranch).mockResolvedValue('main')
+    vi.mocked(window.git.remoteUrl).mockResolvedValue('https://github.com/user/test.git')
+    vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(false)
+    vi.mocked(window.config.load).mockResolvedValue({ agents: [], sessions: [], repos: [{ id: 'repo-1', name: 'test', remoteUrl: 'https://github.com/user/test.git', rootDir: '~/repos/test', defaultBranch: 'main' }] })
+    const addRepo = vi.fn()
+    useRepoStore.setState({ addRepo })
+
+    render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+
+    // Enable isolation
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0]) // isolated
+    fireEvent.click(checkboxes[1]) // skipApproval
+
+    const urlInput = screen.getByPlaceholderText(/https:\/\/github\.com/)
+    fireEvent.change(urlInput, { target: { value: 'https://github.com/user/test.git' } })
+    fireEvent.click(screen.getByText('Clone'))
+
+    await waitFor(() => {
+      expect(addRepo).toHaveBeenCalledWith(expect.objectContaining({
+        isolated: true,
+        skipApproval: true,
+      }))
+    })
+  })
+
   describe('auth error flow', () => {
     it('shows "Set up Git Authentication" button on auth error when gh is available', async () => {
       vi.mocked(window.git.clone).mockResolvedValue({ success: false, error: 'fatal: could not read Username for \'https://github.com\'' })

@@ -20,6 +20,7 @@ import type { GhApi } from '../preload/apis/gh'
 import type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from '../preload/apis/config'
 import type { ShellApi, DialogApi, AppApi, UpdateApi, WindowControlsApi } from '../preload/apis/shell'
 import type { MenuApi, TsApi } from '../preload/apis/menu'
+import type { DockerApi } from '../preload/apis/docker'
 
 /** Maps every key of an API type to a Vitest Mock — catches missing/extra keys and non-function values. */
 type Mocked<T> = { [K in keyof T]: Mock }
@@ -197,6 +198,13 @@ const mockDialog: Mocked<DialogApi> = {
   openFolder: vi.fn().mockResolvedValue(null),
 }
 
+// Mock window.docker
+const mockDocker: Mocked<DockerApi> = {
+  status: vi.fn().mockResolvedValue({ available: true }),
+  containerInfo: vi.fn().mockResolvedValue(null),
+  resetContainer: vi.fn().mockResolvedValue(undefined),
+}
+
 // All Broomy-specific mocks to attach to window
 const broomyMocks = {
   config: mockConfig,
@@ -214,6 +222,7 @@ const broomyMocks = {
   fs: mockFs,
   pty: mockPty,
   dialog: mockDialog,
+  docker: mockDocker,
   windowControls: mockWindowControls,
 }
 

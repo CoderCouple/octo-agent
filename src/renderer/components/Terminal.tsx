@@ -12,6 +12,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useTerminalSetup } from '../hooks/useTerminalSetup'
 import type { TerminalConfig } from '../hooks/useTerminalSetup'
+import { getAgentInstallUrl } from '../utils/agentInstallUrls'
 import '@xterm/xterm/css/xterm.css'
 
 interface TerminalProps {
@@ -21,9 +22,13 @@ interface TerminalProps {
   env?: Record<string, string>
   isAgentTerminal?: boolean
   isActive?: boolean
+  agentNotInstalled?: boolean
+  isolated?: boolean
+  dockerImage?: string
+  repoRootDir?: string
 }
 
-export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isActive = false }: TerminalProps) {
+export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isActive = false, agentNotInstalled = false, isolated, dockerImage, repoRootDir }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [restartKey, setRestartKey] = useState(0)
 
@@ -35,6 +40,9 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
     isAgentTerminal,
     isActive,
     restartKey,
+    isolated,
+    dockerImage,
+    repoRootDir,
   }
 
   const { terminalRef, ptyIdRef, showScrollButton, handleScrollToBottom } = useTerminalSetup(config, containerRef)
@@ -82,9 +90,31 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
   }
 
   return (
-    <div className="h-full w-full p-2 relative" onContextMenu={handleContextMenu}>
-      <div ref={containerRef} className="h-full w-full" />
-      {showScrollButton && (
+    <div className="h-full w-full flex flex-col" onContextMenu={handleContextMenu}>
+      {agentNotInstalled && command && (
+        <div className="mx-2 mt-2 px-3 py-2 rounded bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-300 shrink-0">
+          <span className="font-medium">&ldquo;{command}&rdquo;</span> is not installed.
+          {(() => {
+            const url = getAgentInstallUrl(command)
+            return url ? (
+              <>
+                {' '}
+                <button
+                  className="underline hover:text-yellow-200 font-medium"
+                  onClick={() => window.shell.openExternal(url)}
+                >
+                  Install &rarr;
+                </button>
+              </>
+            ) : (
+              <span> Install it to use this agent.</span>
+            )
+          })()}
+        </div>
+      )}
+      <div className="flex-1 min-h-0 p-2 relative">
+        <div ref={containerRef} className="h-full w-full" />
+        {showScrollButton && (
         <button
           onClick={handleScrollToBottom}
           className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 text-xs font-medium rounded-full bg-accent text-white hover:bg-accent/80 shadow-lg transition-colors z-10"
@@ -92,6 +122,7 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
           Go to End &#x2193;
         </button>
       )}
+      </div>
     </div>
   )
 }

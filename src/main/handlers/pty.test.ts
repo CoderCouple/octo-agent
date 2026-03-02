@@ -22,6 +22,25 @@ vi.mock('electron', () => ({
   IpcMain: {},
 }))
 
+// Mock docker
+const mockIsDockerAvailable = vi.fn()
+const mockImageExists = vi.fn()
+const mockEnsureContainer = vi.fn()
+const mockBuildDockerExecArgs = vi.fn()
+const mockEnsureAgentInstalled = vi.fn()
+const mockSetupContainer = vi.fn()
+vi.mock('../docker', () => ({
+  isDockerAvailable: (...args: unknown[]) => mockIsDockerAvailable(...args),
+  imageExists: (...args: unknown[]) => mockImageExists(...args),
+  ensureContainer: (...args: unknown[]) => mockEnsureContainer(...args),
+  buildDockerExecArgs: (...args: unknown[]) => mockBuildDockerExecArgs(...args),
+  ensureAgentInstalled: (...args: unknown[]) => mockEnsureAgentInstalled(...args),
+  setupContainer: (...args: unknown[]) => mockSetupContainer(...args),
+  acquireSetupLock: async () => () => {},
+  dockerSetupMessage: () => 'Docker not available',
+  DEFAULT_DOCKER_IMAGE: 'node:22-slim',
+}))
+
 // Mock platform
 vi.mock('../platform', () => ({
   isWindows: false,
@@ -53,6 +72,7 @@ function createCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   } as HandlerContext
 }
@@ -462,6 +482,239 @@ describe('pty handlers', () => {
 
       expect(ctx.ptyProcesses.has('no-sender')).toBe(true)
       expect(ctx.ptyOwnerWindows.has('no-sender')).toBe(false)
+    })
+  })
+
+  describe('pty:create with Docker isolation', () => {
+    it('returns id immediately (sync phase) for isolated PTY', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      // Don't resolve Docker check yet — we just test sync return
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockEnsureContainer.mockResolvedValue({ success: true, containerId: 'abc123', isNew: false })
+      mockEnsureAgentInstalled.mockResolvedValue({ success: true })
+      mockBuildDockerExecArgs.mockReturnValue(['exec', '-it', 'abc123', 'bash', '-l'])
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      const result = await handlers['pty:create'](mockEvent, {
+        id: 'iso-sync',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-1',
+      })
+
+      // Returns immediately
+      expect(result).toEqual({ id: 'iso-sync' })
+    })
+
+    it('sends error via displayTerminalError when Docker is not available', async () => {
+      vi.useFakeTimers()
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockIsDockerAvailable.mockResolvedValue({ available: false, error: 'Docker not installed' })
+
+      const result = await handlers['pty:create'](mockEvent, {
+        id: 'iso-1',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-1',
+      })
+
+      expect(result).toEqual({ id: 'iso-1' })
+
+      // Flush async phase + displayTerminalError timeouts
+      await vi.advanceTimersByTimeAsync(300)
+
+      // displayTerminalError sends via webContents, not pty.spawn
+      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+        'pty:data:iso-1',
+        expect.stringContaining('Docker not available'),
+      )
+      // No pty.spawn should have been called for the error
+      expect(mockPtySpawn).not.toHaveBeenCalled()
+      vi.useRealTimers()
+    })
+
+    it('sends error for missing custom image', async () => {
+      vi.useFakeTimers()
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockImageExists.mockResolvedValue(false)
+
+      const result = await handlers['pty:create'](mockEvent, {
+        id: 'iso-custom',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-custom',
+        dockerImage: 'my-custom:v1',
+      })
+
+      expect(result).toEqual({ id: 'iso-custom' })
+
+      await vi.advanceTimersByTimeAsync(300)
+
+      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+        'pty:data:iso-custom',
+        expect.stringContaining("'my-custom:v1' not found"),
+      )
+      vi.useRealTimers()
+    })
+
+    it('runs setupContainer for new containers', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockEnsureContainer.mockResolvedValue({ success: true, containerId: 'abc123', isNew: true })
+      mockSetupContainer.mockResolvedValue({ success: true })
+      mockEnsureAgentInstalled.mockResolvedValue({ success: true })
+      mockBuildDockerExecArgs.mockReturnValue(['exec', '-it', 'abc123', 'bash', '-l'])
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'iso-new',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-new',
+        command: 'claude',
+      })
+
+      await vi.waitFor(() => {
+        expect(mockSetupContainer).toHaveBeenCalledWith('abc123', expect.any(Function))
+      })
+    })
+
+    it('skips setupContainer for existing containers', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockEnsureContainer.mockResolvedValue({ success: true, containerId: 'abc123', isNew: false })
+      mockEnsureAgentInstalled.mockResolvedValue({ success: true })
+      mockBuildDockerExecArgs.mockReturnValue(['exec', '-it', 'abc123', 'bash', '-l'])
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'iso-existing',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-existing',
+        command: 'claude',
+      })
+
+      // Wait for async phase to complete (pty.spawn called means setup finished)
+      await vi.waitFor(() => {
+        expect(mockPtySpawn).toHaveBeenCalled()
+      })
+
+      expect(mockSetupContainer).not.toHaveBeenCalled()
+    })
+
+    it('calls ensureAgentInstalled when command is provided', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockEnsureContainer.mockResolvedValue({ success: true, containerId: 'abc123', isNew: false })
+      mockEnsureAgentInstalled.mockResolvedValue({ success: true })
+      mockBuildDockerExecArgs.mockReturnValue(['exec', '-it', 'abc123', 'bash', '-l', '-c', 'claude'])
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'iso-agent',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-agent',
+        command: 'claude --dangerously-skip-permissions',
+      })
+
+      await vi.waitFor(() => {
+        expect(mockEnsureAgentInstalled).toHaveBeenCalledWith('abc123', 'claude', expect.any(Function))
+      })
+    })
+
+    it('starts docker exec PTY after successful setup', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockEnsureContainer.mockResolvedValue({ success: true, containerId: 'abc123', isNew: false })
+      mockEnsureAgentInstalled.mockResolvedValue({ success: true })
+      mockBuildDockerExecArgs.mockReturnValue(['exec', '-it', 'abc123', 'bash', '-l'])
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'iso-pty',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-pty',
+      })
+
+      await vi.waitFor(() => {
+        expect(mockPtySpawn).toHaveBeenCalledWith(
+          'docker',
+          ['exec', '-it', 'abc123', 'bash', '-l'],
+          expect.any(Object),
+        )
+      })
+    })
+
+    it('sends error when container fails to start', async () => {
+      vi.useFakeTimers()
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockEnsureContainer.mockResolvedValue({ success: false, error: 'OOM' })
+
+      const result = await handlers['pty:create'](mockEvent, {
+        id: 'iso-oom',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-oom',
+      })
+
+      expect(result).toEqual({ id: 'iso-oom' })
+
+      await vi.advanceTimersByTimeAsync(300)
+
+      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+        'pty:data:iso-oom',
+        expect.stringContaining('OOM'),
+      )
+      // No pty.spawn for the error display
+      expect(mockPtySpawn).not.toHaveBeenCalled()
+      vi.useRealTimers()
     })
   })
 

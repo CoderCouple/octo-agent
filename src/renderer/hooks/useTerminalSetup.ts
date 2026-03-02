@@ -22,6 +22,9 @@ export interface TerminalConfig {
   isAgentTerminal: boolean
   isActive: boolean
   restartKey: number
+  isolated?: boolean
+  dockerImage?: string
+  repoRootDir?: string
 }
 
 export interface TerminalSetupResult {
@@ -139,7 +142,7 @@ function createScrollTracking(
 // ── Terminal state hook (refs, store wiring, callbacks) ──────────────
 
 function useTerminalState(config: TerminalConfig) {
-  const { sessionId, command, env, isAgentTerminal, cwd } = config
+  const { sessionId, command, env, isAgentTerminal, cwd, isolated, dockerImage, repoRootDir } = config
 
   const terminalRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -165,6 +168,12 @@ function useTerminalState(config: TerminalConfig) {
   isAgentTerminalRef.current = isAgentTerminal
   const cwdRef = useRef(cwd)
   cwdRef.current = cwd
+  const isolatedRef = useRef(isolated)
+  isolatedRef.current = isolated
+  const dockerImageRef = useRef(dockerImage)
+  dockerImageRef.current = dockerImage
+  const repoRootDirRef = useRef(repoRootDir)
+  repoRootDirRef.current = repoRootDir
 
   const { addError } = useErrorStore()
   const addErrorRef = useRef(addError)
@@ -215,7 +224,7 @@ function useTerminalState(config: TerminalConfig) {
     lastUserInputRef, lastInteractionRef, ptyIdRef, isFollowingRef,
     isActiveRef, dataHandlerRef,
     showScrollButton, setShowScrollButton,
-    commandRef, envRef, isAgentTerminalRef, cwdRef,
+    commandRef, envRef, isAgentTerminalRef, cwdRef, isolatedRef, dockerImageRef, repoRootDirRef,
     addErrorRef, updateAgentMonitorRef, markSessionReadRef,
     sessionIdRef, setAgentPtyId,
     handleKeyEvent, processPlanDetection,
@@ -312,7 +321,7 @@ export function useTerminalSetup(
     const id = `${sessionId}-${Date.now()}`
     s.ptyIdRef.current = id
 
-    window.pty.create({ id, cwd: effectCwd, command: cmd, sessionId, env: envVars, shell: defaultShell || undefined })
+    window.pty.create({ id, cwd: effectCwd, command: cmd, sessionId, env: envVars, shell: defaultShell || undefined, isolated: s.isolatedRef.current, dockerImage: s.dockerImageRef.current, repoRootDir: s.repoRootDirRef.current })
       .then(() => {
         if (isAgentTerminal && sessionId) s.setAgentPtyId(sessionId, id)
 

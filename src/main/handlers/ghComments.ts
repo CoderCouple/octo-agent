@@ -61,7 +61,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
   ipcMain.handle('gh:prDescription', async (_event, repoDir: string, prNumber: number) => {
     if (ctx.isE2ETest) {
-      return 'This PR adds dark mode support to the application.\n\n## Changes\n- Added theme toggle component\n- Updated CSS variables for dark/light themes\n- Persisted preference in localStorage'
+      // Use inline SVG data URIs so images render in E2E screenshots
+      const dark = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200"><rect width="400" height="200" fill="#1a1a2e"/><text x="200" y="108" text-anchor="middle" fill="#e0e0e0" font-family="sans-serif" font-size="24">Dark Mode</text></svg>').toString('base64')
+      const light = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200"><rect width="400" height="200" fill="#f0f0f0"/><text x="200" y="108" text-anchor="middle" fill="#333" font-family="sans-serif" font-size="24">Light Mode</text></svg>').toString('base64')
+      return `This PR adds dark mode support to the application.\n\n## Changes\n- Added theme toggle component\n- Updated CSS variables for dark/light themes\n- Persisted preference in localStorage\n\n## Screenshots\n\n![Dark mode toggle](${dark})\n![Light mode toggle](${light})`
     }
 
     try {

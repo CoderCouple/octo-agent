@@ -45,6 +45,7 @@ describe('app handler register', () => {
       mainWindow: null,
       E2E_MOCK_SHELL: undefined,
       FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     } as unknown as HandlerContext
   })
 

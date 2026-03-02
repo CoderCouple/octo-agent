@@ -42,6 +42,9 @@ export type ManagedRepo = {
   defaultAgentId?: string  // Default agent for sessions in this repo
   reviewInstructions?: string  // Custom instructions for AI review generation
   allowPushToMain?: boolean  // Whether "Push to main" button is shown for this repo
+  isolated?: boolean         // Run sessions in this repo inside Docker
+  dockerImage?: string       // Custom Docker image (default: broomy/isolation:latest)
+  skipApproval?: boolean     // Auto-approve agent commands when isolated
 }
 
 export type GitHubIssue = {
@@ -124,6 +127,20 @@ export type AgentData = {
   command: string
   color?: string
   env?: Record<string, string>  // Environment variables for this agent
+  skipApprovalFlag?: string    // Free-text flag to append for auto-approval (e.g. "--dangerously-skip-permissions")
+}
+
+export type DockerStatus = {
+  available: boolean
+  error?: string
+  installUrl?: string
+}
+
+export type ContainerInfo = {
+  containerId: string
+  status: 'running' | 'stopped' | 'starting'
+  image: string
+  repoDir: string
 }
 
 export type LayoutSizesData = {

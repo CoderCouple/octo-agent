@@ -1,10 +1,12 @@
 /**
  * View for adding an existing multi-worktree folder as a managed repository.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import { DialogErrorBanner } from '../ErrorBanner'
+import { IsolationSettings } from '../IsolationSettings'
+import type { DockerStatus } from '../../../preload/index'
 
 async function validateWorktreeFolder(folder: string): Promise<{ worktrees: { path: string; branch: string }[]; error?: string }> {
   try {
@@ -79,10 +81,20 @@ export function AddExistingRepoView({
   const [repoName, setRepoName] = useState('')
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(agents[0]?.id || null)
   const [worktrees, setWorktrees] = useState<{ path: string; branch: string }[]>([])
+  const [isolated, setIsolated] = useState(false)
+  const [dockerImage, setDockerImage] = useState('')
+  const [skipApproval, setSkipApproval] = useState(false)
+  const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null)
   const [loading, setLoading] = useState(false)
   const [validating, setValidating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [validated, setValidated] = useState(false)
+
+  useEffect(() => {
+    if (isolated || dockerStatus === null) {
+      void window.docker.status().then(setDockerStatus)
+    }
+  }, [isolated])
 
   const handleBrowse = async () => {
     const folder = await window.dialog.openFolder()
@@ -137,6 +149,9 @@ export function AddExistingRepoView({
         defaultBranch,
         defaultAgentId: selectedAgentId || undefined,
         allowPushToMain,
+        isolated: isolated || undefined,
+        dockerImage: dockerImage.trim() || undefined,
+        skipApproval: skipApproval || undefined,
       })
 
       // Get the repo ID
@@ -241,6 +256,12 @@ export function AddExistingRepoView({
                 This agent will be pre-selected when creating branches in this repo.
               </p>
             </div>
+
+            <IsolationSettings
+              isolated={isolated} dockerImage={dockerImage} skipApproval={skipApproval}
+              dockerStatus={dockerStatus} onIsolatedChange={setIsolated}
+              onDockerImageChange={setDockerImage} onSkipApprovalChange={setSkipApproval}
+            />
           </>
         )}
 

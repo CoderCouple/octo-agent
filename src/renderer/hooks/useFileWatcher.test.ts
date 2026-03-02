@@ -273,6 +273,63 @@ describe('useFileWatcher', () => {
     })
   })
 
+  describe('enabled flag', () => {
+    it('does not set up watcher when enabled is false', () => {
+      renderHook(() => useFileWatcher({ ...defaultParams, enabled: false }))
+
+      expect(window.fs.watch).not.toHaveBeenCalled()
+      expect(window.fs.onChange).not.toHaveBeenCalled()
+    })
+
+    it('sets up watcher when enabled is true (default)', () => {
+      renderHook(() => useFileWatcher(defaultParams))
+
+      expect(window.fs.watch).toHaveBeenCalledWith('fileviewer-/test/file.ts', '/test')
+    })
+
+    it('tears down watcher when enabled transitions to false', () => {
+      const { rerender } = renderHook(
+        ({ enabled }) => useFileWatcher({ ...defaultParams, enabled }),
+        { initialProps: { enabled: true } }
+      )
+
+      rerender({ enabled: false })
+
+      expect(mockRemoveListener).toHaveBeenCalled()
+      expect(window.fs.unwatch).toHaveBeenCalledWith('fileviewer-/test/file.ts')
+    })
+
+    it('creates watcher when enabled transitions to true', () => {
+      const { rerender } = renderHook(
+        ({ enabled }) => useFileWatcher({ ...defaultParams, enabled }),
+        { initialProps: { enabled: false } }
+      )
+
+      expect(window.fs.watch).not.toHaveBeenCalled()
+
+      rerender({ enabled: true })
+
+      expect(window.fs.watch).toHaveBeenCalledWith('fileviewer-/test/file.ts', '/test')
+    })
+
+    it('checks for external changes when transitioning from disabled to enabled', async () => {
+      vi.mocked(window.fs.readFile).mockResolvedValue('externally modified')
+
+      const { result, rerender } = renderHook(
+        ({ enabled }) => useFileWatcher({ ...defaultParams, enabled }),
+        { initialProps: { enabled: false } }
+      )
+
+      rerender({ enabled: true })
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+
+      expect(result.current.fileChangedOnDisk).toBe(true)
+    })
+  })
+
   describe('checkForExternalChanges', () => {
     it('returns false when file content matches', async () => {
       vi.mocked(window.fs.readFile).mockResolvedValue('original content')

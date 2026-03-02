@@ -328,4 +328,57 @@ describe('useAppCallbacks', () => {
     expect(deps.removeSession).toHaveBeenCalledWith('s1')
     expect(window.git.worktreeRemove).not.toHaveBeenCalled()
   })
+
+  // --- skipApproval (repo-level) + skipApprovalFlag (agent-level) ---
+  it('getAgentCommand appends skipApprovalFlag when repo has skipApproval', () => {
+    const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
+    const repos = [{ id: 'r1', rootDir: '/r', defaultBranch: 'main', skipApproval: true }]
+    const deps = makeDeps({ agents, repos })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getAgentCommand({ agentId: 'a1', repoId: 'r1' } as never)).toBe('claude --dangerously-skip-permissions')
+  })
+
+  it('getAgentCommand does not append flag when repo does not have skipApproval', () => {
+    const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
+    const repos = [{ id: 'r1', rootDir: '/r', defaultBranch: 'main' }]
+    const deps = makeDeps({ agents, repos })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getAgentCommand({ agentId: 'a1', repoId: 'r1' } as never)).toBe('claude')
+  })
+
+  it('getAgentCommand does not append flag when agent has no skipApprovalFlag', () => {
+    const agents = [{ id: 'a1', name: 'Claude', command: 'claude' }] as Parameters<typeof useAppCallbacks>[0]['agents']
+    const repos = [{ id: 'r1', rootDir: '/r', defaultBranch: 'main', skipApproval: true }]
+    const deps = makeDeps({ agents, repos })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getAgentCommand({ agentId: 'a1', repoId: 'r1' } as never)).toBe('claude')
+  })
+
+  it('getAgentCommand does not append flag when session has no repoId', () => {
+    const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
+    const deps = makeDeps({ agents })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getAgentCommand({ agentId: 'a1' } as never)).toBe('claude')
+  })
+
+  // --- getRepoIsolation ---
+  it('getRepoIsolation returns isolation info when repo is isolated', () => {
+    const repos = [{ id: 'r1', rootDir: '/r', defaultBranch: 'main', isolated: true, dockerImage: 'my-image' }]
+    const deps = makeDeps({ repos })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getRepoIsolation({ repoId: 'r1' } as never)).toEqual({ isolated: true, dockerImage: 'my-image', repoRootDir: '/r' })
+  })
+
+  it('getRepoIsolation returns undefined when repo is not isolated', () => {
+    const repos = [{ id: 'r1', rootDir: '/r', defaultBranch: 'main' }]
+    const deps = makeDeps({ repos })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getRepoIsolation({ repoId: 'r1' } as never)).toBeUndefined()
+  })
+
+  it('getRepoIsolation returns undefined when session has no repoId', () => {
+    const deps = makeDeps()
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getRepoIsolation({} as never)).toBeUndefined()
+  })
 })

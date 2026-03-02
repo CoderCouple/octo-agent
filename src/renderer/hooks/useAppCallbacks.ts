@@ -10,11 +10,12 @@ import type { PrState } from '../utils/branchStatus'
 import type { DuplicateSessionResult } from '../store/sessionCoreActions'
 import { focusAgentTerminal } from '../utils/focusHelpers'
 
+
 interface AppCallbacksDeps {
   sessions: Session[]
   activeSessionId: string | null
   agents: AgentConfig[]
-  repos: { id: string; rootDir: string; defaultBranch: string }[]
+  repos: { id: string; rootDir: string; defaultBranch: string; isolated?: boolean; dockerImage?: string; skipApproval?: boolean }[]
   addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<DuplicateSessionResult | undefined>
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
@@ -85,14 +86,29 @@ export function useAppCallbacks({
   const getAgentCommand = useCallback((session: Session) => {
     if (!session.agentId) return undefined
     const agent = agents.find((a) => a.id === session.agentId)
-    return agent?.command
-  }, [agents])
+    if (!agent?.command) return undefined
+    const repo = session.repoId ? repos.find((r) => r.id === session.repoId) : undefined
+    if (repo?.skipApproval && agent.skipApprovalFlag) {
+      const flag = agent.skipApprovalFlag
+      if (!agent.command.includes(flag)) {
+        return `${agent.command} ${flag}`
+      }
+    }
+    return agent.command
+  }, [agents, repos])
 
   const getAgentEnv = useCallback((session: Session) => {
     if (!session.agentId) return undefined
     const agent = agents.find((a) => a.id === session.agentId)
     return agent?.env
   }, [agents])
+
+  const getRepoIsolation = useCallback((session: Session) => {
+    if (!session.repoId) return undefined
+    const repo = repos.find((r) => r.id === session.repoId)
+    if (!repo?.isolated) return undefined
+    return { isolated: true, dockerImage: repo.dockerImage, repoRootDir: repo.rootDir }
+  }, [repos])
 
   const handleLayoutSizeChange = useCallback((key: keyof LayoutSizes, value: number) => {
     if (activeSessionId) {
@@ -163,6 +179,7 @@ export function useAppCallbacks({
     refreshPrStatus,
     getAgentCommand,
     getAgentEnv,
+    getRepoIsolation,
     handleLayoutSizeChange,
     handleFileViewerPositionChange,
     handleSelectSession,

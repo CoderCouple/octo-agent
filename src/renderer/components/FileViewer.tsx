@@ -37,9 +37,10 @@ interface FileViewerProps {
   diffLabel?: string // Label to display in the header (e.g. "abc1234: commit message")
   reviewContext?: { sessionDirectory: string; commentsFilePath: string }
   onOpenFile?: (filePath: string, line?: number) => void // Navigate to a different file (e.g. go-to-definition)
+  isActive?: boolean // Whether this session is the active one (controls file watcher)
 }
 
-export default function FileViewer({ filePath, position = 'top', onPositionChange, onClose, fileStatus, directory, onSaveComplete, initialViewMode = 'latest', scrollToLine, searchHighlight, onDirtyStateChange, onSaveFunctionChange, diffBaseRef, diffCurrentRef, diffLabel, reviewContext, onOpenFile }: FileViewerProps) {
+export default function FileViewer({ filePath, position = 'top', onPositionChange, onClose, fileStatus, directory, onSaveComplete, initialViewMode = 'latest', scrollToLine, searchHighlight, onDirtyStateChange, onSaveFunctionChange, diffBaseRef, diffCurrentRef, diffLabel, reviewContext, onOpenFile, isActive }: FileViewerProps) {
   const viewer = useFileViewer({
     filePath,
     fileStatus,
@@ -52,6 +53,7 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
     onSaveFunctionChange,
     diffBaseRef,
     diffCurrentRef,
+    isActive,
   })
 
   if (!filePath) {

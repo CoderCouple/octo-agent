@@ -1,8 +1,9 @@
 /**
  * Renders the structured review body including overview, change patterns, issues, and pending comments.
  */
-import Markdown from 'react-markdown'
+import Markdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 import type { ReviewData, ReviewComparison, PendingComment, CodeLocation } from '../../types/review'
 import type { NormalizedComment } from './useReviewData'
 import { CollapsibleSection } from './CollapsibleSection'
@@ -14,9 +15,14 @@ export { PrCommentsSection }
 
 const compactComponents = createMarkdownComponents('compact')
 
+function urlTransform(url: string): string {
+  if (url.startsWith('data:')) return url
+  return defaultUrlTransform(url)
+}
+
 export function MarkdownBody({ content }: { content: string }) {
   return (
-    <Markdown remarkPlugins={[remarkGfm]} components={compactComponents}>
+    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} urlTransform={urlTransform} components={compactComponents}>
       {content}
     </Markdown>
   )

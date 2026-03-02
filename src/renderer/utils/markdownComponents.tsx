@@ -6,6 +6,7 @@
  * - 'default': Larger text for standalone markdown file viewing
  * - 'compact': Smaller text for embedded panels (e.g., review content)
  */
+import { useState, useCallback } from 'react'
 import type { Components } from 'react-markdown'
 
 type SizePreset = 'default' | 'compact'
@@ -50,6 +51,28 @@ function handleLinkClick(e: React.MouseEvent, href: string | undefined) {
   if (href && /^https?:\/\//i.test(href)) void window.shell.openExternal(href)
 }
 
+function MarkdownImage({ src, alt, className }: { src?: string; alt?: string; className: string }) {
+  const [lightbox, setLightbox] = useState(false)
+  const close = useCallback(() => setLightbox(false), [])
+
+  if (!src) return null
+  return (
+    <>
+      <img
+        src={src}
+        alt={alt}
+        className={`max-h-32 max-w-xs rounded cursor-pointer hover:opacity-80 transition-opacity ${className}`}
+        onClick={() => setLightbox(true)}
+      />
+      {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={close}>
+          <img src={src} alt={alt} className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl" />
+        </div>
+      )}
+    </>
+  )
+}
+
 export function createMarkdownComponents(size: SizePreset = 'default'): Components {
   const s = SIZES[size]
   return {
@@ -76,7 +99,7 @@ export function createMarkdownComponents(size: SizePreset = 'default'): Componen
     ol: ({ children }) => <ol className={`list-decimal ${s.list}`}>{children}</ol>,
     li: ({ children }) => <li className="text-text-primary">{children}</li>,
     hr: () => <hr className={`border-border ${s.hr}`} />,
-    img: ({ src, alt }) => <img src={src} alt={alt} className={`max-w-full ${s.img} rounded`} />,
+    img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} className={s.img} />,
     table: ({ children }) => <table className={`border-collapse ${s.table} w-full`}>{children}</table>,
     thead: ({ children }) => <thead className="bg-bg-tertiary">{children}</thead>,
     tbody: ({ children }) => <tbody>{children}</tbody>,

@@ -92,7 +92,7 @@ describe('RepoSettingsEditor', () => {
     })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: undefined, allowPushToMain: false })
+      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: undefined, allowPushToMain: false, isolated: undefined, dockerImage: undefined, skipApproval: undefined })
       expect(onClose).toHaveBeenCalled()
     })
   })
@@ -129,7 +129,7 @@ describe('RepoSettingsEditor', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'agent-1' } })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: 'agent-1', allowPushToMain: false })
+      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: 'agent-1', allowPushToMain: false, isolated: undefined, dockerImage: undefined, skipApproval: undefined })
     })
   })
 
@@ -139,8 +139,8 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0]) // push-to-main is first
     await waitFor(() => {
       expect(screen.getByText('Write access check failed')).toBeTruthy()
     })
@@ -152,8 +152,8 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
       expect(screen.getByText('Failed to check write access')).toBeTruthy()
     })
@@ -165,10 +165,10 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
-      expect(checkbox).toBeChecked()
+      expect(checkboxes[0]).toBeChecked()
     })
   })
 
@@ -178,8 +178,8 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
       expect(screen.getByText('Write access check failed')).toBeTruthy()
     })
@@ -194,7 +194,8 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    fireEvent.click(screen.getByRole('checkbox'))
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
       expect(screen.getByText('Write access check failed')).toBeTruthy()
     })
@@ -212,6 +213,92 @@ describe('RepoSettingsEditor', () => {
     })
     const select = screen.getByRole('combobox')
     expect((select as HTMLSelectElement).value).toBe('agent-2')
+  })
+
+  it('renders isolation checkboxes', async () => {
+    renderEditor()
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    expect(screen.getByText('Run agent in isolated Docker container')).toBeTruthy()
+    expect(screen.getByText('Auto-approve agent commands')).toBeTruthy()
+  })
+
+  it('shows docker image input when isolation is toggled on', async () => {
+    renderEditor({ repo: { ...mockRepo, isolated: true } })
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    expect(screen.getByPlaceholderText('broomy/isolation:latest')).toBeTruthy()
+  })
+
+  it('shows warning when skip-approval is on without isolation', async () => {
+    renderEditor({ repo: { ...mockRepo, skipApproval: true } })
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    expect(screen.getByText(/Auto-approving without container isolation/)).toBeTruthy()
+  })
+
+  it('saves isolation fields', async () => {
+    const onUpdate = vi.fn()
+    renderEditor({ onUpdate, repo: { ...mockRepo, isolated: true, dockerImage: 'my-image', skipApproval: true } })
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => {
+      expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        isolated: true,
+        dockerImage: 'my-image',
+        skipApproval: true,
+      }))
+    })
+  })
+
+  it('toggles isolation checkbox and shows docker image input', async () => {
+    renderEditor()
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    const checkboxes = screen.getAllByRole('checkbox')
+    // isolation checkbox is second (after push-to-main)
+    const isolationCheckbox = checkboxes[1]
+    fireEvent.click(isolationCheckbox)
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('broomy/isolation:latest')).toBeTruthy()
+    })
+  })
+
+  it('toggles skip-approval and shows warning without isolation', async () => {
+    renderEditor()
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    const checkboxes = screen.getAllByRole('checkbox')
+    // skip-approval checkbox is third
+    const skipApprovalCheckbox = checkboxes[2]
+    fireEvent.click(skipApprovalCheckbox)
+    await waitFor(() => {
+      expect(screen.getByText(/Auto-approving without container isolation/)).toBeTruthy()
+    })
+  })
+
+  it('saves docker image value', async () => {
+    const onUpdate = vi.fn()
+    renderEditor({ onUpdate, repo: { ...mockRepo, isolated: true } })
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    const imageInput = screen.getByPlaceholderText('broomy/isolation:latest')
+    fireEvent.change(imageInput, { target: { value: 'custom-image:v2' } })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => {
+      expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        isolated: true,
+        dockerImage: 'custom-image:v2',
+      }))
+    })
   })
 
   it('shows Saving... text while save is in progress', async () => {

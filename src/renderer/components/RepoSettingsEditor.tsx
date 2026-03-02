@@ -3,9 +3,52 @@
  */
 import { useState, useEffect } from 'react'
 import type { AgentConfig } from '../store/agents'
-import type { ManagedRepo } from '../../preload/index'
+import type { ManagedRepo, DockerStatus } from '../../preload/index'
+import { IsolationSettings } from './IsolationSettings'
 
-// Repo settings editor component
+function ErrorBanner({ error, onDismiss, onShowDetails }: {
+  error: { summary: string; details: string }
+  onDismiss: () => void
+  onShowDetails: () => void
+}) {
+  return (
+    <div
+      className="px-3 py-2 rounded border border-red-500/30 bg-red-500/10 flex items-center gap-2 cursor-pointer hover:bg-red-500/20 transition-colors"
+      onClick={onShowDetails}
+      title="Click to view full error"
+    >
+      <div className="flex-1 text-xs text-red-400 truncate">{error.summary}</div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDismiss() }}
+        className="text-red-400 hover:text-red-300 text-xs shrink-0 px-1"
+        title="Dismiss"
+      >&times;</button>
+    </div>
+  )
+}
+
+function ErrorDetailsPopup({ error, onClose }: {
+  error: { summary: string; details: string }
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div
+        className="bg-bg-primary border border-border rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <span className="text-sm font-medium text-red-400">Error Details</span>
+          <button onClick={onClose} className="text-text-secondary hover:text-text-primary text-lg">&times;</button>
+        </div>
+        <div className="px-4 py-3 overflow-auto">
+          <pre className="text-xs text-text-primary whitespace-pre-wrap font-mono">{error.details}</pre>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function RepoSettingsEditor({
   repo,
   agents,
@@ -19,11 +62,21 @@ export function RepoSettingsEditor({
 }) {
   const [defaultAgentId, setDefaultAgentId] = useState(repo.defaultAgentId || '')
   const [allowPushToMain, setAllowPushToMain] = useState(repo.allowPushToMain ?? false)
+  const [isolated, setIsolated] = useState(repo.isolated ?? false)
+  const [dockerImage, setDockerImage] = useState(repo.dockerImage || '')
+  const [skipApproval, setSkipApproval] = useState(repo.skipApproval ?? false)
+  const [dockerStatus, setDockerStatus] = useState<DockerStatus | null>(null)
   const [initScript, setInitScript] = useState('')
   const [loadingScript, setLoadingScript] = useState(true)
   const [saving, setSaving] = useState(false)
   const [pushToMainError, setPushToMainError] = useState<{ summary: string; details: string } | null>(null)
   const [showErrorDetails, setShowErrorDetails] = useState(false)
+
+  useEffect(() => {
+    if (isolated || dockerStatus === null) {
+      void window.docker.status().then(setDockerStatus)
+    }
+  }, [isolated])
 
   useEffect(() => {
     async function loadScript() {
@@ -42,7 +95,13 @@ export function RepoSettingsEditor({
   const handleSave = async () => {
     setSaving(true)
     try {
-      onUpdate({ defaultAgentId: defaultAgentId || undefined, allowPushToMain })
+      onUpdate({
+        defaultAgentId: defaultAgentId || undefined,
+        allowPushToMain,
+        isolated: isolated || undefined,
+        dockerImage: dockerImage.trim() || undefined,
+        skipApproval: skipApproval || undefined,
+      })
       await window.repos.saveInitScript(repo.id, initScript)
       onClose()
     } catch (err) {
@@ -53,50 +112,11 @@ export function RepoSettingsEditor({
 
   return (
     <div className="space-y-3">
-      {/* Error banner at top */}
       {pushToMainError && (
-        <div
-          className="px-3 py-2 rounded border border-red-500/30 bg-red-500/10 flex items-center gap-2 cursor-pointer hover:bg-red-500/20 transition-colors"
-          onClick={() => setShowErrorDetails(true)}
-          title="Click to view full error"
-        >
-          <div className="flex-1 text-xs text-red-400 truncate">
-            {pushToMainError.summary}
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setPushToMainError(null)
-            }}
-            className="text-red-400 hover:text-red-300 text-xs shrink-0 px-1"
-            title="Dismiss"
-          >
-            &times;
-          </button>
-        </div>
+        <ErrorBanner error={pushToMainError} onDismiss={() => setPushToMainError(null)} onShowDetails={() => setShowErrorDetails(true)} />
       )}
-
-      {/* Error details popup */}
       {showErrorDetails && pushToMainError && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowErrorDetails(false)}>
-          <div
-            className="bg-bg-primary border border-border rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <span className="text-sm font-medium text-red-400">Error Details</span>
-              <button
-                onClick={() => setShowErrorDetails(false)}
-                className="text-text-secondary hover:text-text-primary text-lg"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="px-4 py-3 overflow-auto">
-              <pre className="text-xs text-text-primary whitespace-pre-wrap font-mono">{pushToMainError.details}</pre>
-            </div>
-          </div>
-        </div>
+        <ErrorDetailsPopup error={pushToMainError} onClose={() => setShowErrorDetails(false)} />
       )}
 
       <div className="text-sm font-medium text-text-primary">{repo.name}</div>
@@ -152,6 +172,12 @@ export function RepoSettingsEditor({
           <span className="text-xs text-text-secondary">Allow "Push to main" button</span>
         </label>
       </div>
+
+      <IsolationSettings
+        isolated={isolated} dockerImage={dockerImage} skipApproval={skipApproval}
+        dockerStatus={dockerStatus} onIsolatedChange={setIsolated}
+        onDockerImageChange={setDockerImage} onSkipApprovalChange={setSkipApproval}
+      />
 
       <div className="space-y-2">
         <label className="text-xs text-text-secondary">Init Script (runs when session starts)</label>

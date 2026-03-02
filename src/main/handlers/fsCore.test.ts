@@ -46,6 +46,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   }
 }
