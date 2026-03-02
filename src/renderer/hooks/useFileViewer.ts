@@ -1,7 +1,7 @@
 /**
  * Composes file loading, diff fetching, and file watching hooks into a unified file viewer state with save and view mode management.
  */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type { EditorActions } from '../components/fileViewers/types'
 import { useFileLoading } from './useFileLoading'
 import { useFileDiff } from './useFileDiff'
@@ -20,6 +20,7 @@ interface UseFileViewerParams {
   onSaveFunctionChange?: (fn: (() => Promise<void>) | null) => void
   diffBaseRef?: string
   diffCurrentRef?: string
+  isActive?: boolean
 }
 
 export function useFileViewer({
@@ -33,6 +34,7 @@ export function useFileViewer({
   onSaveFunctionChange,
   diffBaseRef,
   diffCurrentRef,
+  isActive = true,
 }: UseFileViewerParams) {
   const [selectedViewerId, setSelectedViewerId] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
@@ -74,6 +76,7 @@ export function useFileViewer({
     isDirty,
     onDirtyStateChange,
     setIsDirty,
+    enabled: isActive,
   })
 
   // Reset editorActions when file changes
@@ -91,13 +94,19 @@ export function useFileViewer({
     }
   }, [scrollToLine, selectedViewerId, availableViewers])
 
-  // Reset dirty state and set initial view mode when file changes
-  // Deleted files always open in diff mode (comparing old content vs empty)
+  // Reset view mode when file changes or initialViewMode changes (e.g. clicking same file from source control)
+  // Only reset isDirty when the file itself changes, not on view mode changes
+  const prevFilePathRef = useRef(filePath)
   useEffect(() => {
-    setIsDirty(false)
+    if (prevFilePathRef.current !== filePath) {
+      setIsDirty(false)
+      prevFilePathRef.current = filePath
+    }
     const shouldUseDiffMode = canShowDiff && (fileStatus === 'deleted' || initialViewMode === 'diff')
     setViewMode(shouldUseDiffMode ? 'diff' : 'latest')
-  }, [filePath, initialViewMode, canShowDiff, fileStatus])
+    // canShowDiff and fileStatus are intentionally read from the closure — only filePath and
+    // initialViewMode changes should trigger this effect to avoid resets on session switch.
+  }, [filePath, initialViewMode])
 
   // Save handler (called by editor on Cmd+S)
   // Returns false if the save was aborted due to external changes.
