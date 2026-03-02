@@ -15,6 +15,7 @@ import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 import { join, dirname } from 'path'
 import { existsSync, readFileSync, FSWatcher } from 'fs'
+import { execFileSync } from 'child_process'
 import * as pty from 'node-pty'
 import { isWindows, isMac, isLinux, resolveWindowsCommand } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
@@ -442,9 +443,25 @@ app.on('window-all-closed', () => {
     watcher.close()
     fileWatchers.delete(id)
   }
-  // Stop all Docker containers
-  void import('./docker').then(({ stopAllContainers }) => stopAllContainers(context))
+  stopDockerContainers()
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
+
+// Also stop containers on Cmd+Q / Quit (macOS doesn't always fire window-all-closed)
+app.on('will-quit', () => {
+  stopDockerContainers()
+})
+
+function stopDockerContainers() {
+  try {
+    const ids = execFileSync('docker', ['ps', '-q', '--filter', 'name=broomy-'], { encoding: 'utf-8' }).trim()
+    if (ids) {
+      execFileSync('docker', ['stop', ...ids.split('\n').filter(Boolean)], { timeout: 10000 })
+    }
+  } catch {
+    // Docker not available or already stopped — ignore
+  }
+  context.dockerContainers.clear()
+}

@@ -86,10 +86,13 @@ function extractAgentCommand(command: string): string {
  */
 function createIsolatedPty(
   ctx: HandlerContext,
-  options: { id: string; cwd: string; command?: string; sessionId: string; env?: Record<string, string>; dockerImage?: string },
+  options: { id: string; cwd: string; command?: string; sessionId: string; env?: Record<string, string>; dockerImage?: string; repoRootDir?: string },
   senderWindow: BrowserWindow | null,
 ): { id: string } | null {
-  const { id, cwd, command, dockerImage } = options
+  const { id, cwd, command, dockerImage, repoRootDir } = options
+  // Container is keyed on repo root dir (shared across worktrees/sessions),
+  // falling back to cwd if repoRootDir is not provided.
+  const containerKey = repoRootDir || cwd
 
   const sendToTerminal = (text: string) => {
     if (senderWindow && !senderWindow.isDestroyed()) {
@@ -128,11 +131,11 @@ function createIsolatedPty(
     // Acquire per-repo lock for container creation + setup + agent install.
     // Second session for the same repo waits here, then gets the already-running
     // container with the agent already installed.
-    const releaseLock = await acquireSetupLock(cwd)
+    const releaseLock = await acquireSetupLock(containerKey)
     let containerId: string
     try {
       // Ensure container exists (pulls default image if needed)
-      const result = await ensureContainer(ctx, cwd, dockerImage, sendToTerminal)
+      const result = await ensureContainer(ctx, containerKey, dockerImage, sendToTerminal)
       if (!result.success || !result.containerId) {
         displayTerminalError(id,
           `Docker container failed to start: ${result.error || 'Unknown error'}`,
@@ -196,8 +199,54 @@ function createIsolatedPty(
   return { id }
 }
 
+/** Resolve shell, args, and initial command for the standard (non-isolated) PTY path. */
+function resolveShellConfig(
+  ctx: HandlerContext,
+  options: { command?: string; sessionId?: string; shell?: string },
+): { shell: string; shellArgs: string[]; initialCommand: string | undefined } {
+  let initialCommand: string | undefined = options.command
+
+  if (ctx.isE2ETest) {
+    if (isWindows) {
+      const shell = process.env.ComSpec || 'cmd.exe'
+      if (options.command) {
+        const fakeClaude = join(__dirname, '../../scripts/fake-claude.ps1')
+        initialCommand = `powershell -ExecutionPolicy Bypass -File "${fakeClaude}"`
+      } else {
+        initialCommand = 'echo E2E_TEST_SHELL_READY'
+      }
+      return { shell, shellArgs: [], initialCommand }
+    }
+    const shell = '/bin/bash'
+    if (options.command) {
+      const scenarioScript = getScenarioData(ctx.e2eScenario).agentScript(options.sessionId || '')
+      const fakeClaude = scenarioScript
+        ? join(__dirname, `../../scripts/${scenarioScript}`)
+        : ctx.FAKE_CLAUDE_SCRIPT || join(__dirname, '../../scripts/fake-claude.sh')
+      initialCommand = `bash "${fakeClaude}"`
+    } else {
+      initialCommand = 'echo "E2E_TEST_SHELL_READY"; PS1="test-shell$ "'
+    }
+    return { shell, shellArgs: [], initialCommand }
+  }
+
+  if (ctx.E2E_MOCK_SHELL) {
+    const shell = isWindows ? (process.env.ComSpec || 'cmd.exe') : '/bin/bash'
+    const shellArgs = isWindows ? ['/c', ctx.E2E_MOCK_SHELL] : [ctx.E2E_MOCK_SHELL]
+    return { shell, shellArgs, initialCommand }
+  }
+
+  const shell = options.shell || getDefaultShell()
+  let shellArgs: string[] = []
+  if (initialCommand && !isWindows) {
+    shellArgs = ['-l', '-i', '-c', initialCommand]
+    initialCommand = undefined
+  }
+  return { shell, shellArgs, initialCommand }
+}
+
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
-  ipcMain.handle('pty:create', (_event, options: { id: string; cwd: string; command?: string; sessionId?: string; env?: Record<string, string>; shell?: string; isolated?: boolean; dockerImage?: string }) => {
+  ipcMain.handle('pty:create', (_event, options: { id: string; cwd: string; command?: string; sessionId?: string; env?: Record<string, string>; shell?: string; isolated?: boolean; dockerImage?: string; repoRootDir?: string }) => {
     const senderWindow = BrowserWindow.fromWebContents(_event.sender)
 
     // Docker isolation path (allowed in E2E when E2E_REAL_DOCKER is set)
@@ -207,44 +256,8 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     }
 
     // Standard (non-isolated) path
-    let shell: string
-    let shellArgs: string[] = []
-    let initialCommand: string | undefined = options.command
-
-    if (ctx.isE2ETest) {
-      if (isWindows) {
-        shell = process.env.ComSpec || 'cmd.exe'
-        shellArgs = []
-        if (options.command) {
-          const fakeClaude = join(__dirname, '../../scripts/fake-claude.ps1')
-          initialCommand = `powershell -ExecutionPolicy Bypass -File "${fakeClaude}"`
-        } else {
-          initialCommand = 'echo E2E_TEST_SHELL_READY'
-        }
-      } else {
-        shell = '/bin/bash'
-        shellArgs = []
-        if (options.command) {
-          const scenarioScript = getScenarioData(ctx.e2eScenario).agentScript(options.sessionId || '')
-          const fakeClaude = scenarioScript
-            ? join(__dirname, `../../scripts/${scenarioScript}`)
-            : ctx.FAKE_CLAUDE_SCRIPT || join(__dirname, '../../scripts/fake-claude.sh')
-          initialCommand = `bash "${fakeClaude}"`
-        } else {
-          initialCommand = 'echo "E2E_TEST_SHELL_READY"; PS1="test-shell$ "'
-        }
-      }
-    } else if (ctx.E2E_MOCK_SHELL) {
-      shell = isWindows ? (process.env.ComSpec || 'cmd.exe') : '/bin/bash'
-      shellArgs = isWindows ? ['/c', ctx.E2E_MOCK_SHELL] : [ctx.E2E_MOCK_SHELL]
-    } else {
-      shell = options.shell || getDefaultShell()
-      shellArgs = []
-      if (initialCommand && !isWindows) {
-        shellArgs = ['-l', '-i', '-c', initialCommand]
-        initialCommand = undefined
-      }
-    }
+    const { shell, shellArgs, initialCommand: resolvedCommand } = resolveShellConfig(ctx, options)
+    let initialCommand = resolvedCommand
 
     // Build environment
     const baseEnv = { ...process.env } as Record<string, string>

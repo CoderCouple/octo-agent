@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { EventEmitter } from 'events'
 import { E2EScenario, type HandlerContext } from './handlers/types'
-import { buildDockerExecArgs, dockerSetupMessage, DEFAULT_DOCKER_IMAGE, SHARED_CONFIG_DIR, CONTAINER_SHELLS, imageExists, containerName, setupContainer, ensureAgentInstalled, pullImage, ensureContainer, acquireSetupLock } from './docker'
+import { buildDockerExecArgs, dockerSetupMessage, DEFAULT_DOCKER_IMAGE, CONTAINER_SHELLS, imageExists, containerName, setupContainer, ensureAgentInstalled, pullImage, ensureContainer, acquireSetupLock, stopAllContainers } from './docker'
 
 // Mock child_process
 const mockExecFile = vi.fn()
@@ -16,18 +16,11 @@ vi.mock('electron', () => ({
   app: { isPackaged: false },
 }))
 
-// Mock fs.existsSync for ensureContainer shared config dir check
-const mockExistsSync = vi.fn()
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('fs')>('fs')
-  return { ...actual, existsSync: (...args: unknown[]) => mockExistsSync(...args), mkdirSync: vi.fn() }
-})
-
 describe('buildDockerExecArgs', () => {
-  it('builds args for command execution', () => {
+  it('builds args for command execution as non-root user', () => {
     const args = buildDockerExecArgs('abc123', '/repo', { ANTHROPIC_API_KEY: 'sk-test' }, 'claude')
     expect(args).toEqual([
-      'exec', '-it', '-w', '/repo',
+      'exec', '-it', '-u', 'node', '-w', '/repo',
       '-e', 'ANTHROPIC_API_KEY=sk-test',
       'abc123',
       'bash', '-l', '-c', 'claude',
@@ -37,7 +30,7 @@ describe('buildDockerExecArgs', () => {
   it('builds args for interactive shell (no command)', () => {
     const args = buildDockerExecArgs('abc123', '/repo', {})
     expect(args).toEqual([
-      'exec', '-it', '-w', '/repo',
+      'exec', '-it', '-u', 'node', '-w', '/repo',
       'abc123',
       'bash', '-l',
     ])
@@ -122,13 +115,23 @@ describe('containerName', () => {
     const name1 = containerName('/Users/rob/my-repo')
     const name2 = containerName('/Users/rob/my-repo')
     expect(name1).toBe(name2)
-    expect(name1).toMatch(/^broomy-[a-f0-9]{12}$/)
+    expect(name1).toMatch(/^broomy-my-repo-[a-f0-9]{8}$/)
   })
 
   it('generates different names for different paths', () => {
     const name1 = containerName('/Users/rob/repo-a')
     const name2 = containerName('/Users/rob/repo-b')
     expect(name1).not.toBe(name2)
+  })
+
+  it('uses directory basename for readability', () => {
+    const name = containerName('/Users/rob/projects/awesome-app')
+    expect(name).toMatch(/^broomy-awesome-app-[a-f0-9]{8}$/)
+  })
+
+  it('sanitizes special characters', () => {
+    const name = containerName('/Users/rob/My Project (v2)')
+    expect(name).toMatch(/^broomy-my-project-v2-[a-f0-9]{8}$/)
   })
 })
 
@@ -327,7 +330,6 @@ function createCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
 describe('ensureContainer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockExistsSync.mockReturnValue(true)
   })
 
   it('reuses running container found by docker inspect', async () => {
@@ -474,14 +476,43 @@ describe('constants', () => {
     expect(DEFAULT_DOCKER_IMAGE).toBe('node:22-slim')
   })
 
-  it('has shared config dir under .broomy', () => {
-    expect(SHARED_CONFIG_DIR).toContain('.broomy')
-    expect(SHARED_CONFIG_DIR).toContain('isolation')
-  })
-
   it('has container shells with bash as default', () => {
     expect(CONTAINER_SHELLS).toHaveLength(2)
     expect(CONTAINER_SHELLS[0]).toEqual({ path: '/bin/bash', name: 'Bash', isDefault: true })
     expect(CONTAINER_SHELLS[1]).toEqual({ path: '/bin/sh', name: 'sh', isDefault: false })
+  })
+})
+
+describe('stopAllContainers', () => {
+  it('stops all broomy containers and clears the map', async () => {
+    const ctx = createCtx()
+    ctx.dockerContainers.set('/repo1', { containerId: 'c1', repoDir: '/repo1', image: 'img' })
+
+    // docker ps returns container ids
+    mockExecFile.mockImplementation((_cmd: string, args: string[], cb: (err: Error | null, result: { stdout: string }) => void) => {
+      if (args[0] === 'ps') {
+        cb(null, { stdout: 'abc123\ndef456\n' })
+      } else if (args[0] === 'stop') {
+        cb(null, { stdout: '' })
+      }
+    })
+
+    await stopAllContainers(ctx)
+
+    expect(ctx.dockerContainers.size).toBe(0)
+    // Should have called docker ps and docker stop
+    expect(mockExecFile).toHaveBeenCalledWith('docker', ['ps', '-q', '--filter', 'name=broomy-'], expect.any(Function))
+    expect(mockExecFile).toHaveBeenCalledWith('docker', ['stop', 'abc123', 'def456'], expect.any(Function))
+  })
+
+  it('handles no running containers gracefully', async () => {
+    const ctx = createCtx()
+
+    mockExecFile.mockImplementation((_cmd: string, _args: string[], cb: (err: Error | null, result: { stdout: string }) => void) => {
+      cb(null, { stdout: '' })
+    })
+
+    await stopAllContainers(ctx)
+    expect(ctx.dockerContainers.size).toBe(0)
   })
 })

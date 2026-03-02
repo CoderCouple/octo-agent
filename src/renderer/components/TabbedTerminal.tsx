@@ -106,7 +106,7 @@ interface TabbedTerminalProps {
   isActive: boolean
   agentCommand?: string
   agentEnv?: Record<string, string>
-  isolation?: { isolated: boolean; dockerImage?: string }
+  isolation?: { isolated: boolean; dockerImage?: string; repoRootDir?: string }
 }
 
 export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand, agentEnv, isolation }: TabbedTerminalProps) {
@@ -269,6 +269,7 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
               isActive={isActive && activeTabId === AGENT_TAB_ID}
               isolated={isolation?.isolated}
               dockerImage={isolation?.dockerImage}
+              repoRootDir={isolation?.repoRootDir}
             />
           </PanelErrorBoundary>
         </div>
@@ -278,7 +279,7 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
           <div
             className={`absolute inset-0 ${activeTabId === DOCKER_TAB_ID ? '' : 'invisible pointer-events-none'}`}
           >
-            <DockerInfoPanel sessionId={sessionId} />
+            <DockerInfoPanel repoDir={cwd} />
           </div>
         )}
 
@@ -295,6 +296,7 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
                 isActive={isActive && tab.id === activeTabId}
                 isolated={tab.isolated}
                 dockerImage={tab.isolated ? isolation?.dockerImage : undefined}
+                repoRootDir={tab.isolated ? isolation?.repoRootDir : undefined}
               />
             </PanelErrorBoundary>
           </div>

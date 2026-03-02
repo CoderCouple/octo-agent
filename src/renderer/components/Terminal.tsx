@@ -23,9 +23,10 @@ interface TerminalProps {
   isActive?: boolean
   isolated?: boolean
   dockerImage?: string
+  repoRootDir?: string
 }
 
-export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isActive = false, isolated, dockerImage }: TerminalProps) {
+export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isActive = false, isolated, dockerImage, repoRootDir }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [restartKey, setRestartKey] = useState(0)
 
@@ -39,6 +40,7 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
     restartKey,
     isolated,
     dockerImage,
+    repoRootDir,
   }
 
   const { terminalRef, ptyIdRef, showScrollButton, handleScrollToBottom } = useTerminalSetup(config, containerRef)

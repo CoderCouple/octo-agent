@@ -107,7 +107,7 @@ export function useAppCallbacks({
     if (!session.repoId) return undefined
     const repo = repos.find((r) => r.id === session.repoId)
     if (!repo?.isolated) return undefined
-    return { isolated: true, dockerImage: repo.dockerImage }
+    return { isolated: true, dockerImage: repo.dockerImage, repoRootDir: repo.rootDir }
   }, [repos])
 
   const handleLayoutSizeChange = useCallback((key: keyof LayoutSizes, value: number) => {

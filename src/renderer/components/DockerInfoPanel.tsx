@@ -5,26 +5,32 @@ import { useState, useEffect, useCallback } from 'react'
 import type { ContainerInfo } from '../../preload/apis/types'
 
 interface DockerInfoPanelProps {
-  sessionId: string
+  repoDir: string
 }
 
-export default function DockerInfoPanel({ sessionId }: DockerInfoPanelProps) {
+export default function DockerInfoPanel({ repoDir }: DockerInfoPanelProps) {
   const [info, setInfo] = useState<ContainerInfo | null>(null)
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await window.docker.containerInfo(sessionId)
+      const result = await window.docker.containerInfo(repoDir)
       setInfo(result)
     } catch {
       setInfo(null)
     } finally {
       setLoading(false)
     }
-  }, [sessionId])
+  }, [repoDir])
 
   useEffect(() => { void refresh() }, [refresh])
+
+  const handleReset = useCallback(async () => {
+    if (!window.confirm('This will destroy the container and all installed packages. Continue?')) return
+    await window.docker.resetContainer(repoDir)
+    setInfo(null)
+  }, [repoDir])
 
   const statusColor = info?.status === 'running' ? 'text-green-400' :
     info?.status === 'starting' ? 'text-yellow-400' : 'text-zinc-500'
@@ -56,18 +62,9 @@ export default function DockerInfoPanel({ sessionId }: DockerInfoPanelProps) {
             <code className="text-zinc-400 font-mono text-xs">{info.image}</code>
           </div>
 
-          <div className="border-t border-zinc-800 pt-3">
-            <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-2">Mounted Paths</p>
-            <div className="space-y-1">
-              <div>
-                <span className="text-zinc-500">Repo: </span>
-                <code className="text-zinc-400 font-mono text-xs">{info.repoDir}</code>
-              </div>
-              <div>
-                <span className="text-zinc-500">Shared config: </span>
-                <code className="text-zinc-400 font-mono text-xs">{info.sharedConfigDir}</code>
-              </div>
-            </div>
+          <div>
+            <span className="text-zinc-500">Repo: </span>
+            <code className="text-zinc-400 font-mono text-xs">{info.repoDir}</code>
           </div>
 
           <div className="border-t border-zinc-800 pt-3 flex gap-2">
@@ -77,14 +74,19 @@ export default function DockerInfoPanel({ sessionId }: DockerInfoPanelProps) {
             >
               Refresh
             </button>
+            <button
+              onClick={handleReset}
+              className="px-3 py-1 text-xs bg-red-900/50 hover:bg-red-900/80 rounded text-red-300 transition-colors"
+            >
+              Reset Container
+            </button>
           </div>
 
           <div className="border-t border-zinc-800 pt-3">
             <p className="text-zinc-500 text-xs leading-relaxed">
-              This session runs inside a Docker container. The agent can only access the
-              repo directory and the shared config folder. Place API keys, SSH keys, or
-              .gitconfig in <code className="text-zinc-400">{info.sharedConfigDir}</code> to
-              make them available inside the container.
+              This session runs inside a Docker container. The agent can only
+              access the repo directory. Environment variables (API keys, etc.)
+              are passed through from the agent configuration.
             </p>
           </div>
         </div>

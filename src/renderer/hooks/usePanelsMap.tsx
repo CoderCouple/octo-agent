@@ -46,7 +46,7 @@ export interface PanelsMapConfig {
   fetchGitStatus: () => void | Promise<void>
   getAgentCommand: (session: Session) => string | undefined
   getAgentEnv: (session: Session) => Record<string, string> | undefined
-  getRepoIsolation: (session: Session) => { isolated: boolean; dockerImage?: string } | undefined
+  getRepoIsolation: (session: Session) => { isolated: boolean; dockerImage?: string; repoRootDir?: string } | undefined
   globalPanelVisibility: Record<string, boolean>
   toggleGlobalPanel: (panelId: string) => void
   selectFile: (sessionId: string, filePath: string) => void

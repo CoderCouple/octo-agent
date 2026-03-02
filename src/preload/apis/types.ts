@@ -141,7 +141,6 @@ export type ContainerInfo = {
   status: 'running' | 'stopped' | 'starting'
   image: string
   repoDir: string
-  sharedConfigDir: string
 }
 
 export type LayoutSizesData = {

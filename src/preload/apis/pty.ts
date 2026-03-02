@@ -4,7 +4,7 @@
 import { ipcRenderer } from 'electron'
 
 export type PtyApi = {
-  create: (options: { id: string; cwd: string; command?: string; sessionId?: string; env?: Record<string, string>; shell?: string; isolated?: boolean; dockerImage?: string }) => Promise<{ id: string }>
+  create: (options: { id: string; cwd: string; command?: string; sessionId?: string; env?: Record<string, string>; shell?: string; isolated?: boolean; dockerImage?: string; repoRootDir?: string }) => Promise<{ id: string }>
   write: (id: string, data: string) => Promise<void>
   resize: (id: string, cols: number, rows: number) => Promise<void>
   kill: (id: string) => Promise<void>

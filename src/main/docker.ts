@@ -7,9 +7,7 @@
 import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { createHash } from 'crypto'
-import { mkdirSync, existsSync } from 'fs'
-import { join } from 'path'
-import { homedir, platform } from 'os'
+import { platform } from 'os'
 import type { HandlerContext } from './handlers/types'
 import type { DockerStatus, ContainerInfo } from '../preload/apis/types'
 
@@ -22,8 +20,6 @@ export const CONTAINER_SHELLS = [
 ]
 
 export const DEFAULT_DOCKER_IMAGE = 'node:22-slim'
-export const SHARED_CONFIG_DIR = join(homedir(), '.broomy', 'isolation')
-const CONTAINER_MOUNT_PATH = '/home/broomy/.config/broomy-shared'
 
 /** ANSI escape helpers for styled terminal output. */
 const ANSI = {
@@ -56,10 +52,14 @@ export function acquireSetupLock(repoDir: string): Promise<() => void> {
   return prev.then(() => release!)
 }
 
-/** Deterministic container name based on repo path. */
+/** Deterministic container name based on repo path. Uses the directory basename
+ *  for readability, with a short hash suffix to handle duplicate directory names. */
 export function containerName(repoDir: string): string {
-  const hash = createHash('sha256').update(repoDir).digest('hex').substring(0, 12)
-  return `broomy-${hash}`
+  const basename = repoDir.split('/').filter(Boolean).pop() || 'repo'
+  // Sanitize for Docker container names: lowercase, alphanumeric + hyphens
+  const sanitized = basename.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').substring(0, 30)
+  const hash = createHash('sha256').update(repoDir).digest('hex').substring(0, 8)
+  return `broomy-${sanitized}-${hash}`
 }
 
 export async function isDockerAvailable(): Promise<DockerStatus> {
@@ -108,13 +108,13 @@ export async function pullImage(
 
     child.stdout.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line) onProgress(ANSI.dim(`  ${line}`) + '\r\n')
+        if (line) onProgress(`${ANSI.dim(`  ${line}`)}\r\n`)
       }
     })
 
     child.stderr.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line) onProgress(ANSI.dim(`  ${line}`) + '\r\n')
+        if (line) onProgress(`${ANSI.dim(`  ${line}`)}\r\n`)
       }
     })
 
@@ -139,7 +139,7 @@ export async function setupContainer(
   containerId: string,
   onProgress: (line: string) => void,
 ): Promise<{ success: boolean; error?: string }> {
-  onProgress(ANSI.cyan('▸ Installing system packages (git, curl)...') + '\r\n')
+  onProgress(`${ANSI.cyan('▸ Installing system packages (git, curl)...')}\r\n`)
 
   return new Promise((resolve) => {
     const child = spawn('docker', [
@@ -150,13 +150,13 @@ export async function setupContainer(
 
     child.stdout.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line) onProgress(ANSI.dim(`  ${line}`) + '\r\n')
+        if (line) onProgress(`${ANSI.dim(`  ${line}`)}\r\n`)
       }
     })
 
     child.stderr.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line) onProgress(ANSI.dim(`  ${line}`) + '\r\n')
+        if (line) onProgress(`${ANSI.dim(`  ${line}`)}\r\n`)
       }
     })
 
@@ -196,7 +196,7 @@ export async function ensureAgentInstalled(
     return { success: true }
   }
 
-  onProgress(ANSI.cyan(`▸ Installing ${agentCommand}...`) + '\r\n')
+  onProgress(`${ANSI.cyan(`▸ Installing ${agentCommand}...`)}\r\n`)
 
   return new Promise((resolve) => {
     const child = spawn('docker', [
@@ -205,13 +205,13 @@ export async function ensureAgentInstalled(
 
     child.stdout.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line) onProgress(ANSI.dim(`  ${line}`) + '\r\n')
+        if (line) onProgress(`${ANSI.dim(`  ${line}`)}\r\n`)
       }
     })
 
     child.stderr.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line) onProgress(ANSI.dim(`  ${line}`) + '\r\n')
+        if (line) onProgress(`${ANSI.dim(`  ${line}`)}\r\n`)
       }
     })
 
@@ -256,7 +256,7 @@ export async function ensureContainer(
     }
 
     if (status === 'exited' || status === 'created') {
-      progress(ANSI.cyan('▸ Restarting container...') + '\r\n')
+      progress(`${ANSI.cyan('▸ Restarting container...')}\r\n`)
       await execFileAsync('docker', ['start', name])
       ctx.dockerContainers.set(repoDir, { containerId, repoDir, image: img })
       return { success: true, containerId, isNew: false }
@@ -268,15 +268,10 @@ export async function ensureContainer(
     // Container doesn't exist — will create below
   }
 
-  // Ensure shared config directory exists
-  if (!existsSync(SHARED_CONFIG_DIR)) {
-    mkdirSync(SHARED_CONFIG_DIR, { recursive: true })
-  }
-
   // Pull image if not available locally
   const hasImage = await imageExists(img)
   if (!hasImage) {
-    progress(ANSI.cyan(`▸ Pulling ${img}...`) + '\r\n')
+    progress(`${ANSI.cyan(`▸ Pulling ${img}...`)}\r\n`)
     const pullResult = await pullImage(img, progress)
     if (!pullResult.success) {
       return { success: false, error: `Failed to pull image: ${pullResult.error}` }
@@ -284,12 +279,11 @@ export async function ensureContainer(
   }
 
   try {
-    progress(ANSI.cyan('▸ Creating container...') + '\r\n')
+    progress(`${ANSI.cyan('▸ Creating container...')}\r\n`)
     const { stdout } = await execFileAsync('docker', [
       'run', '-d',
       '--name', name,
       '-v', `${repoDir}:${repoDir}`,
-      '-v', `${SHARED_CONFIG_DIR}:${CONTAINER_MOUNT_PATH}`,
       '-w', repoDir,
       img,
       'sleep', 'infinity',
@@ -330,9 +324,24 @@ export async function resetContainer(
   }
 }
 
+/**
+ * Stop all broomy containers — both tracked (in-memory map) and orphaned
+ * (from previous runs that weren't cleaned up). Uses `docker ps` to find
+ * all containers matching the `broomy-` naming convention.
+ */
 export async function stopAllContainers(ctx: HandlerContext): Promise<void> {
-  const repoDirs = Array.from(ctx.dockerContainers.keys())
-  await Promise.allSettled(repoDirs.map((dir) => stopContainer(ctx, dir)))
+  ctx.dockerContainers.clear()
+  try {
+    const { stdout } = await execFileAsync('docker', [
+      'ps', '-q', '--filter', 'name=broomy-',
+    ])
+    const ids = stdout.trim().split('\n').filter(Boolean)
+    if (ids.length > 0) {
+      await execFileAsync('docker', ['stop', ...ids])
+    }
+  } catch {
+    // Docker not available or no containers — ignore
+  }
 }
 
 export async function getContainerInfo(
@@ -360,7 +369,6 @@ export async function getContainerInfo(
     status,
     image: state.image,
     repoDir: state.repoDir,
-    sharedConfigDir: SHARED_CONFIG_DIR,
   }
 }
 
@@ -370,7 +378,8 @@ export function buildDockerExecArgs(
   env: Record<string, string>,
   command?: string,
 ): string[] {
-  const args: string[] = ['exec', '-it', '-w', cwd]
+  // Run as non-root user (node:22-slim has 'node' user at uid 1000)
+  const args: string[] = ['exec', '-it', '-u', 'node', '-w', cwd]
 
   for (const [key, value] of Object.entries(env)) {
     args.push('-e', `${key}=${value}`)
