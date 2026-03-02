@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import '../../test/react-setup'
 import TabbedTerminal from './TabbedTerminal'
 import { useSessionStore } from '../store/sessions'
 
 // Mock Terminal component to avoid xterm.js issues in jsdom
 vi.mock('./Terminal', () => ({
-  default: (props: { sessionId: string; cwd: string }) => (
-    <div data-testid={`terminal-${props.sessionId}`}>Terminal: {props.cwd}</div>
+  default: (props: { sessionId: string; cwd: string; agentNotInstalled?: boolean }) => (
+    <div data-testid={`terminal-${props.sessionId}`} data-agent-not-installed={props.agentNotInstalled ? 'true' : undefined}>Terminal: {props.cwd}</div>
   ),
 }))
 
@@ -185,6 +185,29 @@ describe('TabbedTerminal', () => {
     const terminals = container.querySelectorAll('[class*="absolute inset-0"]')
     // Agent + 2 user tabs = 3 terminal containers
     expect(terminals.length).toBe(3)
+  })
+
+  it('passes agentNotInstalled=true when agent is not installed', async () => {
+    vi.mocked(window.agents.isInstalled).mockResolvedValue(false)
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} agentCommand="claude" />
+    )
+    await waitFor(() => {
+      const agentTerminal = screen.getByTestId('terminal-session-1')
+      expect(agentTerminal.getAttribute('data-agent-not-installed')).toBe('true')
+    })
+  })
+
+  it('does not pass agentNotInstalled when agent is installed', async () => {
+    vi.mocked(window.agents.isInstalled).mockResolvedValue(true)
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} agentCommand="claude" />
+    )
+    await waitFor(() => {
+      expect(window.agents.isInstalled).toHaveBeenCalledWith('claude')
+    })
+    const agentTerminal = screen.getByTestId('terminal-session-1')
+    expect(agentTerminal.getAttribute('data-agent-not-installed')).toBeNull()
   })
 
   it('defaults to agent tab when no stored active tab', () => {

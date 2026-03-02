@@ -100,6 +100,19 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
   const allTabs = [agentTab, ...userTabs]
   const activeTabId = storedActiveTabId ?? AGENT_TAB_ID
 
+  // Check if the agent command is installed
+  const [agentInstalled, setAgentInstalled] = useState(true) // default true to avoid flash
+  useEffect(() => {
+    if (!agentCommand) return
+    let cancelled = false
+    window.agents.isInstalled(agentCommand).then((installed) => {
+      if (!cancelled) setAgentInstalled(installed)
+    }).catch(() => {
+      // If the check fails, assume installed to avoid false positives
+    })
+    return () => { cancelled = true }
+  }, [agentCommand])
+
   const [editingTabId, setEditingTabId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
@@ -241,6 +254,7 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
               env={agentEnv}
               isAgentTerminal={!!agentCommand}
               isActive={isActive && activeTabId === AGENT_TAB_ID}
+              agentNotInstalled={!!agentCommand && !agentInstalled}
             />
           </PanelErrorBoundary>
         </div>
