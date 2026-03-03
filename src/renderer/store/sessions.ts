@@ -103,6 +103,8 @@ export interface Session {
   lastKnownPrUrl?: string
   // Archive state (persisted)
   isArchived: boolean
+  // Whether this session was loaded from config (runtime only, not persisted)
+  isRestored: boolean
 }
 
 // Global panel visibility (sidebar, settings, tutorial)

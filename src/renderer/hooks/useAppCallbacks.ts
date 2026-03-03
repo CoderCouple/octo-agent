@@ -103,6 +103,11 @@ export function useAppCallbacks({
     return agent?.env
   }, [agents])
 
+  const getAgentResumeCommand = useCallback((session: Session) => {
+    if (!session.agentId) return undefined
+    return agents.find((a) => a.id === session.agentId)?.resumeCommand
+  }, [agents])
+
   const getRepoIsolation = useCallback((session: Session) => {
     if (!session.repoId) return undefined
     const repo = repos.find((r) => r.id === session.repoId)
@@ -179,6 +184,7 @@ export function useAppCallbacks({
     refreshPrStatus,
     getAgentCommand,
     getAgentEnv,
+    getAgentResumeCommand,
     getRepoIsolation,
     handleLayoutSizeChange,
     handleFileViewerPositionChange,

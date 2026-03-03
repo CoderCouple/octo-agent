@@ -46,6 +46,7 @@ export interface PanelsMapConfig {
   fetchGitStatus: () => void | Promise<void>
   getAgentCommand: (session: Session) => string | undefined
   getAgentEnv: (session: Session) => Record<string, string> | undefined
+  getAgentResumeCommand: (session: Session) => string | undefined
   getRepoIsolation: (session: Session) => { isolated: boolean; isolationMode?: 'docker' | 'devcontainer'; dockerImage?: string; repoRootDir?: string } | undefined
   globalPanelVisibility: Record<string, boolean>
   toggleGlobalPanel: (panelId: string) => void
@@ -181,7 +182,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
     sessions, activeSessionId, activeSession,
     handleSelectSession, handleNewSession, removeSession, refreshPrStatus,
     archiveSession, unarchiveSession,
-    getAgentCommand, getAgentEnv, getRepoIsolation,
+    getAgentCommand, getAgentEnv, getAgentResumeCommand, getRepoIsolation,
     globalPanelVisibility, toggleGlobalPanel,
     repos,
   } = config
@@ -200,6 +201,8 @@ export function usePanelsMap(config: PanelsMapConfig) {
               isActive={session.id === activeSessionId}
               agentCommand={getAgentCommand(session)}
               agentEnv={getAgentEnv(session)}
+              agentResumeCommand={getAgentResumeCommand(session)}
+              isRestored={session.isRestored}
               isolation={getRepoIsolation(session)}
             />
           </PanelErrorBoundary>
@@ -209,7 +212,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
         <WelcomeScreen onNewSession={handleNewSession} />
       )}
     </div>
-  ), [sessions, activeSessionId, getAgentCommand, getAgentEnv, getRepoIsolation, handleNewSession])
+  ), [sessions, activeSessionId, getAgentCommand, getAgentEnv, getAgentResumeCommand, getRepoIsolation, handleNewSession])
 
   const explorerPanel = useExplorerPanel(config)
   const fileViewerPanel = useFileViewerPanel(config)

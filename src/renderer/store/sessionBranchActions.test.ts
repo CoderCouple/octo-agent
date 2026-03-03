@@ -52,6 +52,7 @@ describe('sessionBranchActions', () => {
       terminalTabs: { tabs: [{ id: 'tab-1', name: 'Terminal' }], activeTabId: 'tab-1' },
       branchStatus: 'in-progress' as const,
       isArchived: false,
+      isRestored: false,
     }
     useSessionStore.setState({ sessions: [session], activeSessionId: id })
     return session

@@ -13,6 +13,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useTerminalSetup } from '../hooks/useTerminalSetup'
 import type { TerminalConfig } from '../hooks/useTerminalSetup'
 import { getAgentInstallUrl } from '../utils/agentInstallUrls'
+import { sendAgentPrompt } from '../utils/focusHelpers'
 import '@xterm/xterm/css/xterm.css'
 
 interface TerminalProps {
@@ -23,15 +24,27 @@ interface TerminalProps {
   isAgentTerminal?: boolean
   isActive?: boolean
   agentNotInstalled?: boolean
+  agentResumeCommand?: string
+  isRestored?: boolean
   isolated?: boolean
   isolationMode?: 'docker' | 'devcontainer'
   dockerImage?: string
   repoRootDir?: string
 }
 
-export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isActive = false, agentNotInstalled = false, isolated, isolationMode, dockerImage, repoRootDir }: TerminalProps) {
+export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isActive = false, agentNotInstalled = false, agentResumeCommand, isRestored, isolated, isolationMode, dockerImage, repoRootDir }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [restartKey, setRestartKey] = useState(0)
+  const [resumeDismissed, setResumeDismissed] = useState(false)
+
+  const showResumeBanner = isAgentTerminal && isRestored && !!agentResumeCommand && !resumeDismissed && !agentNotInstalled
+
+  const handleResume = useCallback(() => {
+    if (ptyIdRef.current && agentResumeCommand) {
+      void sendAgentPrompt(ptyIdRef.current, agentResumeCommand)
+    }
+    setResumeDismissed(true)
+  }, [agentResumeCommand])
 
   const config: TerminalConfig = {
     sessionId,
@@ -112,6 +125,19 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
               <span> Install it to use this agent.</span>
             )
           })()}
+        </div>
+      )}
+      {showResumeBanner && (
+        <div className="mx-2 mt-2 px-3 py-2 rounded bg-accent/10 border border-accent/30 text-xs text-accent shrink-0 flex items-center justify-between">
+          <span>
+            Resume your previous conversation?{' '}
+            <button className="underline hover:text-accent/80 font-medium" onClick={handleResume}>
+              Run {agentResumeCommand} &rarr;
+            </button>
+          </span>
+          <button className="ml-2 hover:text-accent/80" onClick={() => setResumeDismissed(true)} aria-label="Dismiss">
+            &times;
+          </button>
         </div>
       )}
       <div className="flex-1 min-h-0 p-2 relative">

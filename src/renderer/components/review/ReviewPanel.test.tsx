@@ -96,6 +96,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     terminalTabs: { tabs: [{ id: 'tab-1', name: 'Terminal' }], activeTabId: 'tab-1' },
     branchStatus: 'in-progress',
     isArchived: false,
+    isRestored: false,
     prTitle: 'Test PR',
     prNumber: 42,
     prUrl: 'https://github.com/pr/42',

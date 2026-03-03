@@ -75,6 +75,7 @@ describe('useSessionStore', () => {
       },
       branchStatus: 'in-progress' as const,
       isArchived: false,
+      isRestored: false,
     }
     return session
   }

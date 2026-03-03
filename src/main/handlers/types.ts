@@ -72,10 +72,10 @@ export function getProfileInitScriptsDir(profileId: string): string {
 
 // Default agents
 export const DEFAULT_AGENTS = [
-  { id: 'claude', name: 'Claude Code', command: 'claude', color: '#D97757', skipApprovalFlag: '--dangerously-skip-permissions' },
-  { id: 'codex', name: 'Codex', command: 'codex', color: '#10A37F', skipApprovalFlag: '--full-auto' },
+  { id: 'claude', name: 'Claude Code', command: 'claude', color: '#D97757', skipApprovalFlag: '--dangerously-skip-permissions', resumeCommand: '/resume' },
+  { id: 'codex', name: 'Codex', command: 'codex', color: '#10A37F', skipApprovalFlag: '--full-auto', resumeCommand: '/resume' },
   { id: 'gemini', name: 'Gemini CLI', command: 'gemini', color: '#4285F4' },
-  { id: 'copilot', name: 'GitHub Copilot', command: 'copilot', color: '#6E40C9' },
+  { id: 'copilot', name: 'GitHub Copilot', command: 'copilot', color: '#6E40C9', resumeCommand: '/resume' },
 ]
 
 // Default profiles
