@@ -106,10 +106,12 @@ interface TabbedTerminalProps {
   isActive: boolean
   agentCommand?: string
   agentEnv?: Record<string, string>
+  agentResumeCommand?: string
+  isRestored?: boolean
   isolation?: { isolated: boolean; isolationMode?: 'docker' | 'devcontainer'; dockerImage?: string; repoRootDir?: string }
 }
 
-export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand, agentEnv, isolation }: TabbedTerminalProps) {
+export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand, agentEnv, agentResumeCommand, isRestored, isolation }: TabbedTerminalProps) {
   // Targeted selector: only re-render when this session's terminalTabs change
   const terminalTabs = useSessionStore((state) => {
     const session = state.sessions.find((s) => s.id === sessionId)
@@ -281,6 +283,8 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
               isAgentTerminal={!!agentCommand}
               isActive={isActive && activeTabId === AGENT_TAB_ID}
               agentNotInstalled={!!agentCommand && !agentInstalled}
+              agentResumeCommand={agentResumeCommand}
+              isRestored={isRestored}
               isolated={isolation?.isolated}
               isolationMode={isolation?.isolationMode}
               dockerImage={isolation?.dockerImage}

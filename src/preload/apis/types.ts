@@ -129,6 +129,7 @@ export type AgentData = {
   color?: string
   env?: Record<string, string>  // Environment variables for this agent
   skipApprovalFlag?: string    // Free-text flag to append for auto-approval (e.g. "--dangerously-skip-permissions")
+  resumeCommand?: string       // In-session command to resume previous conversation (e.g. "/resume")
 }
 
 export type DockerStatus = {
