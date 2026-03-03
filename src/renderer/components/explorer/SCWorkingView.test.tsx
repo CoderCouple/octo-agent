@@ -24,6 +24,7 @@ const defaultProps = {
   hasConflicts: false,
   isCommitting: false,
   isSyncing: false,
+  onCommit: vi.fn(),
   onCommitWithAI: vi.fn(),
   onCommitMerge: vi.fn(),
   onResolveConflicts: vi.fn(),
@@ -147,8 +148,9 @@ describe('SCWorkingView', () => {
       unstagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: false, indexStatus: ' ', workingDirStatus: 'M' }],
     }
 
-    it('shows Commit with AI button', () => {
+    it('shows Commit and Commit with AI buttons', () => {
       render(<SCWorkingView {...changesProps} />)
+      expect(screen.getByText('Commit')).toBeTruthy()
       expect(screen.getByText('Commit with AI')).toBeTruthy()
     })
 
@@ -157,6 +159,18 @@ describe('SCWorkingView', () => {
       render(<SCWorkingView {...changesProps} onCommitWithAI={onCommitWithAI} />)
       fireEvent.click(screen.getByText('Commit with AI'))
       expect(onCommitWithAI).toHaveBeenCalled()
+    })
+
+    it('opens commit message dialog when Commit button is clicked', () => {
+      render(<SCWorkingView {...changesProps} />)
+      fireEvent.click(screen.getByText('Commit'))
+      expect(screen.getByText('Commit Message')).toBeTruthy()
+      expect(screen.getByPlaceholderText('Enter commit message...')).toBeTruthy()
+    })
+
+    it('shows Committing... on Commit button when isCommitting', () => {
+      render(<SCWorkingView {...changesProps} isCommitting={true} />)
+      expect(screen.getByText('Committing...')).toBeTruthy()
     })
 
     it('shows staged and unstaged file sections', () => {
@@ -245,8 +259,9 @@ describe('SCWorkingView', () => {
       expect(screen.getByText('Committing...')).toBeTruthy()
     })
 
-    it('shows Commit with AI button when not merging', () => {
+    it('shows Commit and Commit with AI buttons when not merging', () => {
       render(<SCWorkingView {...changesProps} isMerging={false} />)
+      expect(screen.getByText('Commit')).toBeTruthy()
       expect(screen.getByText('Commit with AI')).toBeTruthy()
       expect(screen.queryByText('Commit Merge')).toBeNull()
     })

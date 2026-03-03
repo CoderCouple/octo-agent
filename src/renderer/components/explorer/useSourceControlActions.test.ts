@@ -148,6 +148,88 @@ describe('useSourceControlActions', () => {
     })
   })
 
+  describe('handleCommit', () => {
+    it('calls git.commit with the message', async () => {
+      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
+      const onGitStatusRefresh = vi.fn()
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({
+          directory: '/repos/project',
+          onGitStatusRefresh,
+          data,
+        })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('fix: resolve issue')
+      })
+
+      expect(window.git.commit).toHaveBeenCalledWith('/repos/project', 'fix: resolve issue')
+      expect(onGitStatusRefresh).toHaveBeenCalled()
+    })
+
+    it('does nothing when no directory', async () => {
+      const data = makeData()
+      const { result } = renderHook(() =>
+        useSourceControlActions({ data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test')
+      })
+
+      expect(window.git.commit).not.toHaveBeenCalled()
+    })
+
+    it('sets error on commit failure', async () => {
+      vi.mocked(window.git.commit).mockResolvedValue({ success: false, error: 'nothing to commit' })
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test')
+      })
+
+      expect(data.setGitOpError).toHaveBeenCalledWith({ operation: 'Commit', message: 'nothing to commit' })
+    })
+
+    it('handles commit exception', async () => {
+      vi.mocked(window.git.commit).mockRejectedValue(new Error('network'))
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test')
+      })
+
+      expect(data.setGitOpError).toHaveBeenCalledWith({ operation: 'Commit', message: 'Error: network' })
+    })
+
+    it('sets and clears isCommitting state', async () => {
+      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test')
+      })
+
+      expect(data.setIsCommitting).toHaveBeenCalledWith(true)
+      expect(data.setIsCommitting).toHaveBeenCalledWith(false)
+    })
+  })
+
   describe('handleCommitWithAI', () => {
     it('sends AI commit prompt to agent terminal', async () => {
       const data = makeData()

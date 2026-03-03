@@ -1,11 +1,13 @@
 /**
  * Source control view for uncommitted changes with staging, committing, syncing, and conflict resolution.
  */
+import { useState } from 'react'
 import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus } from '../../store/sessions'
 import type { NavigationTarget } from '../../utils/fileNavigation'
 import { StatusBadge, BranchStatusCard } from './icons'
 import { statusLabel, getStatusColor } from '../../utils/explorerHelpers'
+import { CommitMessageDialog } from './CommitMessageDialog'
 
 interface SCWorkingViewProps {
   directory: string
@@ -19,6 +21,7 @@ interface SCWorkingViewProps {
   hasConflicts: boolean
   isCommitting: boolean
   isSyncing: boolean
+  onCommit: (message: string) => void
   onCommitWithAI: () => void
   onCommitMerge: () => void
   onResolveConflicts: () => void
@@ -245,7 +248,9 @@ function BehindMainBanner({ branchStatus, branchBaseName, behindMainCount, isFet
   )
 }
 
-function CommitArea({ isMerging, hasConflicts, isCommitting, onCommitWithAI, onCommitMerge, onResolveConflicts, askedAgentToResolve }: Pick<SCWorkingViewProps, 'isMerging' | 'hasConflicts' | 'isCommitting' | 'onCommitWithAI' | 'onCommitMerge' | 'onResolveConflicts' | 'askedAgentToResolve'>) {
+function CommitArea({ isMerging, hasConflicts, isCommitting, onCommit, onCommitWithAI, onCommitMerge, onResolveConflicts, askedAgentToResolve }: Pick<SCWorkingViewProps, 'isMerging' | 'hasConflicts' | 'isCommitting' | 'onCommit' | 'onCommitWithAI' | 'onCommitMerge' | 'onResolveConflicts' | 'askedAgentToResolve'>) {
+  const [showCommitDialog, setShowCommitDialog] = useState(false)
+
   return (
     <div className="px-3 py-2 border-b border-border">
       {isMerging ? (
@@ -272,12 +277,27 @@ function CommitArea({ isMerging, hasConflicts, isCommitting, onCommitWithAI, onC
           )}
         </div>
       ) : (
-        <button
-          onClick={onCommitWithAI}
-          className="w-full px-2 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/80"
-        >
-          Commit with AI
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCommitDialog(true)}
+            disabled={isCommitting}
+            className="flex-1 px-2 py-1.5 text-xs rounded border border-border text-text-primary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCommitting ? 'Committing...' : 'Commit'}
+          </button>
+          <button
+            onClick={onCommitWithAI}
+            className="flex-1 px-2 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/80"
+          >
+            Commit with AI
+          </button>
+        </div>
+      )}
+      {showCommitDialog && (
+        <CommitMessageDialog
+          onCommit={onCommit}
+          onClose={() => setShowCommitDialog(false)}
+        />
       )}
     </div>
   )
@@ -295,6 +315,7 @@ export function SCWorkingView({
   hasConflicts,
   isCommitting,
   isSyncing,
+  onCommit,
   onCommitWithAI,
   onCommitMerge,
   onResolveConflicts,
@@ -346,6 +367,7 @@ export function SCWorkingView({
         isMerging={isMerging}
         hasConflicts={hasConflicts}
         isCommitting={isCommitting}
+        onCommit={onCommit}
         onCommitWithAI={onCommitWithAI}
         onCommitMerge={onCommitMerge}
         onResolveConflicts={onResolveConflicts}

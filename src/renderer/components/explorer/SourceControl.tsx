@@ -188,6 +188,7 @@ export function SourceControl({
         hasConflicts={syncStatus?.hasConflicts ?? false}
         isCommitting={data.isCommitting}
         isSyncing={data.isSyncing}
+        onCommit={actions.handleCommit}
         onCommitWithAI={actions.handleCommitWithAI}
         onCommitMerge={actions.handleCommitMerge}
         onResolveConflicts={actions.handleResolveConflicts}

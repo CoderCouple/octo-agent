@@ -278,6 +278,26 @@ export function useSourceControlActions({
     }
   }
 
+  const handleCommit = async (message: string) => {
+    if (!directory) return
+    setIsCommitting(true)
+    setGitOpError(null)
+    try {
+      await withGitProgress(activeSessionId, async () => {
+        const result = await window.git.commit(directory, message)
+        if (result.success) {
+          onGitStatusRefresh?.()
+        } else {
+          setGitOpError({ operation: 'Commit', message: result.error || 'Commit failed' })
+        }
+      })
+    } catch (err) {
+      setGitOpError({ operation: 'Commit', message: String(err) })
+    } finally {
+      setIsCommitting(false)
+    }
+  }
+
   const handleCommitWithAI = async () => {
     if (!agentPtyId || !directory) return
     const fallback = 'Look at the current git diff and make a commit. Stage all relevant files, write a clear commit message that describes what changed and why, and commit. Do not commit any files that contain secrets or credentials.'
@@ -320,6 +340,7 @@ export function useSourceControlActions({
     handleStage,
     handleStageAll,
     handleUnstage,
+    handleCommit,
     handleCommitWithAI,
     handleCommitMerge,
     handleResolveConflicts,

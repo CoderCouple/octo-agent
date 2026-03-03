@@ -79,6 +79,7 @@ const mockActions = {
   handleStage: vi.fn(),
   handleStageAll: vi.fn(),
   handleUnstage: vi.fn(),
+  handleCommit: vi.fn(),
   handleCommitWithAI: vi.fn(),
   handleToggleCommit: vi.fn(),
 }
