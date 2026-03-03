@@ -37,6 +37,7 @@ vi.mock('../docker', () => ({
   ensureAgentInstalled: (...args: unknown[]) => mockEnsureAgentInstalled(...args),
   setupContainer: (...args: unknown[]) => mockSetupContainer(...args),
   acquireSetupLock: async () => () => {},
+  isSetupLockHeld: () => false,
   dockerSetupMessage: () => 'Docker not available',
   DEFAULT_DOCKER_IMAGE: 'node:22-slim',
 }))
@@ -708,10 +709,11 @@ describe('pty handlers', () => {
 
       await vi.advanceTimersByTimeAsync(300)
 
-      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
-        'pty:data:iso-oom',
-        expect.stringContaining('OOM'),
-      )
+      // Progress messages are sent first, then the error via displayTerminalError
+      const calls = mockSenderWindow.webContents.send.mock.calls
+        .filter((c: unknown[]) => c[0] === 'pty:data:iso-oom')
+        .map((c: unknown[]) => c[1] as string)
+      expect(calls.some((msg: string) => msg.includes('OOM'))).toBe(true)
       // No pty.spawn for the error display
       expect(mockPtySpawn).not.toHaveBeenCalled()
       vi.useRealTimers()

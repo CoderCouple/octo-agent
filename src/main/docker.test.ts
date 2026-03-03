@@ -201,17 +201,25 @@ describe('ensureAgentInstalled', () => {
 
   it('returns success if agent is already installed', async () => {
     mockExecFile.mockImplementation((_cmd: string, _args: string[], cb: (err: Error | null, result: { stdout: string }) => void) => {
-      cb(null, { stdout: '/usr/local/bin/claude\n' })
+      cb(null, { stdout: '' })
     })
 
     const lines: string[] = []
     const result = await ensureAgentInstalled('abc123', 'claude', (line) => lines.push(line))
     expect(result.success).toBe(true)
-    expect(lines).toHaveLength(0) // No install messages
+    // Only the "Checking agent installation..." progress message, no install messages
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toContain('Checking agent installation')
+    // Claude uses `test -x <known-path>` instead of `which`
+    expect(mockExecFile).toHaveBeenCalledWith(
+      'docker',
+      ['exec', '-u', 'node', '-e', 'HOME=/home/node', 'abc123', 'test', '-x', '/home/node/.local/bin/claude'],
+      expect.any(Function),
+    )
   })
 
   it('installs agent when not found and resolves on success', async () => {
-    // First call (which) fails, subsequent spawn succeeds
+    // First call (test -x) fails, subsequent spawn succeeds
     mockExecFile.mockImplementation((_cmd: string, _args: string[], cb: (err: Error | null) => void) => {
       cb(new Error('not found'))
     })
@@ -224,7 +232,7 @@ describe('ensureAgentInstalled', () => {
     const lines: string[] = []
     const promise = ensureAgentInstalled('abc123', 'claude', (line) => lines.push(line))
 
-    // Wait for async to reach spawn point (past the awaited which check)
+    // Wait for async to reach spawn point (past the awaited check)
     await new Promise((r) => process.nextTick(r))
 
     mockChild.stdout.emit('data', Buffer.from('added 42 packages\n'))
@@ -232,7 +240,8 @@ describe('ensureAgentInstalled', () => {
 
     const result = await promise
     expect(result.success).toBe(true)
-    expect(lines[0]).toContain('Installing claude')
+    expect(lines[0]).toContain('Checking agent installation')
+    expect(lines[1]).toContain('Installing claude')
     // Claude installs as 'node' user since its installer writes to ~/.claude/local/
     expect(mockSpawn).toHaveBeenCalledWith(
       'docker',
