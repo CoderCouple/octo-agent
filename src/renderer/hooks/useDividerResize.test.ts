@@ -8,6 +8,10 @@ function makeParams(overrides: Partial<Parameters<typeof useDividerResize>[0]> =
     fileViewerPosition: 'top' as const,
     sidebarWidth: 224,
     showSidebar: true,
+    showExplorer: false,
+    showTutorial: false,
+    explorerWidth: 256,
+    tutorialWidth: 320,
     onSidebarWidthChange: vi.fn(),
     onLayoutSizeChange: vi.fn(),
     ...overrides,
@@ -196,6 +200,54 @@ describe('useDividerResize', () => {
     // Above max (600 - 200 = 400) -> 400
     act(() => fireMouseEvent('mousemove', 800))
     expect(params.onLayoutSizeChange).toHaveBeenCalledWith('fileViewerSize', 400)
+  })
+
+  // --- tutorial drag ---
+  it('tutorial drag calls onLayoutSizeChange with tutorialPanelWidth clamped 200..500', () => {
+    const params = makeParams()
+    const { result } = renderHook(() => useDividerResize(params))
+
+    Object.defineProperty(result.current.mainContentRef, 'current', {
+      value: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 1200, bottom: 800, width: 1200, height: 800 }) },
+      writable: true,
+    })
+
+    act(() => {
+      result.current.handleMouseDown('tutorial')({ preventDefault: vi.fn() } as unknown as React.MouseEvent)
+    })
+
+    // Drag to 900px from left → right edge is 1200, so width = 1200 - 900 = 300
+    act(() => fireMouseEvent('mousemove', 900))
+    expect(params.onLayoutSizeChange).toHaveBeenCalledWith('tutorialPanelWidth', 300)
+
+    // Drag far right → below min → clamped to 200
+    act(() => fireMouseEvent('mousemove', 1100))
+    expect(params.onLayoutSizeChange).toHaveBeenCalledWith('tutorialPanelWidth', 200)
+
+    // Drag far left → above max → clamped to 500
+    act(() => fireMouseEvent('mousemove', 200))
+    expect(params.onLayoutSizeChange).toHaveBeenCalledWith('tutorialPanelWidth', 500)
+  })
+
+  // --- agent minimum width protection ---
+  it('sidebar drag is clamped to protect agent minimum width', () => {
+    // Small window: 600px wide, explorer visible at 256px, no tutorial
+    const params = makeParams({ showExplorer: true, explorerWidth: 256 })
+    const { result } = renderHook(() => useDividerResize(params))
+
+    Object.defineProperty(result.current.mainContentRef, 'current', {
+      value: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 600, bottom: 800, width: 600, height: 800 }) },
+      writable: true,
+    })
+
+    act(() => {
+      result.current.handleMouseDown('sidebar')({ preventDefault: vi.fn() } as unknown as React.MouseEvent)
+    })
+
+    // Try to drag sidebar to 300px. Agent would get 600 - 300 - 256 = 44px (below 200 min)
+    // Max sidebar = 600 - 256 - 200 = 144, but that's below SIDEBAR_MIN (150), so clamped to 150
+    act(() => fireMouseEvent('mousemove', 300))
+    expect(params.onSidebarWidthChange).toHaveBeenCalledWith(150)
   })
 
   // --- no ref available ---

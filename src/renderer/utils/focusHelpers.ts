@@ -37,6 +37,9 @@ export function focusAgentTerminal(): void {
  */
 export async function sendAgentPrompt(agentPtyId: string, prompt: string): Promise<void> {
   await window.pty.write(agentPtyId, prompt)
+  // Brief pause so the terminal finishes processing the pasted text before
+  // receiving Enter — without this, longer prompts can swallow the \r.
+  await new Promise(resolve => setTimeout(resolve, 50))
   await window.pty.write(agentPtyId, '\r')
   focusAgentTerminal()
 }

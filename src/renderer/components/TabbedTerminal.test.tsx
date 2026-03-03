@@ -94,6 +94,7 @@ beforeEach(() => {
         },
         branchStatus: 'in-progress',
         isArchived: false,
+        isRestored: false,
       },
     ],
   })
@@ -322,6 +323,7 @@ describe('TabbedTerminal', () => {
           },
           branchStatus: 'in-progress',
           isArchived: false,
+          isRestored: false,
         },
       ],
     })

@@ -12,6 +12,12 @@ import {
   getCurrentProfileId,
   setLoadedSessionCount,
 } from './sessionPersistence'
+import {
+  SIDEBAR_MIN, SIDEBAR_MAX,
+  EXPLORER_MIN, EXPLORER_MAX,
+  FILE_VIEWER_MIN_HEIGHT,
+  TUTORIAL_MIN, TUTORIAL_MAX,
+} from '../hooks/useDividerResize'
 
 export const DEFAULT_SIDEBAR_WIDTH = 224 // 14rem = 224px
 
@@ -22,6 +28,24 @@ const DEFAULT_LAYOUT_SIZES = {
   userTerminalHeight: 192, // 12rem = 192px
   diffPanelWidth: 320, // 20rem = 320px
   tutorialPanelWidth: 320,
+}
+
+// Clamp a value between min and max
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max))
+
+// Clamp layout sizes to respect minimums on load
+function clampLayoutSizes(sizes: typeof DEFAULT_LAYOUT_SIZES): typeof DEFAULT_LAYOUT_SIZES {
+  return {
+    ...sizes,
+    explorerWidth: clamp(sizes.explorerWidth, EXPLORER_MIN, EXPLORER_MAX),
+    fileViewerSize: Math.max(sizes.fileViewerSize, FILE_VIEWER_MIN_HEIGHT),
+    tutorialPanelWidth: clamp(sizes.tutorialPanelWidth, TUTORIAL_MIN, TUTORIAL_MAX),
+  }
+}
+
+// Clamp sidebar width on load
+function clampSidebarWidth(width: number): number {
+  return clamp(width, SIDEBAR_MIN, SIDEBAR_MAX)
 }
 
 // Default panel visibility for new sessions
@@ -165,7 +189,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             selectedFilePath: null,
             planFilePath: null,
             fileViewerPosition: sessionData.fileViewerPosition ?? 'top',
-            layoutSizes: { ...DEFAULT_LAYOUT_SIZES, ...(sessionData.layoutSizes ?? {}) },
+            layoutSizes: clampLayoutSizes({ ...DEFAULT_LAYOUT_SIZES, ...(sessionData.layoutSizes ?? {}) }),
             explorerFilter: sessionData.explorerFilter === 'all' ? 'files'
               : sessionData.explorerFilter === 'changed' ? 'source-control'
               : sessionData.explorerFilter ?? 'files',
@@ -183,6 +207,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             lastKnownPrNumber: sessionData.lastKnownPrNumber,
             lastKnownPrUrl: sessionData.lastKnownPrUrl,
             isArchived: sessionData.isArchived ?? false,
+            isRestored: true,
           }
           sessions.push(session)
         }
@@ -199,7 +224,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
           activeSessionId: (sessions.find((s) => !s.isArchived) ?? (sessions[0] as Session | undefined))?.id ?? null,
           isLoading: false,
           showSidebar: config.showSidebar ?? true,
-          sidebarWidth: config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
+          sidebarWidth: clampSidebarWidth(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH),
           toolbarPanels: migrateToolbarPanels(config.toolbarPanels),
           globalPanelVisibility,
         })
@@ -269,6 +294,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         terminalTabs: createDefaultTerminalTabs(),
         branchStatus: 'in-progress',
         isArchived: false,
+        isRestored: false,
       }
 
       const { sessions } = get()
