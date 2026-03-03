@@ -12,7 +12,7 @@ import type { IPty } from 'node-pty'
 import { isWindows, getDefaultShell, resolveWindowsCommand } from '../platform'
 import { HandlerContext } from './types'
 import { getScenarioData } from './scenarios'
-import { isDockerAvailable, ensureContainer, buildDockerExecArgs, dockerSetupMessage, imageExists, ensureAgentInstalled, setupContainer, acquireSetupLock, DEFAULT_DOCKER_IMAGE } from '../docker'
+import { isDockerAvailable, ensureContainer, buildDockerExecArgs, dockerSetupMessage, imageExists, ensureAgentInstalled, setupContainer, acquireSetupLock, isSetupLockHeld, DEFAULT_DOCKER_IMAGE } from '../docker'
 import { isDevcontainerCliAvailable, hasDevcontainerConfig, devcontainerUp, buildDevcontainerExecArgs, devcontainerSetupMessage } from '../devcontainer'
 
 /**
@@ -111,6 +111,7 @@ function createIsolatedPty(
     sendToTerminal('\x1b[2m── Starting container for agent ──\x1b[22m\r\n')
 
     // Check Docker availability (before acquiring lock — fast check)
+    sendToTerminal('\x1b[2m  Checking Docker...\x1b[22m\r\n')
     const status = await isDockerAvailable()
     if (!status.available) {
       displayTerminalError(id, dockerSetupMessage(status), senderWindow)
@@ -120,6 +121,7 @@ function createIsolatedPty(
     // Check custom image exists (before acquiring lock — fast check)
     const img = dockerImage || DEFAULT_DOCKER_IMAGE
     if (dockerImage) {
+      sendToTerminal('\x1b[2m  Checking image...\x1b[22m\r\n')
       const hasImage = await imageExists(img)
       if (!hasImage) {
         displayTerminalError(id,
@@ -132,6 +134,10 @@ function createIsolatedPty(
     // Acquire per-repo lock for container creation + setup + agent install.
     // Second session for the same repo waits here, then gets the already-running
     // container with the agent already installed.
+    const lockContended = isSetupLockHeld(containerKey)
+    if (lockContended) {
+      sendToTerminal('\x1b[2m  Waiting for container setup...\x1b[22m\r\n')
+    }
     const releaseLock = await acquireSetupLock(containerKey)
     let containerId: string
     try {

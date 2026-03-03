@@ -43,6 +43,11 @@ const AGENT_INSTALL_COMMANDS: Record<string, string> = {
  */
 const setupLocks = new Map<string, Promise<void>>()
 
+/** Check if a setup lock is currently held for a repo. */
+export function isSetupLockHeld(repoDir: string): boolean {
+  return setupLocks.has(repoDir)
+}
+
 /** Acquire a per-repo lock. Returns a release function. */
 export function acquireSetupLock(repoDir: string): Promise<() => void> {
   const prev = setupLocks.get(repoDir) ?? Promise.resolve()
@@ -177,6 +182,11 @@ export async function setupContainer(
 /**
  * Check if an agent command is installed in the container; if not, install it.
  */
+/** Known install paths for agents that install outside the default PATH. */
+const AGENT_KNOWN_PATHS: Record<string, string> = {
+  claude: '/home/node/.local/bin/claude',
+}
+
 export async function ensureAgentInstalled(
   containerId: string,
   agentCommand: string,
@@ -187,9 +197,19 @@ export async function ensureAgentInstalled(
   const needsUserInstall = agentCommand === 'claude'
   const userArgs = needsUserInstall ? ['-u', 'node', '-e', 'HOME=/home/node'] : []
 
-  // Check if agent is already installed (as the user who will run it)
+  onProgress(`${ANSI.dim('  Checking agent installation...')}\r\n`)
+
+  // Check if agent is already installed (as the user who will run it).
+  // For agents with known install paths (e.g. claude → ~/.local/bin/claude),
+  // check the path directly since it may not be in the container's default PATH.
+  // For others, use a login shell so PATH extensions from .bashrc/.profile are loaded.
+  const knownPath = AGENT_KNOWN_PATHS[agentCommand]
   try {
-    await execFileAsync('docker', ['exec', ...userArgs, containerId, 'which', agentCommand])
+    if (knownPath) {
+      await execFileAsync('docker', ['exec', ...userArgs, containerId, 'test', '-x', knownPath])
+    } else {
+      await execFileAsync('docker', ['exec', ...userArgs, containerId, 'bash', '-l', '-c', `which ${agentCommand}`])
+    }
     return { success: true }
   } catch {
     // Not installed — continue to install
