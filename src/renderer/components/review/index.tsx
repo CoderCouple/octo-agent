@@ -97,7 +97,7 @@ function ReviewEmptyState({
                 Review instructions have been sent to your agent terminal.
               </div>
               <div className="text-xs text-text-secondary">
-                The review will appear here once your agent writes it to <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/review.md</code>
+                The review will appear here once your agent writes it to <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/output/review.md</code>
               </div>
             </>
           )}
@@ -289,7 +289,7 @@ export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanel
           <div className="flex items-center justify-center h-full text-text-primary text-sm px-4 text-center">
             <div>
               <p className="mb-2">Click "Generate Review" to get an AI-generated review of this PR.</p>
-              <p className="text-xs text-text-secondary">The review will be written as markdown to <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/review.md</code></p>
+              <p className="text-xs text-text-secondary">The review will be written as markdown to <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/output/review.md</code></p>
               <p className="text-xs text-text-secondary mt-1">Customize the review process by editing <code className="font-mono bg-bg-tertiary px-1 rounded">.claude/commands/broomy-action-review-md.md</code></p>
             </div>
           </div>

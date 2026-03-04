@@ -130,11 +130,11 @@ ${prDescription}
 1. Run \`git diff origin/${baseBranch}...HEAD\` to see the full diff
 2. Run \`git rev-parse HEAD\` to get the current commit SHA (for the headCommit field)
 3. Examine the changed files to understand the context
-4. Produce a structured JSON review and write it to \`.broomy/review.json\`
+4. Produce a structured JSON review and write it to \`.broomy/output/review.json\`
 
 ## Output Format
 
-Write the following JSON to \`.broomy/review.json\`:
+Write the following JSON to \`.broomy/output/review.json\`:
 
 \`\`\`json
 ${schema}
@@ -153,7 +153,7 @@ ${reviewInstructions}
   prompt += `
 ## Action
 
-Please analyze the PR now and write the result to \`.broomy/review.json\`.
+Please analyze the PR now and write the result to \`.broomy/output/review.json\`.
 `
 
   return prompt
@@ -192,7 +192,7 @@ ${prDescription}
 2. Run \`git log ${previousHeadCommit}..HEAD --oneline\` to see what commits were added
 3. Run \`git diff origin/${baseBranch}...HEAD\` to see the full current diff
 4. Run \`git rev-parse HEAD\` to get the current commit SHA (for the headCommit field)
-5. Produce a structured JSON review and write it to \`.broomy/review.json\`
+5. Produce a structured JSON review and write it to \`.broomy/output/review.json\`
 
 ## Responses to Your Comments
 
@@ -243,7 +243,7 @@ Populate the \`changesSinceLastReview\` field with:
 
 ## Output Format
 
-Write the following JSON to \`.broomy/review.json\`:
+Write the following JSON to \`.broomy/output/review.json\`:
 
 \`\`\`json
 ${schema}
@@ -262,14 +262,14 @@ ${reviewInstructions}
   prompt += `
 ## Action
 
-Please analyze the changes since the last review and write the result to \`.broomy/review.json\`.
+Please analyze the changes since the last review and write the result to \`.broomy/output/review.json\`.
 `
 
   return prompt
 }
 
 /**
- * Build a markdown-format review prompt that instructs the agent to write `.broomy/review.md`.
+ * Build a markdown-format review prompt that instructs the agent to write `.broomy/output/review.md`.
  */
 export function buildMarkdownReviewPrompt(
   session: Session,
@@ -309,7 +309,7 @@ ${prDescription}
   prompt += `
 ## Output Format
 
-Write your review to \`.broomy/review.md\` as a markdown document. Follow these rules:
+Write your review to \`.broomy/output/review.md\` as a markdown document. Follow these rules:
 
 - Use \`## Heading\` for each major section (the UI will auto-collapse these as collapsible sections)
 - Use \`### Sub-heading\` for individual issues, findings, or change groups within a section
@@ -369,7 +369,7 @@ ${reviewInstructions}
   prompt += `
 ## Action
 
-Please analyze the PR now and write the result to \`.broomy/review.md\`.
+Please analyze the PR now and write the result to \`.broomy/output/review.md\`.
 `
 
   return prompt

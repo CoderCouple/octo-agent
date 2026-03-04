@@ -102,7 +102,7 @@ async function handleExists(ctx: HandlerContext, filePath: string) {
       return true
     }
     // Review/comments files always exist for mock data in any scenario
-    if (/\.broomy[/\\](review|comments)\.json$/.exec(filePath)) {
+    if (/\.broomy[/\\]output[/\\](review|comments)\.json$/.exec(filePath)) {
       return true
     }
     if (/\.broomy[/\\]review\.md$/.exec(filePath)) {

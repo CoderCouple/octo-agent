@@ -36,8 +36,9 @@ describe('useReviewData', () => {
     )
 
     expect(result.current.broomyDir).toBe('/test/repo/.broomy')
-    expect(result.current.reviewFilePath).toBe('/test/repo/.broomy/review.md')
-    expect(result.current.promptFilePath).toBe('/test/repo/.broomy/review-prompt.md')
+    expect(result.current.outputDir).toBe('/test/repo/.broomy/output')
+    expect(result.current.reviewFilePath).toBe('/test/repo/.broomy/output/review.md')
+    expect(result.current.promptFilePath).toBe('/test/repo/.broomy/output/review-prompt.md')
   })
 
   it('loads review markdown on mount when file exists', async () => {

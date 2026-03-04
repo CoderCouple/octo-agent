@@ -190,9 +190,9 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             planFilePath: null,
             fileViewerPosition: sessionData.fileViewerPosition ?? 'top',
             layoutSizes: clampLayoutSizes({ ...DEFAULT_LAYOUT_SIZES, ...(sessionData.layoutSizes ?? {}) }),
-            explorerFilter: sessionData.explorerFilter === 'all' ? 'files'
+            explorerFilter: sessionData.explorerFilter === 'all' ? 'source-control'
               : sessionData.explorerFilter === 'changed' ? 'source-control'
-              : sessionData.explorerFilter ?? 'files',
+              : sessionData.explorerFilter ?? 'source-control',
             lastMessage: null,
             lastMessageTime: null,
             isUnread: false,
@@ -285,7 +285,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         planFilePath: null,
         fileViewerPosition: 'top',
         layoutSizes: { ...DEFAULT_LAYOUT_SIZES },
-        explorerFilter: isReview ? 'review' : 'files',
+        explorerFilter: isReview ? 'review' : 'source-control',
         lastMessage: null,
         lastMessageTime: null,
         isUnread: false,

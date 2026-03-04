@@ -16,7 +16,7 @@ beforeEach(() => {
 
 function makeOptions(overrides = {}) {
   return {
-    reviewFilePath: '/test/repo/.broomy/review.md',
+    reviewFilePath: '/test/repo/.broomy/output/review.md',
     sessionDirectory: '/test/repo',
     setReviewMarkdown: vi.fn(),
     setWaitingForAgent: vi.fn(),
