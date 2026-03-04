@@ -6,7 +6,6 @@ import { useSessionStore } from '../store/sessions'
 
 beforeEach(() => {
   vi.clearAllMocks()
-  document.body.innerHTML = ''
 })
 
 describe('sendAgentPrompt', () => {

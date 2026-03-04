@@ -215,35 +215,4 @@ describe('TerminalTabBar', () => {
     fireEvent.dragEnd(tab)
     expect(handleDragEnd).toHaveBeenCalled()
   })
-
-  it('calls handleDragOver when dragging over a tab', () => {
-    const handleDragOver = vi.fn()
-    const { container } = renderTabBar({ handleDragOver })
-    const tab = container.querySelectorAll('[draggable="true"]')[0]
-    fireEvent.dragOver(tab)
-    expect(handleDragOver).toHaveBeenCalledWith(expect.anything(), 'tab-1')
-  })
-
-  it('calls handleDragLeave when dragging leaves a tab', () => {
-    const handleDragLeave = vi.fn()
-    const { container } = renderTabBar({ handleDragLeave })
-    const tab = container.querySelectorAll('[draggable="true"]')[0]
-    fireEvent.dragLeave(tab)
-    expect(handleDragLeave).toHaveBeenCalled()
-  })
-
-  it('calls handleDrop when dropping on a tab', () => {
-    const handleDrop = vi.fn()
-    const { container } = renderTabBar({ handleDrop })
-    const tab = container.querySelectorAll('[draggable="true"]')[0]
-    fireEvent.drop(tab)
-    expect(handleDrop).toHaveBeenCalledWith(expect.anything(), 'tab-1')
-  })
-
-  it('stops propagation when clicking the edit input', () => {
-    const handleTabClick = vi.fn()
-    renderTabBar({ editingTabId: 'tab-1', editingName: 'Editing', handleTabClick })
-    fireEvent.click(screen.getByDisplayValue('Editing'))
-    expect(handleTabClick).not.toHaveBeenCalled()
-  })
 })

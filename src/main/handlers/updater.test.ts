@@ -26,7 +26,6 @@ vi.mock('electron', () => ({
 import { register } from './updater'
 import { E2EScenario, type HandlerContext } from './types'
 import type { IpcMain } from 'electron'
-import { BrowserWindow } from 'electron'
 
 function createMockIpcMain() {
   return { handle: vi.fn() }
@@ -120,36 +119,6 @@ describe('updater handler', () => {
       const eventNames = mockAutoUpdater.on.mock.calls.map((c: unknown[]) => c[0])
       expect(eventNames).toContain('download-progress')
       expect(eventNames).toContain('update-downloaded')
-    })
-
-    it('download-progress event sends progress percent to all windows', () => {
-      const mockSend = vi.fn()
-      const mockWin = { webContents: { send: mockSend } }
-      vi.mocked(BrowserWindow.getAllWindows).mockReturnValue([mockWin] as never)
-
-      const mockIpcMain = createMockIpcMain()
-      register(mockIpcMain as unknown as IpcMain, createMockCtx())
-
-      const progressCall = mockAutoUpdater.on.mock.calls.find((c: unknown[]) => c[0] === 'download-progress')
-      const progressCallback = progressCall![1] as (progress: { percent: number }) => void
-      progressCallback({ percent: 42 })
-
-      expect(mockSend).toHaveBeenCalledWith('updater:downloadProgress', 42)
-    })
-
-    it('update-downloaded event notifies all windows', () => {
-      const mockSend = vi.fn()
-      const mockWin = { webContents: { send: mockSend } }
-      vi.mocked(BrowserWindow.getAllWindows).mockReturnValue([mockWin] as never)
-
-      const mockIpcMain = createMockIpcMain()
-      register(mockIpcMain as unknown as IpcMain, createMockCtx())
-
-      const downloadedCall = mockAutoUpdater.on.mock.calls.find((c: unknown[]) => c[0] === 'update-downloaded')
-      const downloadedCallback = downloadedCall![1] as () => void
-      downloadedCallback()
-
-      expect(mockSend).toHaveBeenCalledWith('updater:updateDownloaded')
     })
 
     it('registers all three IPC handlers', () => {

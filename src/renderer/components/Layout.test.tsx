@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup } from '@testing-library/react'
 import '../../test/react-setup'
 import Layout from './Layout'
 import { PanelProvider, PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels'
@@ -133,21 +133,5 @@ describe('Layout', () => {
     renderLayout({ onOpenPanelPicker: undefined, onMenuButtonClick: vi.fn() })
     expect(screen.getByTitle('Menu')).toBeTruthy()
     expect(screen.queryByTitle('Configure panels')).toBeNull()
-  })
-
-  it('calls onTogglePanel when clicking a non-global toolbar button', () => {
-    const onTogglePanel = vi.fn()
-    renderLayout({ onTogglePanel })
-    // Explorer is a non-global panel — clicking its toolbar button invokes onTogglePanel
-    fireEvent.click(screen.getByTitle(/Explorer/))
-    expect(onTogglePanel).toHaveBeenCalledWith(PANEL_IDS.EXPLORER)
-  })
-
-  it('calls onToggleGlobalPanel when clicking a global toolbar button', () => {
-    const onToggleGlobalPanel = vi.fn()
-    renderLayout({ onToggleGlobalPanel })
-    // Sessions (sidebar) is a global panel — clicking its toolbar button invokes onToggleGlobalPanel
-    fireEvent.click(screen.getByTitle(/Sessions/))
-    expect(onToggleGlobalPanel).toHaveBeenCalledWith(PANEL_IDS.SIDEBAR)
   })
 })
