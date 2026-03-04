@@ -32,6 +32,11 @@ vi.mock('electron', () => ({
 vi.mock('../platform', () => ({
   getExecShell: () => '/bin/bash',
   normalizePath: (p: string) => p.replace(/\\/g, '/'),
+  getAvailableShells: () => [
+    { path: '/bin/zsh', name: 'zsh', isDefault: true },
+    { path: '/bin/bash', name: 'bash', isDefault: false },
+  ],
+  getDefaultShell: () => '/bin/zsh',
 }))
 
 // Build a minimal HandlerContext
@@ -232,6 +237,129 @@ describe('shell handlers', () => {
 
       await handlers['dialog:openFolder'](mockEvent)
       expect(mockDialogShowOpenDialog).toHaveBeenCalledWith(mockMainWin, expect.any(Object))
+    })
+  })
+
+  describe('shells:list', () => {
+    it('returns E2E mock shells in E2E mode', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx({ isE2ETest: true })
+      register(mockIpcMain as never, ctx)
+
+      const result = await handlers['shells:list'](mockEvent)
+      expect(result).toHaveLength(3)
+      expect(result[0].isDefault).toBe(true)
+    })
+
+    it('returns available shells in normal mode', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      const result = await handlers['shells:list'](mockEvent)
+      expect(result).toHaveLength(2)
+      expect(result[0].path).toBe('/bin/zsh')
+    })
+  })
+
+  describe('window controls', () => {
+    it('window:minimize does nothing in E2E mode', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx({ isE2ETest: true })
+      register(mockIpcMain as never, ctx)
+
+      await handlers['window:minimize'](mockEvent)
+      expect(mockBrowserWindowFromWebContents).not.toHaveBeenCalled()
+    })
+
+    it('window:minimize calls minimize on sender window', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      const mockMin = vi.fn()
+      mockBrowserWindowFromWebContents.mockReturnValue({ minimize: mockMin })
+
+      await handlers['window:minimize'](mockEvent)
+      expect(mockMin).toHaveBeenCalled()
+    })
+
+    it('window:maximize toggles maximize', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      const mockMaximize = vi.fn()
+      const mockUnmaximize = vi.fn()
+      mockBrowserWindowFromWebContents.mockReturnValue({
+        isMaximized: () => false,
+        maximize: mockMaximize,
+        unmaximize: mockUnmaximize,
+      })
+
+      await handlers['window:maximize'](mockEvent)
+      expect(mockMaximize).toHaveBeenCalled()
+    })
+
+    it('window:maximize unmaximizes when already maximized', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      const mockMaximize = vi.fn()
+      const mockUnmaximize = vi.fn()
+      mockBrowserWindowFromWebContents.mockReturnValue({
+        isMaximized: () => true,
+        maximize: mockMaximize,
+        unmaximize: mockUnmaximize,
+      })
+
+      await handlers['window:maximize'](mockEvent)
+      expect(mockUnmaximize).toHaveBeenCalled()
+      expect(mockMaximize).not.toHaveBeenCalled()
+    })
+
+    it('window:close closes the sender window', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      const mockClose = vi.fn()
+      mockBrowserWindowFromWebContents.mockReturnValue({ close: mockClose })
+
+      await handlers['window:close'](mockEvent)
+      expect(mockClose).toHaveBeenCalled()
+    })
+
+    it('window:close does nothing in E2E mode', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx({ isE2ETest: true })
+      register(mockIpcMain as never, ctx)
+
+      await handlers['window:close'](mockEvent)
+      expect(mockBrowserWindowFromWebContents).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('shell:openExternal E2E', () => {
+    it('does nothing in E2E mode', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx({ isE2ETest: true })
+      register(mockIpcMain as never, ctx)
+
+      await handlers['shell:openExternal'](mockEvent, 'https://example.com')
+      expect(mockShellOpenExternal).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('menu:appMenuPopup', () => {
+    it('returns null in E2E mode', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx({ isE2ETest: true })
+      register(mockIpcMain as never, ctx)
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBeNull()
     })
   })
 

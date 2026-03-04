@@ -371,4 +371,31 @@ describe('ghCore handlers', () => {
       expect(result).toBeNull()
     })
   })
+
+  describe('gh:currentUser', () => {
+    it('returns test-user in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:currentUser'](null)
+      expect(result).toBe('test-user')
+    })
+
+    it('returns login from gh api', async () => {
+      // promisify mock returns fn as-is, so execFileAsync === execFile
+      vi.mocked(execFile).mockReturnValue({ stdout: 'octocat\n', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:currentUser'](null)
+      expect(result).toBe('octocat')
+    })
+
+    it('returns null on error', async () => {
+      vi.mocked(execFile).mockImplementation(() => {
+        throw new Error('auth fail')
+      })
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:currentUser'](null)
+      expect(result).toBeNull()
+    })
+  })
 })
