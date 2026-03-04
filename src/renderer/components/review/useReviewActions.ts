@@ -8,7 +8,46 @@ import { buildMarkdownReviewPrompt } from '../../utils/reviewPromptBuilder'
 import { sendSkillAwarePrompt } from '../../utils/skillAwarePrompt'
 import type { ReviewDataState } from './useReviewData'
 
-async function checkGitignore(directory: string): Promise<boolean> {
+/**
+ * Check if .broomy/output/ is gitignored (via .broomy/.gitignore).
+ */
+async function checkOutputGitignore(directory: string): Promise<boolean> {
+  try {
+    const broomyGitignorePath = `${directory}/.broomy/.gitignore`
+    const exists = await window.fs.exists(broomyGitignorePath)
+    if (!exists) return false
+
+    const content = await window.fs.readFile(broomyGitignorePath)
+    const lines = content.split(/\r?\n/).map((l: string) => l.trim())
+    return lines.some((line: string) => line === 'output' || line === 'output/' || line === '/output' || line === '/output/')
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Create .broomy/.gitignore to ignore the output/ subdirectory.
+ */
+async function addOutputGitignore(directory: string): Promise<void> {
+  const broomyDir = `${directory}/.broomy`
+  await window.fs.mkdir(broomyDir)
+  const gitignorePath = `${broomyDir}/.gitignore`
+  const exists = await window.fs.exists(gitignorePath)
+  if (exists) {
+    const content = await window.fs.readFile(gitignorePath)
+    const lines = content.split(/\r?\n/).map((l: string) => l.trim())
+    if (!lines.some((line: string) => line === 'output' || line === 'output/' || line === '/output' || line === '/output/')) {
+      await window.fs.appendFile(gitignorePath, '\n/output/\n')
+    }
+  } else {
+    await window.fs.writeFile(gitignorePath, '# Broomy generated files\n/output/\n')
+  }
+}
+
+/**
+ * Check if .broomy/ itself is in the repo's .gitignore (legacy pattern).
+ */
+export async function checkLegacyBroomyGitignore(directory: string): Promise<boolean> {
   try {
     const gitignorePath = `${directory}/.gitignore`
     const exists = await window.fs.exists(gitignorePath)
@@ -22,13 +61,31 @@ async function checkGitignore(directory: string): Promise<boolean> {
   }
 }
 
-async function addToGitignore(directory: string): Promise<void> {
-  const gitignorePath = `${directory}/.gitignore`
-  const exists = await window.fs.exists(gitignorePath)
-  if (exists) {
-    await window.fs.appendFile(gitignorePath, '\n# Broomy review data\n.broomy/\n')
-  } else {
-    await window.fs.writeFile(gitignorePath, '# Broomy review data\n.broomy/\n')
+/**
+ * Remove .broomy/ from the repo's .gitignore (legacy cleanup).
+ */
+export async function removeLegacyBroomyGitignore(directory: string): Promise<void> {
+  try {
+    const gitignorePath = `${directory}/.gitignore`
+    const exists = await window.fs.exists(gitignorePath)
+    if (!exists) return
+
+    const content = await window.fs.readFile(gitignorePath)
+    const lines = content.split(/\r?\n/)
+    const filtered = lines.filter((line: string) => {
+      const trimmed = line.trim()
+      // Remove .broomy gitignore entries and their comment headers
+      if (trimmed === '.broomy' || trimmed === '.broomy/' || trimmed === '/.broomy' || trimmed === '/.broomy/') return false
+      return true
+    })
+    // Also remove "# Broomy review data" comment lines that preceded the entry
+    const cleaned = filtered.filter((line: string, i: number) => {
+      if (line.trim() === '# Broomy review data' && (i === filtered.length - 1 || filtered[i + 1]?.trim() === '')) return false
+      return true
+    })
+    await window.fs.writeFile(gitignorePath, cleaned.join('\n'))
+  } catch {
+    // Non-fatal
   }
 }
 
@@ -47,7 +104,7 @@ export function useReviewActions(
   state: ReviewDataState,
 ): ReviewActions {
   const {
-    broomyDir, promptFilePath,
+    broomyDir, outputDir, promptFilePath,
     setFetching, setWaitingForAgent, setFetchingStatus,
     setError, setShowGitignoreModal, setPendingGenerate,
   } = state
@@ -80,8 +137,9 @@ export function useReviewActions(
       setFetching(false)
       setWaitingForAgent(true)
 
-      // Create .broomy directory
+      // Create .broomy/output directory
       await window.fs.mkdir(broomyDir)
+      await window.fs.mkdir(outputDir)
 
       // Fetch previous head commit for re-review detection
       let previousHeadCommit: string | undefined
@@ -121,14 +179,14 @@ export function useReviewActions(
       await window.fs.writeFile(promptFilePath, prompt)
 
       // Write context for the skill
-      await window.fs.writeFile(`${broomyDir}/context.json`, JSON.stringify({
+      await window.fs.writeFile(`${outputDir}/context.json`, JSON.stringify({
         prNumber: session.prNumber,
         prBaseBranch: session.prBaseBranch || 'main',
         prUrl: session.prUrl,
       }, null, 2))
 
       // Send command to agent terminal (skill-aware)
-      const fallback = 'Please read and follow the instructions in .broomy/review-prompt.md'
+      const fallback = 'Please read and follow the instructions in .broomy/output/review-prompt.md'
       await sendSkillAwarePrompt({
         action: 'review-md',
         agentPtyId: session.agentPtyId!,
@@ -151,9 +209,9 @@ export function useReviewActions(
       return
     }
 
-    // Check gitignore first
-    const inGitignore = await checkGitignore(session.directory)
-    if (!inGitignore) {
+    // Check if output gitignore is set up
+    const hasOutputGitignore = await checkOutputGitignore(session.directory)
+    if (!hasOutputGitignore) {
       setPendingGenerate(true)
       setShowGitignoreModal(true)
       return
@@ -164,9 +222,9 @@ export function useReviewActions(
 
   const handleGitignoreAdd = async () => {
     try {
-      await addToGitignore(session.directory)
+      await addOutputGitignore(session.directory)
     } catch (err) {
-      setError(`Failed to update .gitignore: ${err instanceof Error ? err.message : String(err)}`)
+      setError(`Failed to create .broomy/.gitignore: ${err instanceof Error ? err.message : String(err)}`)
       return
     }
     await proceedWithGeneration()

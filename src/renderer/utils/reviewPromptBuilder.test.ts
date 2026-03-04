@@ -29,7 +29,7 @@ describe('buildReviewPrompt', () => {
     expect(result).toContain('"prNumber": 42')
     expect(result).toContain('"prTitle": "Add feature"')
     expect(result).toContain('git diff origin/main...HEAD')
-    expect(result).toContain('.broomy/review.json')
+    expect(result).toContain('.broomy/output/review.json')
     expect(result).not.toContain('changesSinceLastReview')
   })
 
@@ -192,7 +192,7 @@ describe('buildMarkdownReviewPrompt', () => {
     const result = buildMarkdownReviewPrompt(session, '', undefined)
 
     expect(result).toContain('PR Review')
-    expect(result).toContain('.broomy/review.md')
+    expect(result).toContain('.broomy/output/review.md')
     expect(result).toContain('## Heading')
     expect(result).toContain('- [ ]')
     expect(result).toContain('- [x]')
@@ -243,6 +243,6 @@ describe('buildMarkdownReviewPrompt', () => {
     const result = buildMarkdownReviewPrompt(session, '', undefined)
 
     expect(result).toContain('## Action')
-    expect(result).toContain('.broomy/review.md')
+    expect(result).toContain('.broomy/output/review.md')
   })
 })

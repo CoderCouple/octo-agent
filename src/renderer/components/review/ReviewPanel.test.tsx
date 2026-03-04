@@ -15,8 +15,9 @@ const mockReviewDataState = {
   showGitignoreModal: false,
   mergeBase: 'abc123',
   broomyDir: '/test/.broomy',
-  reviewFilePath: '/test/.broomy/review.md',
-  promptFilePath: '/test/.broomy/review-prompt.md',
+  outputDir: '/test/.broomy/output',
+  reviewFilePath: '/test/.broomy/output/review.md',
+  promptFilePath: '/test/.broomy/output/review-prompt.md',
   pendingGenerate: false,
   setReviewMarkdown: vi.fn(),
 

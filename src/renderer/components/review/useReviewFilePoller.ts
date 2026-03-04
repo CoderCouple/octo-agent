@@ -1,5 +1,5 @@
 /**
- * Hook that polls .broomy/review.md for changes and updates state when the file changes on disk.
+ * Hook that polls .broomy/output/review.md for changes and updates state when the file changes on disk.
  * Also resolves `<!-- include: path -->` directives by inlining referenced files.
  */
 import { useEffect, useRef } from 'react'

@@ -473,7 +473,7 @@ const DEFAULT: ScenarioData = {
       return 'export function add(a: number, b: number): number {\n  return a + b\n}\n\nexport function multiply(a: number, b: number): number {\n  return a * b\n}\n'
     }
     // Default scenario markdown review data (dark mode theme)
-    if (/\.broomy[/\\]review\.md$/.exec(filePath)) {
+    if (/\.broomy[/\\]output[/\\]review\.md$/.exec(filePath)) {
       return [
         '## Overview',
         'Add dark mode theme support with user preference persistence. Uses CSS custom properties for theming with a React context provider. Theme preference persisted in localStorage.',
@@ -508,7 +508,7 @@ const DEFAULT: ScenarioData = {
       ].join('\n')
     }
     // Default scenario review data (dark mode theme) — legacy JSON format
-    if (/\.broomy[/\\]review\.json$/.exec(filePath) || /broomy-review-[^/\\]+[/\\]review\.json$/.exec(filePath)) {
+    if (/\.broomy[/\\]output[/\\]review\.json$/.exec(filePath) || /broomy-review-[^/\\]+[/\\]review\.json$/.exec(filePath)) {
       return JSON.stringify({
         generatedAt: '2025-01-15T10:30:00Z',
         headCommit: 'abc123',
@@ -550,7 +550,7 @@ const DEFAULT: ScenarioData = {
         ],
       })
     }
-    if (/\.broomy[/\\]comments\.json$/.exec(filePath) || /\/tmp\/broomy-review-[^/]+\/comments\.json$/.exec(filePath)) {
+    if (/\.broomy[/\\]output[/\\]comments\.json$/.exec(filePath) || /\/tmp\/broomy-review-[^/]+\/comments\.json$/.exec(filePath)) {
       return '[]'
     }
     return null

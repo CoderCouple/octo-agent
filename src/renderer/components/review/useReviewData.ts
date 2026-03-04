@@ -16,6 +16,7 @@ export interface ReviewDataState {
   pendingGenerate: boolean
   mergeBase: string
   broomyDir: string
+  outputDir: string
   reviewFilePath: string
   promptFilePath: string
   setReviewMarkdown: React.Dispatch<React.SetStateAction<string | null>>
@@ -40,10 +41,11 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
   const [pendingGenerate, setPendingGenerate] = useState(false)
   const [mergeBase, setMergeBase] = useState<string>('')
 
-  // All files live in .broomy folder in the repo
+  // Generated files live in .broomy/output/ (gitignored via .broomy/.gitignore)
   const broomyDir = `${sessionDirectory}/.broomy`
-  const reviewFilePath = `${broomyDir}/review.md`
-  const promptFilePath = `${broomyDir}/review-prompt.md`
+  const outputDir = `${broomyDir}/output`
+  const reviewFilePath = `${outputDir}/review.md`
+  const promptFilePath = `${outputDir}/review-prompt.md`
 
   // Reset state when session changes
   useEffect(() => {
@@ -103,6 +105,7 @@ export function useReviewData(sessionId: string, sessionDirectory: string, prBas
     pendingGenerate,
     mergeBase,
     broomyDir,
+    outputDir,
     reviewFilePath,
     promptFilePath,
     setReviewMarkdown,
