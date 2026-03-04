@@ -3,6 +3,7 @@
  */
 import { useEffect, useState } from 'react'
 import { getViewersForFile, isTextContent } from '../components/fileViewers'
+import { hasKnownTextExtension } from '../components/fileViewers/MonacoViewer'
 import type { FileViewerPlugin } from '../components/fileViewers'
 import type { FileStatus, ViewMode } from '../components/FileViewer'
 
@@ -112,8 +113,9 @@ export function useFileLoading({
         // Image viewer doesn't need text content
         if (viewer.id === 'image') return true
         // Monaco viewer can handle any text content (including empty files)
+        // Skip content check for files with known text extensions
         if (viewer.id === 'monaco') {
-          return isTextContent(data)
+          return hasKnownTextExtension(filePath) || isTextContent(data)
         }
         // Other viewers need content
         return !!data
