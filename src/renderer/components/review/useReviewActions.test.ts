@@ -105,7 +105,7 @@ describe('useReviewActions', () => {
       result.current.handleOpenPrUrl()
     })
 
-    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/pr/42')
+    expect(onSelectFile).toHaveBeenCalledWith('https://github.com/pr/42', false)
   })
 
   it('handleGitignoreCancel closes modal and resets pending', () => {

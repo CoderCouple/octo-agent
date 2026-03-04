@@ -245,4 +245,21 @@ describe('buildMarkdownReviewPrompt', () => {
     expect(result).toContain('## Action')
     expect(result).toContain('.broomy/output/review.md')
   })
+
+  it('instructs to use PR diff URLs when prUrl is available', () => {
+    const session = makeSession({ prUrl: 'https://github.com/org/repo/pull/42' })
+    const result = buildMarkdownReviewPrompt(session, '', undefined)
+
+    expect(result).toContain('MUST point to the PR diff view')
+    expect(result).toContain('https://github.com/org/repo/pull/42/files')
+    expect(result).toContain('shasum -a 256')
+  })
+
+  it('uses generic diff URL guidance when prUrl is not available', () => {
+    const session = makeSession()
+    const result = buildMarkdownReviewPrompt(session, '', undefined)
+
+    expect(result).toContain('MUST point to the PR diff view')
+    expect(result).toContain('pull/N/files')
+  })
 })

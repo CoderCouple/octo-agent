@@ -233,7 +233,7 @@ export function useReviewActions(
   const handleGitignoreContinue = () => proceedWithGeneration()
   const handleGitignoreCancel = () => { setShowGitignoreModal(false); setPendingGenerate(false) }
 
-  const handleOpenPrUrl = useCallback(() => { if (session.prUrl) void window.shell.openExternal(session.prUrl) }, [session.prUrl])
+  const handleOpenPrUrl = useCallback(() => { if (session.prUrl) _onSelectFile(session.prUrl, false) }, [session.prUrl, _onSelectFile])
 
   return {
     handleGenerateReview,
