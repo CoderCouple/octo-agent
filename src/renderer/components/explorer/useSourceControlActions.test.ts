@@ -213,6 +213,62 @@ describe('useSourceControlActions', () => {
       expect(data.setGitOpError).toHaveBeenCalledWith({ operation: 'Commit', message: 'Error: network' })
     })
 
+    it('stages all then commits when stageAll is true', async () => {
+      vi.mocked(window.git.stageAll).mockResolvedValue({ success: true })
+      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
+      const onGitStatusRefresh = vi.fn()
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({
+          directory: '/repos/project',
+          onGitStatusRefresh,
+          data,
+        })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('fix: resolve issue', true)
+      })
+
+      expect(window.git.stageAll).toHaveBeenCalledWith('/repos/project')
+      expect(window.git.commit).toHaveBeenCalledWith('/repos/project', 'fix: resolve issue')
+      expect(onGitStatusRefresh).toHaveBeenCalled()
+    })
+
+    it('does not commit when stageAll fails', async () => {
+      vi.mocked(window.git.stageAll).mockResolvedValue({ success: false, error: 'stage failed' })
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test', true)
+      })
+
+      expect(window.git.stageAll).toHaveBeenCalled()
+      expect(window.git.commit).not.toHaveBeenCalled()
+      expect(data.setGitOpError).toHaveBeenCalledWith({ operation: 'Stage All', message: 'stage failed' })
+    })
+
+    it('does not stage when stageAll is false', async () => {
+      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test', false)
+      })
+
+      expect(window.git.stageAll).not.toHaveBeenCalled()
+      expect(window.git.commit).toHaveBeenCalled()
+    })
+
     it('sets and clears isCommitting state', async () => {
       vi.mocked(window.git.commit).mockResolvedValue({ success: true })
       const data = makeData()

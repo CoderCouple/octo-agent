@@ -155,12 +155,19 @@ export function useSourceControlActions({
     }
   }
 
-  const handleCommit = async (message: string) => {
+  const handleCommit = async (message: string, stageAll?: boolean) => {
     if (!directory) return
     setIsCommitting(true)
     setGitOpError(null)
     try {
       await withGitProgress(activeSessionId, async () => {
+        if (stageAll) {
+          const stageResult = await window.git.stageAll(directory)
+          if (!stageResult.success) {
+            setGitOpError({ operation: 'Stage All', message: stageResult.error || 'Failed to stage changes' })
+            return
+          }
+        }
         const result = await window.git.commit(directory, message)
         if (result.success) {
           onGitStatusRefresh?.()

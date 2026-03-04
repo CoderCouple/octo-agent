@@ -25,7 +25,7 @@ export interface SCWorkingViewProps {
   isMerging: boolean
   hasConflicts: boolean
   isCommitting: boolean
-  onCommit: (message: string) => void
+  onCommit: (message: string, stageAll?: boolean) => void
   onCommitMerge: () => void
   onStage: (filePath: string) => void
   onStageAll: () => void
@@ -95,12 +95,13 @@ function StatusInfo({ syncStatus, branchStatus }: { syncStatus?: GitStatusResult
   )
 }
 
-function BuiltInCommitArea({ isMerging, hasConflicts, isCommitting, onCommit, onCommitMerge }: {
+function BuiltInCommitArea({ isMerging, hasConflicts, isCommitting, onCommit, onCommitMerge, hasStagedFiles }: {
   isMerging: boolean
   hasConflicts: boolean
   isCommitting: boolean
-  onCommit: (message: string) => void
+  onCommit: (message: string, stageAll?: boolean) => void
   onCommitMerge: () => void
+  hasStagedFiles: boolean
 }) {
   const [showCommitDialog, setShowCommitDialog] = useState(false)
 
@@ -136,6 +137,7 @@ function BuiltInCommitArea({ isMerging, hasConflicts, isCommitting, onCommit, on
         <CommitMessageDialog
           onCommit={onCommit}
           onClose={() => setShowCommitDialog(false)}
+          hasStagedFiles={hasStagedFiles}
         />
       )}
     </div>
@@ -253,6 +255,7 @@ export function SCWorkingView({
           isCommitting={isCommitting}
           onCommit={onCommit}
           onCommitMerge={onCommitMerge}
+          hasStagedFiles={stagedFiles.length > 0}
         />
       )}
 
