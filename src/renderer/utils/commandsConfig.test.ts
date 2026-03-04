@@ -196,6 +196,23 @@ describe('ensureOutputGitignore', () => {
     expect(window.fs.writeFile).not.toHaveBeenCalled()
   })
 
+  it('skips creating .broomy/.gitignore when .broomy is in repo .gitignore', async () => {
+    vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
+    vi.mocked(window.fs.exists).mockImplementation(async (path: string) => {
+      if (path === '/repo/.gitignore') return true
+      return false
+    })
+    vi.mocked(window.fs.readFile).mockImplementation(async (path: string) => {
+      if (path === '/repo/.gitignore') return '# stuff\n.broomy/\n'
+      return ''
+    })
+
+    await ensureOutputGitignore('/repo')
+
+    expect(window.fs.writeFile).not.toHaveBeenCalled()
+    expect(window.fs.appendFile).not.toHaveBeenCalled()
+  })
+
   it('handles errors gracefully', async () => {
     vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
     vi.mocked(window.fs.exists).mockRejectedValue(new Error('fail'))

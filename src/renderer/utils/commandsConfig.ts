@@ -293,6 +293,17 @@ export async function ensureOutputGitignore(directory: string): Promise<void> {
   await window.fs.mkdir(broomyDir)
 
   try {
+    // If .broomy/ itself is in the repo's .gitignore, output is already ignored
+    const repoGitignorePath = `${directory}/.gitignore`
+    const repoGitignoreExists = await window.fs.exists(repoGitignorePath)
+    if (repoGitignoreExists) {
+      const repoContent = await window.fs.readFile(repoGitignorePath)
+      const repoLines = repoContent.split(/\r?\n/).map((l: string) => l.trim())
+      if (repoLines.some((l: string) => l === '.broomy' || l === '.broomy/' || l === '/.broomy' || l === '/.broomy/')) {
+        return
+      }
+    }
+
     const exists = await window.fs.exists(gitignorePath)
     if (exists) {
       const content = await window.fs.readFile(gitignorePath)

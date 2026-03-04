@@ -13,6 +13,9 @@ import type { ReviewDataState } from './useReviewData'
  */
 async function checkOutputGitignore(directory: string): Promise<boolean> {
   try {
+    // If .broomy/ itself is in the repo's .gitignore, output is already ignored
+    if (await checkLegacyBroomyGitignore(directory)) return true
+
     const broomyGitignorePath = `${directory}/.broomy/.gitignore`
     const exists = await window.fs.exists(broomyGitignorePath)
     if (!exists) return false
