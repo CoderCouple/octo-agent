@@ -81,7 +81,7 @@ async function executeAgentAction(
     }
 
     // Determine what to send: agent-specific override or default
-    const prompt = resolveAgentPrompt(action, ctx)
+    const prompt = await resolveAgentPrompt(action, ctx)
     await sendAgentPrompt(ctx.agentPtyId, prompt)
 
     return { success: true }
@@ -92,8 +92,12 @@ async function executeAgentAction(
 
 /**
  * Resolve the prompt to send, considering agent-specific overrides.
+ *
+ * When a skill override is specified, checks whether the skill file exists
+ * on disk (`.claude/commands/<skill>.md`). If missing, falls through to the
+ * action's default prompt/promptFile so the action still works without skills.
  */
-function resolveAgentPrompt(action: ActionDefinition, ctx: ActionExecutionContext): string {
+async function resolveAgentPrompt(action: ActionDefinition, ctx: ActionExecutionContext): Promise<string> {
   // Check for agent-specific override
   if (action.agents && ctx.agentId) {
     const agent = useAgentStore.getState().agents.find((a: AgentConfig) => a.id === ctx.agentId)
@@ -102,7 +106,12 @@ function resolveAgentPrompt(action: ActionDefinition, ctx: ActionExecutionContex
       if (agentType && agentType in action.agents) {
         const override = action.agents[agentType]
         if (override.skill) {
-          return `/${override.skill}`
+          const skillPath = `${ctx.directory}/.claude/commands/${override.skill}.md`
+          const exists = await window.fs.exists(skillPath)
+          if (exists) {
+            return `/${override.skill}`
+          }
+          // Skill file missing — fall through to default prompt/promptFile
         }
         if (override.prompt) {
           return resolveTemplateVars(override.prompt, ctx.templateVars)

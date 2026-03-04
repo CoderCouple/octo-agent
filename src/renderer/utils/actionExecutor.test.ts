@@ -160,8 +160,9 @@ describe('executeAction - agent', () => {
     expect(onWritePrompt).toHaveBeenCalledWith('review', '/repo/.broomy/output/review-prompt.md')
   })
 
-  it('uses agent-specific skill override for claude', async () => {
+  it('uses agent-specific skill override for claude when skill file exists', async () => {
     const { sendAgentPrompt } = await import('./focusHelpers')
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent',
@@ -170,7 +171,36 @@ describe('executeAction - agent', () => {
     }
 
     await executeAction(action, makeCtx({ agentId: 'agent-1' }))
+    expect(window.fs.exists).toHaveBeenCalledWith('/repo/.claude/commands/broomy-action-commit.md')
     expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', '/broomy-action-commit')
+  })
+
+  it('falls back to default prompt when skill file is missing', async () => {
+    const { sendAgentPrompt } = await import('./focusHelpers')
+    vi.mocked(window.fs.exists).mockResolvedValue(false)
+
+    const action: ActionDefinition = {
+      id: 'commit', label: 'Commit', type: 'agent',
+      prompt: 'Make a commit', showWhen: [],
+      agents: { claude: { skill: 'broomy-action-commit' } },
+    }
+
+    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
+    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Make a commit')
+  })
+
+  it('falls back to promptFile when skill file is missing and no prompt', async () => {
+    const { sendAgentPrompt } = await import('./focusHelpers')
+    vi.mocked(window.fs.exists).mockResolvedValue(false)
+
+    const action: ActionDefinition = {
+      id: 'commit', label: 'Commit', type: 'agent',
+      promptFile: '.broomy/prompts/commit.md', showWhen: [],
+      agents: { claude: { skill: 'broomy-action-commit' } },
+    }
+
+    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
+    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Please read and follow the instructions in .broomy/prompts/commit.md')
   })
 
   it('uses agent-specific prompt override', async () => {
