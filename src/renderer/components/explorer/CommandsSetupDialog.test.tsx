@@ -13,7 +13,7 @@ import { CommandsSetupDialog } from './CommandsSetupDialog'
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
-  vi.mocked(window.fs.writeFile).mockResolvedValue(undefined)
+  vi.mocked(window.fs.writeFile).mockResolvedValue({ success: true })
   vi.mocked(window.fs.exists).mockResolvedValue(false)
 })
 afterEach(() => { cleanup() })
