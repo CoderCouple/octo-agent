@@ -10,10 +10,12 @@ import type { FileViewerPlugin } from './types'
 import { MonacoViewer } from './MonacoViewer'
 import { ImageViewer } from './ImageViewer'
 import { MarkdownViewer } from './MarkdownViewer'
+import { WebviewViewer } from './WebviewViewer'
 
 // Registry of all available file viewers
 // Add new viewers here - they will automatically be available
 const viewers: FileViewerPlugin[] = [
+  WebviewViewer, // Highest priority for URLs
   ImageViewer,
   MarkdownViewer,
   MonacoViewer, // Fallback for text files
@@ -62,3 +64,4 @@ export type { FileViewerPlugin, FileViewerComponentProps } from './types'
 export { MonacoViewer } from './MonacoViewer'
 export { ImageViewer } from './ImageViewer'
 export { MarkdownViewer } from './MarkdownViewer'
+export { WebviewViewer } from './WebviewViewer'

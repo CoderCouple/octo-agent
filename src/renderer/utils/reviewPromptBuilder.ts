@@ -268,6 +268,113 @@ Please analyze the changes since the last review and write the result to \`.broo
   return prompt
 }
 
+/**
+ * Build a markdown-format review prompt that instructs the agent to write `.broomy/review.md`.
+ */
+export function buildMarkdownReviewPrompt(
+  session: Session,
+  reviewInstructions: string,
+  options?: ReviewPromptOptions,
+): string {
+  const baseBranch = session.prBaseBranch || 'main'
+  const { prDescription, previousHeadCommit } = options || {}
+
+  let prompt = `# PR Review
+
+You are reviewing a pull request. Analyze the diff and produce a detailed review as a markdown document.
+`
+
+  if (prDescription) {
+    prompt += `
+## PR Description (by the author)
+
+${prDescription}
+`
+  }
+
+  const isReReview = !!previousHeadCommit
+
+  prompt += `
+## Instructions
+
+1. Run \`git diff origin/${baseBranch}...HEAD\` to see the full diff
+`
+
+  if (isReReview) {
+    prompt += `2. Run \`git diff ${previousHeadCommit}..HEAD --stat\` to see what changed since the last review
+3. Run \`git log ${previousHeadCommit}..HEAD --oneline\` to see new commits
+`
+  }
+
+  prompt += `
+## Output Format
+
+Write your review to \`.broomy/review.md\` as a markdown document. Follow these rules:
+
+- Use \`## Heading\` for each major section (the UI will auto-collapse these as collapsible sections)
+- Use \`### Sub-heading\` for individual issues, findings, or change groups within a section
+- Use \`- [ ] Check name\` for in-progress checks and \`- [x] Check name\` for completed checks (place these under the relevant \`###\` sub-heading)
+- Sections with incomplete checkboxes (\`- [ ]\`) will stay expanded in the UI
+- Include \`[View on GitHub](url)\` links for files/lines that link to the PR's GitHub page
+- You can use \`<!-- include: .broomy/review-detail-name.md -->\` to break out sub-analyses into separate files — the UI will inline them when they exist
+- Write the file incrementally — the UI polls and re-renders as you write
+
+### Suggested sections
+
+\`\`\`markdown
+## Overview
+Brief summary of what this PR does and the approach taken.
+
+## Change Analysis
+- [x] Reviewed file structure
+- [x] Identified change patterns
+
+### Theme context and provider
+Description of this change group.
+[src/file.tsx:1](https://github.com/...)
+
+### CSS variable updates
+Description of this change group.
+[src/styles.css:12](https://github.com/...)
+
+## Potential Issues
+
+### Flash of unstyled content on load
+- [ ] Resolved
+
+Description of the issue and its impact.
+Location: [src/file.tsx:15](https://github.com/...)
+
+## Design Decisions
+
+### localStorage over cookies
+- [x] Reviewed
+
+Explanation of the decision and alternatives considered.
+${isReReview ? `
+## Changes Since Last Review
+Summarize what changed since commit \`${previousHeadCommit}\`.
+` : ''}
+\`\`\`
+`
+
+  if (reviewInstructions) {
+    prompt += `
+## Additional Review Focus
+
+${reviewInstructions}
+`
+  }
+
+  prompt += `
+## Action
+
+Please analyze the PR now and write the result to \`.broomy/review.md\`.
+`
+
+  return prompt
+}
+
 // Build the review generation prompt — picks first-review or re-review based on context
 export function buildReviewPrompt(
   session: Session,

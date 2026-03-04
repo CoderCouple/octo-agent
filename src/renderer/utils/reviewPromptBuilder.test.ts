@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildReviewPrompt } from './reviewPromptBuilder'
+import { buildReviewPrompt, buildMarkdownReviewPrompt } from './reviewPromptBuilder'
 import type { Session } from '../store/sessions'
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -183,5 +183,66 @@ describe('buildReviewPrompt', () => {
     expect(result).not.toContain('PR Re-Review')
     expect(result).not.toContain('Responses to Your Comments')
     expect(result).not.toContain('Changes Since Last Review')
+  })
+})
+
+describe('buildMarkdownReviewPrompt', () => {
+  it('generates a markdown review prompt', () => {
+    const session = makeSession()
+    const result = buildMarkdownReviewPrompt(session, '', undefined)
+
+    expect(result).toContain('PR Review')
+    expect(result).toContain('.broomy/review.md')
+    expect(result).toContain('## Heading')
+    expect(result).toContain('- [ ]')
+    expect(result).toContain('- [x]')
+    expect(result).toContain('<!-- include:')
+  })
+
+  it('uses custom base branch', () => {
+    const session = makeSession({ prBaseBranch: 'develop' })
+    const result = buildMarkdownReviewPrompt(session, '', undefined)
+
+    expect(result).toContain('git diff origin/develop...HEAD')
+  })
+
+  it('includes PR description when provided', () => {
+    const session = makeSession()
+    const result = buildMarkdownReviewPrompt(session, '', { prDescription: 'This is the PR' })
+
+    expect(result).toContain('PR Description (by the author)')
+    expect(result).toContain('This is the PR')
+  })
+
+  it('includes review instructions when provided', () => {
+    const session = makeSession()
+    const result = buildMarkdownReviewPrompt(session, 'Focus on security', undefined)
+
+    expect(result).toContain('Additional Review Focus')
+    expect(result).toContain('Focus on security')
+  })
+
+  it('includes re-review section when previousHeadCommit is set', () => {
+    const session = makeSession()
+    const result = buildMarkdownReviewPrompt(session, '', { previousHeadCommit: 'abc123' })
+
+    expect(result).toContain('Changes Since Last Review')
+    expect(result).toContain('abc123')
+    expect(result).toContain('git diff abc123..HEAD --stat')
+  })
+
+  it('does not include re-review section for first review', () => {
+    const session = makeSession()
+    const result = buildMarkdownReviewPrompt(session, '', undefined)
+
+    expect(result).not.toContain('Changes Since Last Review')
+  })
+
+  it('always ends with action section', () => {
+    const session = makeSession()
+    const result = buildMarkdownReviewPrompt(session, '', undefined)
+
+    expect(result).toContain('## Action')
+    expect(result).toContain('.broomy/review.md')
   })
 })

@@ -55,6 +55,16 @@ export function useFileLoading({
       setIsLoading(true)
       setError(null)
 
+      // URLs don't need file loading - the webview viewer handles them
+      if (filePath.startsWith('https://')) {
+        const viewers = getViewersForFile(filePath)
+        setAvailableViewers(viewers)
+        setSelectedViewerId(viewers[0]?.id ?? null)
+        setContent('')
+        setIsLoading(false)
+        return
+      }
+
       // Get viewers that can handle this file based on extension
       let viewers = getViewersForFile(filePath)
 

@@ -105,6 +105,9 @@ async function handleExists(ctx: HandlerContext, filePath: string) {
     if (/\.broomy[/\\](review|comments)\.json$/.exec(filePath)) {
       return true
     }
+    if (/\.broomy[/\\]review\.md$/.exec(filePath)) {
+      return true
+    }
   }
   try {
     await access(filePath)

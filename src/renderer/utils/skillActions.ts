@@ -13,6 +13,7 @@ export type SkillActionName =
   | 'resolve-conflicts'
   | 'review'
   | 'plan-issue'
+  | 'review-md'
 
 export interface SkillAction {
   name: SkillActionName
@@ -66,10 +67,22 @@ Read and follow the instructions in \`.broomy/merge-prompt.md\`.
   },
   {
     name: 'review',
+    label: 'Review (Legacy)',
+    defaultContent: `# Broomy: Review
+
+Read and follow the instructions in \`.broomy/review-prompt.md\`.
+`,
+  },
+  {
+    name: 'review-md',
     label: 'Review',
     defaultContent: `# Broomy: Review
 
 Read and follow the instructions in \`.broomy/review-prompt.md\`.
+
+Write your review to \`.broomy/review.md\` as a markdown document. Use \`## Heading\` for major sections and \`### Sub-heading\` for individual issues or findings within each section. Use \`- [ ] Check name\` / \`- [x] Check name\` for task checkboxes under each sub-heading. Include \`[View on GitHub](url)\` links where relevant.
+
+Write the file incrementally — the UI will poll and re-render as you write.
 `,
   },
   {

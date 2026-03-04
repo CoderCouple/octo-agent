@@ -117,8 +117,22 @@ function createWindow(profileId?: string): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: true,
     },
     acceptFirstMouse: true,
+  })
+
+  // Security: restrict webview tags to HTTPS URLs only
+  window.webContents.on('will-attach-webview', (_event, webPreferences, params) => {
+    // Strip away preload scripts
+    delete webPreferences.preload
+    webPreferences.nodeIntegration = false
+    webPreferences.contextIsolation = true
+
+    // Only allow HTTPS URLs
+    if (params.src && !params.src.startsWith('https://')) {
+      _event.preventDefault()
+    }
   })
 
   // Track the first window as mainWindow for backwards compat
