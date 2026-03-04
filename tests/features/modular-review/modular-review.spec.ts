@@ -172,8 +172,9 @@ test.describe.serial('Feature: Modular Review System', () => {
       await changeAnalysis.click()
     }
 
-    // Wait for checkbox content to be visible
-    await page.waitForTimeout(500)
+    // Wait for checkbox content to be visible after expanding
+    const checkboxItem = page.locator('text=Reviewed file structure')
+    await expect(checkboxItem).toBeVisible({ timeout: 5000 })
 
     // The change analysis section should show completed checkboxes
     const explorer = page.locator('[data-panel-id="explorer"]')
@@ -215,7 +216,7 @@ test.describe.serial('Feature: Modular Review System', () => {
 
     // Scroll down to find the Potential Issues section
     await scrollContainer.evaluate(el => { el.scrollTop = el.scrollHeight / 2 })
-    await page.waitForTimeout(300)
+    await potentialIssues.scrollIntoViewIfNeeded()
 
     const explorerBox = await explorer.boundingBox()
     if (explorerBox) {
