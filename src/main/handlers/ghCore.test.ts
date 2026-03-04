@@ -158,6 +158,12 @@ describe('ghCore handlers', () => {
       const handlers = setupHandlers()
       expect(await handlers['gh:isInstalled']()).toBe(false)
     })
+
+    it('returns true when gh is installed', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'gh version 2.x', stderr: '' } as never)
+      const handlers = setupHandlers()
+      expect(await handlers['gh:isInstalled']()).toBe(true)
+    })
   })
 
   describe('gh:issues', () => {
@@ -184,6 +190,40 @@ describe('ghCore handlers', () => {
       vi.mocked(execFile).mockRejectedValue(new Error('fail'))
       const handlers = setupHandlers()
       expect(await handlers['gh:issues'](null, '/repo')).toEqual([])
+    })
+  })
+
+  describe('gh:searchIssues', () => {
+    it('returns filtered mock issues in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:searchIssues'](null, '/repo', 'dark mode')
+      expect(result).toHaveLength(1)
+      expect(result[0].number).toBe(42)
+    })
+
+    it('returns mock issues matching label in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:searchIssues'](null, '/repo', 'bug')
+      expect(result).toHaveLength(1)
+      expect(result[0].number).toBe(17)
+    })
+
+    it('parses search results in normal mode', async () => {
+      const mockIssues = [
+        { number: 5, title: 'Search result', labels: [{ name: 'enhancement' }], url: 'https://github.com/repo/issues/5' },
+      ]
+      vi.mocked(execFile).mockResolvedValue({ stdout: JSON.stringify(mockIssues), stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:searchIssues'](null, '/repo', 'search')
+      expect(result).toHaveLength(1)
+      expect(result[0].labels).toEqual(['enhancement'])
+    })
+
+    it('returns empty array on error', async () => {
+      vi.mocked(execFile).mockRejectedValue(new Error('fail'))
+      const handlers = setupHandlers()
+      expect(await handlers['gh:searchIssues'](null, '/repo', 'test')).toEqual([])
     })
   })
 
@@ -260,6 +300,12 @@ describe('ghCore handlers', () => {
 
     it('returns true for ADMIN permission', async () => {
       vi.mocked(execFile).mockResolvedValue({ stdout: 'ADMIN\n', stderr: '' } as never)
+      const handlers = setupHandlers()
+      expect(await handlers['gh:hasWriteAccess'](null, '/repo')).toBe(true)
+    })
+
+    it('returns true for MAINTAIN permission', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'MAINTAIN\n', stderr: '' } as never)
       const handlers = setupHandlers()
       expect(await handlers['gh:hasWriteAccess'](null, '/repo')).toBe(true)
     })

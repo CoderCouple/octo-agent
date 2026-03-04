@@ -331,6 +331,15 @@ describe('shell handlers', () => {
       expect(mockClose).toHaveBeenCalled()
     })
 
+    it('window:maximize does nothing in E2E mode', async () => {
+      const { register } = await import('./shell')
+      const ctx = createCtx({ isE2ETest: true })
+      register(mockIpcMain as never, ctx)
+
+      await handlers['window:maximize'](mockEvent)
+      expect(mockBrowserWindowFromWebContents).not.toHaveBeenCalled()
+    })
+
     it('window:close does nothing in E2E mode', async () => {
       const { register } = await import('./shell')
       const ctx = createCtx({ isE2ETest: true })
@@ -360,6 +369,72 @@ describe('shell handlers', () => {
 
       const result = await handlers['menu:appMenuPopup'](mockEvent)
       expect(result).toBeNull()
+    })
+
+    it('builds menu and resolves when a Help item is clicked', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      let capturedTemplate: { label?: string; submenu?: { label?: string; click?: () => void }[]; click?: () => void }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: () => {
+            // Find the Help submenu and click 'Getting Started'
+            const helpMenu = capturedTemplate.find(item => item.label === 'Help')
+            const gettingStarted = helpMenu?.submenu?.find(item => item.label === 'Getting Started')
+            gettingStarted?.click?.()
+          },
+        }
+      })
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBe('help:getting-started')
+    })
+
+    it('resolves null when menu is closed without selection', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      mockMenuBuildFromTemplate.mockImplementation(() => ({
+        popup: ({ callback }: { callback: () => void }) => {
+          callback()
+        },
+      }))
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBeNull()
+    })
+
+    it('resolves configure-toolbar when Configure Toolbar is clicked', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      let capturedTemplate: { label?: string; click?: () => void }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: () => {
+            const configItem = capturedTemplate.find(item => item.label === 'Configure Toolbar...')
+            configItem?.click?.()
+          },
+        }
+      })
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBe('configure-toolbar')
     })
   })
 

@@ -553,12 +553,12 @@ describe('isDockerAvailable', () => {
 describe('isSetupLockHeld', () => {
   it('returns false when no lock held', async () => {
     const { isSetupLockHeld } = await import('./docker')
-    expect(isSetupLockHeld('/unique/path-' + Date.now())).toBe(false)
+    expect(isSetupLockHeld(`/unique/path-${Date.now()}`)).toBe(false)
   })
 
   it('returns true while lock is held', async () => {
     const { isSetupLockHeld, acquireSetupLock } = await import('./docker')
-    const path = '/test/held-' + Date.now()
+    const path = `/test/held-${Date.now()}`
     const releasePromise = acquireSetupLock(path)
     expect(isSetupLockHeld(path)).toBe(true)
     const release = await releasePromise
