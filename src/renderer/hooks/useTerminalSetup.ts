@@ -23,8 +23,6 @@ export interface TerminalConfig {
   isActive: boolean
   restartKey: number
   isolated?: boolean
-  isolationMode?: 'docker' | 'devcontainer'
-  dockerImage?: string
   repoRootDir?: string
 }
 
@@ -150,7 +148,7 @@ function createScrollTracking(
 // ── Terminal state hook (refs, store wiring, callbacks) ──────────────
 
 function useTerminalState(config: TerminalConfig) {
-  const { sessionId, command, env, isAgentTerminal, cwd, isolated, isolationMode, dockerImage, repoRootDir } = config
+  const { sessionId, command, env, isAgentTerminal, cwd, isolated, repoRootDir } = config
 
   const terminalRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -179,10 +177,6 @@ function useTerminalState(config: TerminalConfig) {
   cwdRef.current = cwd
   const isolatedRef = useRef(isolated)
   isolatedRef.current = isolated
-  const isolationModeRef = useRef(isolationMode)
-  isolationModeRef.current = isolationMode
-  const dockerImageRef = useRef(dockerImage)
-  dockerImageRef.current = dockerImage
   const repoRootDirRef = useRef(repoRootDir)
   repoRootDirRef.current = repoRootDir
 
@@ -233,7 +227,7 @@ function useTerminalState(config: TerminalConfig) {
     isActiveRef, dataHandlerRef,
     showScrollButton, setShowScrollButton,
     exitInfo, setExitInfo,
-    commandRef, envRef, isAgentTerminalRef, cwdRef, isolatedRef, isolationModeRef, dockerImageRef, repoRootDirRef,
+    commandRef, envRef, isAgentTerminalRef, cwdRef, isolatedRef, repoRootDirRef,
     updateAgentMonitorRef, markSessionReadRef,
     sessionIdRef, setAgentPtyId,
     handleKeyEvent, processPlanDetection,
@@ -367,7 +361,7 @@ export function useTerminalSetup(
 
     s.cleanupRef.current = () => { isStale = true; dataHandler.clearTimers(); removeDataListener(); removeExitListener() }
 
-    window.pty.create({ id, cwd: effectCwd, command: cmd, sessionId, env: envVars, shell: defaultShell || undefined, isolated: s.isolatedRef.current, isolationMode: s.isolationModeRef.current, dockerImage: s.dockerImageRef.current, repoRootDir: s.repoRootDirRef.current })
+    window.pty.create({ id, cwd: effectCwd, command: cmd, sessionId, env: envVars, shell: defaultShell || undefined, isolated: s.isolatedRef.current, repoRootDir: s.repoRootDirRef.current })
       .then(() => {
         // Guard against stale effect: terminal may have been disposed during async setup
         if (isStale) return
@@ -393,9 +387,6 @@ export function useTerminalSetup(
       const entry = entries[0] as ResizeObserverEntry | undefined
       if (!entry || entry.contentRect.width === 0 || entry.contentRect.height === 0) return
       try { fitAddon.fit() } catch { /* ignore */ }
-      if (s.isFollowingRef.current) {
-        terminal.scrollToBottom()
-      }
       if (ptyResizeTimeout) clearTimeout(ptyResizeTimeout)
       ptyResizeTimeout = setTimeout(() => {
         if (s.ptyIdRef.current && terminal.cols > 0 && terminal.rows > 0) {

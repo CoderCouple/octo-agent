@@ -105,7 +105,7 @@ describe('useReviewActions', () => {
       result.current.handleOpenPrUrl()
     })
 
-    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/pr/42')
+    expect(onSelectFile).toHaveBeenCalledWith('https://github.com/pr/42', false)
   })
 
   it('handleGitignoreCancel closes modal and resets pending', () => {
@@ -363,6 +363,34 @@ describe('useReviewActions', () => {
       '/test/repo/.broomy/output/context.json',
       expect.stringContaining('"prNumber": 42')
     )
+  })
+
+  it('handleGenerateReview skips gitignore modal when .broomy is in repo .gitignore', async () => {
+    vi.mocked(window.fs.exists).mockImplementation(async (path: string) => {
+      if (path === '/test/repo/.gitignore') return true
+      if (path.includes('.broomy/.gitignore')) return false
+      return true
+    })
+    vi.mocked(window.fs.readFile).mockImplementation(async (path: string) => {
+      if (path === '/test/repo/.gitignore') return '# stuff\n.broomy/\n'
+      return ''
+    })
+
+    const state = makeState()
+    const session = makeSession()
+
+    const { result } = renderHook(() =>
+      useReviewActions(session, undefined, vi.fn(), state)
+    )
+
+    await act(async () => {
+      await result.current.handleGenerateReview()
+    })
+
+    // Should NOT show gitignore modal (only called with false during proceedWithGeneration, never with true)
+    expect(state.setShowGitignoreModal).not.toHaveBeenCalledWith(true)
+    // Should proceed with generation
+    expect(state.setWaitingForAgent).toHaveBeenCalledWith(true)
   })
 
   it('handleGenerateReview writes review prompt', async () => {

@@ -41,7 +41,7 @@ describe('evaluateShowWhen', () => {
     'no-tracking': false, ahead: false, behind: false, 'behind-main': false,
     'on-main': false, 'in-progress': true, pushed: true, empty: false,
     open: false, merged: false, closed: false, 'no-pr': true,
-    'has-write-access': true, 'allow-push-to-main': false, 'has-issue': false,
+    'has-write-access': true, 'allow-push-to-main': false, 'has-issue': false, 'no-devcontainer': false,
   }
 
   it('returns true for empty conditions', () => {
@@ -194,6 +194,23 @@ describe('ensureOutputGitignore', () => {
 
     expect(window.fs.appendFile).not.toHaveBeenCalled()
     expect(window.fs.writeFile).not.toHaveBeenCalled()
+  })
+
+  it('skips creating .broomy/.gitignore when .broomy is in repo .gitignore', async () => {
+    vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
+    vi.mocked(window.fs.exists).mockImplementation(async (path: string) => {
+      if (path === '/repo/.gitignore') return true
+      return false
+    })
+    vi.mocked(window.fs.readFile).mockImplementation(async (path: string) => {
+      if (path === '/repo/.gitignore') return '# stuff\n.broomy/\n'
+      return ''
+    })
+
+    await ensureOutputGitignore('/repo')
+
+    expect(window.fs.writeFile).not.toHaveBeenCalled()
+    expect(window.fs.appendFile).not.toHaveBeenCalled()
   })
 
   it('handles errors gracefully', async () => {

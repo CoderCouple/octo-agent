@@ -8,7 +8,8 @@ import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { ensureAgentInstalled } from './docker'
+import type { HandlerContext } from './handlers/types'
+import type { ContainerInfo } from '../preload/apis/types'
 
 const execFileAsync = promisify(execFile)
 
@@ -212,12 +213,61 @@ export function devcontainerSetupMessage(status: { available: boolean; error?: s
     '│                                                     │',
     '│  Docker Desktop must also be running.               │',
     '│                                                     │',
-    '│  Or switch to "Lightweight Docker" mode in repo     │',
-    '│  settings.                                          │',
+    '│  Or disable container isolation in repo settings.   │',
     '╰────────────────────────────────────────────────────╯',
     '',
   ].join('\r\n')
 }
 
+/**
+ * Get container info for the ContainerInfoPanel.
+ * Reads from the in-memory docker containers map and checks live status via docker inspect.
+ */
+export async function getContainerInfo(
+  ctx: HandlerContext,
+  repoDir: string,
+): Promise<ContainerInfo | null> {
+  const state = ctx.dockerContainers.get(repoDir)
+  if (!state) return null
+
+  let status: ContainerInfo['status'] = 'stopped'
+  try {
+    const { stdout } = await execFileAsync('docker', [
+      'inspect', '--format', '{{.State.Status}}', state.containerId,
+    ])
+    const dockerStatus = stdout.trim()
+    if (dockerStatus === 'running') status = 'running'
+    else if (dockerStatus === 'created') status = 'starting'
+  } catch {
+    // Container gone
+    return null
+  }
+
+  return {
+    containerId: state.containerId.substring(0, 12),
+    status,
+    image: state.image,
+    repoDir: state.repoDir,
+  }
+}
+
+/**
+ * Force-remove a container and clear it from the tracking map.
+ */
+export async function resetContainer(
+  ctx: HandlerContext,
+  repoDir: string,
+): Promise<void> {
+  const state = ctx.dockerContainers.get(repoDir)
+  ctx.dockerContainers.delete(repoDir)
+  if (state) {
+    try {
+      await execFileAsync('docker', ['rm', '-f', state.containerId])
+    } catch {
+      // Already gone — ignore
+    }
+  }
+}
+
 /** Re-export ensureAgentInstalled for devcontainer use */
-export { ensureAgentInstalled }
+export { ensureAgentInstalled } from './containerUtils'

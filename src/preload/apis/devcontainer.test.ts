@@ -33,4 +33,16 @@ describe('preload devcontainer API', () => {
     await devcontainerApi.generateDefaultConfig('/workspace')
     expect(mockInvoke).toHaveBeenCalledWith('devcontainer:generateDefaultConfig', '/workspace')
   })
+
+  it('containerInfo invokes devcontainer:containerInfo with repoDir', async () => {
+    mockInvoke.mockResolvedValue({ containerId: 'c1', status: 'running' })
+    const result = await devcontainerApi.containerInfo('/workspace')
+    expect(mockInvoke).toHaveBeenCalledWith('devcontainer:containerInfo', '/workspace')
+    expect(result).toEqual({ containerId: 'c1', status: 'running' })
+  })
+
+  it('resetContainer invokes devcontainer:resetContainer with repoDir', async () => {
+    await devcontainerApi.resetContainer('/workspace')
+    expect(mockInvoke).toHaveBeenCalledWith('devcontainer:resetContainer', '/workspace')
+  })
 })

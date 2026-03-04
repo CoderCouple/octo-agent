@@ -278,6 +278,7 @@ export function buildMarkdownReviewPrompt(
 ): string {
   const baseBranch = session.prBaseBranch || 'main'
   const { prDescription, previousHeadCommit } = options || {}
+  const prChangesUrl = session.prUrl ? `${session.prUrl}/files` : null
 
   let prompt = `# PR Review
 
@@ -315,7 +316,7 @@ Write your review to \`.broomy/output/review.md\` as a markdown document. Follow
 - Use \`### Sub-heading\` for individual issues, findings, or change groups within a section
 - Use \`- [ ] Check name\` for in-progress checks and \`- [x] Check name\` for completed checks (place these under the relevant \`###\` sub-heading)
 - Sections with incomplete checkboxes (\`- [ ]\`) will stay expanded in the UI
-- Include \`[View on GitHub](url)\` links for files/lines that link to the PR's GitHub page
+- **IMPORTANT — Links**: Every mention of a file, function, or code location MUST include a clickable link to the PR diff view. Never omit links — the reader navigates the review by clicking them. All links MUST point to the PR diff view, never to the blob/file view. ${prChangesUrl ? `Use \`${prChangesUrl}\` as the base URL and append \`#diff-<sha256-of-filepath>\` for each file.` : 'Use the PR files/changes URL (e.g. `https://github.com/owner/repo/pull/N/files#diff-<sha256-of-filepath>`) for each file.'} To compute the anchor, take the SHA-256 hash of the file's relative path. Example: for \`src/app.tsx\` → \`${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256 of "src/app.tsx">\`. You can run \`echo -n "path" | shasum -a 256\` to compute the hash.
 - You can use \`<!-- include: .broomy/review-detail-name.md -->\` to break out sub-analyses into separate files — the UI will inline them when they exist
 - Write the file incrementally — the UI polls and re-renders as you write
 
@@ -331,11 +332,11 @@ Brief summary of what this PR does and the approach taken.
 
 ### Theme context and provider
 Description of this change group.
-[src/file.tsx:1](https://github.com/...)
+[src/file.tsx](${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256>)
 
 ### CSS variable updates
 Description of this change group.
-[src/styles.css:12](https://github.com/...)
+[src/styles.css](${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256>)
 
 ## Potential Issues
 
@@ -343,7 +344,7 @@ Description of this change group.
 - [ ] Resolved
 
 Description of the issue and its impact.
-Location: [src/file.tsx:15](https://github.com/...)
+Location: [src/file.tsx](${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256>)
 
 ## Design Decisions
 

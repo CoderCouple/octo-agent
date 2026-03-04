@@ -255,6 +255,10 @@ export const useSessionStore = create<SessionStore>((set, get) => {
 
   updateAgentMonitor: (id: string, update: { status?: SessionStatus; lastMessage?: string }) => {
     const { sessions } = get()
+    const session = sessions.find(s => s.id === id)
+    if (!session) return
+    // Bail out if nothing would change (e.g. setting status to 'working' when already 'working')
+    if (update.status !== undefined && update.status === session.status && update.lastMessage === undefined) return
     const updatedSessions = sessions.map((s) => {
       if (s.id !== id) return s
       const changes: Partial<Session> = {}

@@ -90,6 +90,7 @@ export interface ConditionState {
   'has-write-access': boolean
   'allow-push-to-main': boolean
   'has-issue': boolean
+  'no-devcontainer': boolean
 }
 
 /**
@@ -238,6 +239,14 @@ export function getDefaultCommandsConfig(): CommandsConfig {
         context: { issueNumber: '{issueNumber}' },
         agents: { claude: { skill: 'broomy-action-plan-issue' } },
       },
+      {
+        id: 'create-devcontainer',
+        label: 'Create Dev Container Config',
+        type: 'agent',
+        promptFile: '.broomy/prompts/create-devcontainer.md',
+        showWhen: ['no-devcontainer'],
+        style: 'accent',
+      },
     ],
   }
 }
@@ -281,6 +290,18 @@ Read \`.broomy/output/context.json\` for the issue number.
 
 Read the issue using \`gh issue view <issue-number>\`. Before doing anything, ask me any questions about the issue to clarify requirements and resolve ambiguities. Then write a plan to .broomy/output/plan.md that includes: a detailed description of what you will do, and any open questions or assumptions.
 `,
+    'create-devcontainer.md': `# Broomy: Create Dev Container Config
+
+Analyze this repository and create a \`.devcontainer/devcontainer.json\` file that is appropriate for the project's technology stack.
+
+1. Look at the project's package.json, Gemfile, requirements.txt, go.mod, Cargo.toml, or other dependency files to determine the language and framework
+2. Choose an appropriate base image from the Microsoft devcontainers registry (e.g. \`mcr.microsoft.com/devcontainers/typescript-node\`, \`mcr.microsoft.com/devcontainers/python\`, etc.)
+3. Add relevant dev container features for the tools the project needs (git, GitHub CLI, Docker-in-Docker if needed, etc.)
+4. If the project has specific system dependencies, add a \`postCreateCommand\` to install them
+5. Create the \`.devcontainer/devcontainer.json\` file
+
+Keep the configuration minimal — only include what the project actually needs.
+`,
   }
 }
 
@@ -293,6 +314,17 @@ export async function ensureOutputGitignore(directory: string): Promise<void> {
   await window.fs.mkdir(broomyDir)
 
   try {
+    // If .broomy/ itself is in the repo's .gitignore, output is already ignored
+    const repoGitignorePath = `${directory}/.gitignore`
+    const repoGitignoreExists = await window.fs.exists(repoGitignorePath)
+    if (repoGitignoreExists) {
+      const repoContent = await window.fs.readFile(repoGitignorePath)
+      const repoLines = repoContent.split(/\r?\n/).map((l: string) => l.trim())
+      if (repoLines.some((l: string) => l === '.broomy' || l === '.broomy/' || l === '/.broomy' || l === '/.broomy/')) {
+        return
+      }
+    }
+
     const exists = await window.fs.exists(gitignorePath)
     if (exists) {
       const content = await window.fs.readFile(gitignorePath)
