@@ -216,7 +216,7 @@ describe('TabbedTerminal', () => {
 
   it('shows add menu when isolation is enabled and add button is clicked', () => {
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} isolated={true} dockerImage="test-image" />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} isolated={true} />
     )
     fireEvent.click(screen.getByTestId('add-tab'))
     // Add menu should appear with Local/Container options
@@ -246,21 +246,21 @@ describe('TabbedTerminal', () => {
     expect(addTerminalTab).toHaveBeenCalledWith('session-1', undefined, true)
   })
 
-  it('renders docker info panel tab when isolated', () => {
+  it('renders container info panel tab when isolated', () => {
     render(
       <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} isolated={true} />,
     )
-    // Docker tab should be in the tab bar
-    expect(screen.getByText('(docker)')).toBeTruthy()
-    // DockerInfoPanel should be rendered
-    expect(screen.getByTestId('docker-info')).toBeTruthy()
+    // Container tab should be in the tab bar
+    expect(screen.getByText('(container)')).toBeTruthy()
+    // ContainerInfoPanel should be rendered (it shows "Dev Container Isolation" heading)
+    expect(screen.getByText('Dev Container Isolation')).toBeTruthy()
   })
 
-  it('does not render docker tab when not isolated', () => {
+  it('does not render container tab when not isolated', () => {
     render(
       <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} isolated={false} />,
     )
-    expect(screen.queryByText('(docker)')).toBeNull()
+    expect(screen.queryByText('(container)')).toBeNull()
   })
 
   it('does not remove agent tab when close is clicked', () => {

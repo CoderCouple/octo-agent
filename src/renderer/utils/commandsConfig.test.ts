@@ -41,7 +41,7 @@ describe('evaluateShowWhen', () => {
     'no-tracking': false, ahead: false, behind: false, 'behind-main': false,
     'on-main': false, 'in-progress': true, pushed: true, empty: false,
     open: false, merged: false, closed: false, 'no-pr': true,
-    'has-write-access': true, 'allow-push-to-main': false, 'has-issue': false,
+    'has-write-access': true, 'allow-push-to-main': false, 'has-issue': false, 'no-devcontainer': false,
   }
 
   it('returns true for empty conditions', () => {

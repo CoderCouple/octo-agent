@@ -47,7 +47,7 @@ export interface PanelsMapConfig {
   getAgentCommand: (session: Session) => string | undefined
   getAgentEnv: (session: Session) => Record<string, string> | undefined
   getAgentResumeCommand: (session: Session) => string | undefined
-  getRepoIsolation: (session: Session) => { isolated: boolean; isolationMode?: 'docker' | 'devcontainer'; dockerImage?: string; repoRootDir?: string } | undefined
+  getRepoIsolation: (session: Session) => { isolated: boolean; repoRootDir?: string } | undefined
   globalPanelVisibility: Record<string, boolean>
   toggleGlobalPanel: (panelId: string) => void
   selectFile: (sessionId: string, filePath: string) => void
@@ -215,8 +215,6 @@ export function usePanelsMap(config: PanelsMapConfig) {
                 agentResumeCommand={getAgentResumeCommand(session)}
                 isRestored={session.isRestored}
                 isolated={repo?.isolated ?? false}
-                isolationMode={repo?.isolationMode}
-                dockerImage={repo?.dockerImage}
                 repoRootDir={repo?.rootDir}
               />
             </PanelErrorBoundary>

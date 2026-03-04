@@ -10,7 +10,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import Terminal from './Terminal'
 import TerminalTabBar from './TerminalTabBar'
-import DockerInfoPanel from './DockerInfoPanel'
+import ContainerInfoPanel from './ContainerInfoPanel'
 import PanelErrorBoundary from './PanelErrorBoundary'
 import { useSessionStore } from '../store/sessions'
 import type { TerminalTab } from '../store/sessions'
@@ -115,8 +115,6 @@ interface TabbedTerminalProps {
   agentResumeCommand?: string
   isRestored?: boolean
   isolated: boolean
-  isolationMode?: 'docker' | 'devcontainer'
-  dockerImage?: string
   repoRootDir?: string
 }
 
@@ -125,6 +123,19 @@ interface ServicesInfo {
   postAttachCommand: string
   containerId: string
   remoteUser: string
+}
+
+/** Listen for devcontainer config missing event and show a warning banner. */
+function useDevcontainerMissing(sessionId: string): { missing: boolean; dismissed: boolean; dismiss: () => void } {
+  const [missing, setMissing] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+  useEffect(() => {
+    const cleanup = window.pty.onDevcontainerMissing((event) => {
+      if (event.sessionId === sessionId) setMissing(true)
+    })
+    return cleanup
+  }, [sessionId])
+  return { missing, dismissed, dismiss: useCallback(() => setDismissed(true), []) }
 }
 
 /** Listen for devcontainer postAttachCommand to auto-create a Services tab. */
@@ -167,11 +178,11 @@ function tabPanelClass(tabId: string, activeTabId: string): string {
 }
 
 /** Renders the terminal panels (Agent, Services, Docker, user tabs). */
-const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, isActive, activeTabId, agentCommand, agentEnv, agentInstalled, agentResumeCommand, isRestored, isolated, isolationMode, dockerImage, repoRootDir, servicesInfo, userTabs }: {
+const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, isActive, activeTabId, agentCommand, agentEnv, agentInstalled, agentResumeCommand, isRestored, isolated, repoRootDir, servicesInfo, userTabs }: {
   sessionId: string; cwd: string; isActive: boolean; activeTabId: string
   agentCommand?: string; agentEnv?: Record<string, string>; agentInstalled: boolean
   agentResumeCommand?: string; isRestored?: boolean
-  isolated: boolean; isolationMode?: 'docker' | 'devcontainer'; dockerImage?: string; repoRootDir?: string
+  isolated: boolean; repoRootDir?: string
   servicesInfo: ServicesInfo | null
   userTabs: TerminalTab[]
 }) {
@@ -183,8 +194,8 @@ const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, isAc
             sessionId={sessionId} cwd={cwd} command={agentCommand} env={agentEnv}
             isAgentTerminal={!!agentCommand} isActive={isActive && activeTabId === AGENT_TAB_ID}
             agentNotInstalled={!!agentCommand && !agentInstalled} agentResumeCommand={agentResumeCommand}
-            isRestored={isRestored} isolated={isolated} isolationMode={isolationMode}
-            dockerImage={dockerImage} repoRootDir={repoRootDir}
+            isRestored={isRestored} isolated={isolated}
+            repoRootDir={repoRootDir}
           />
         </PanelErrorBoundary>
       </div>
@@ -194,14 +205,14 @@ const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, isAc
             <Terminal
               sessionId={`services-${sessionId}`} cwd={cwd} command={servicesInfo.postAttachCommand}
               isServicesTerminal isActive={isActive && activeTabId === SERVICES_TAB_ID}
-              isolated isolationMode="devcontainer" repoRootDir={repoRootDir}
+              isolated repoRootDir={repoRootDir}
             />
           </PanelErrorBoundary>
         </div>
       )}
       {isolated && (
         <div className={tabPanelClass(DOCKER_TAB_ID, activeTabId)}>
-          <DockerInfoPanel repoDir={repoRootDir || cwd} isolationMode={isolationMode} />
+          <ContainerInfoPanel repoDir={repoRootDir || cwd} />
         </div>
       )}
       {userTabs.map((tab) => (
@@ -210,8 +221,6 @@ const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, isAc
             <Terminal
               sessionId={`user-${sessionId}-${tab.id}`} cwd={cwd}
               isActive={isActive && tab.id === activeTabId} isolated={tab.isolated && isolated}
-              isolationMode={tab.isolated && isolated ? isolationMode : undefined}
-              dockerImage={tab.isolated && isolated ? dockerImage : undefined}
               repoRootDir={tab.isolated && isolated ? repoRootDir : undefined}
             />
           </PanelErrorBoundary>
@@ -221,7 +230,7 @@ const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, isAc
   )
 })
 
-export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand, agentEnv, agentResumeCommand, isRestored, isolated, isolationMode, dockerImage, repoRootDir }: TabbedTerminalProps) {
+export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand, agentEnv, agentResumeCommand, isRestored, isolated, repoRootDir }: TabbedTerminalProps) {
   // Targeted selector: only re-render when this session's terminalTabs change
   const terminalTabs = useSessionStore((state) => {
     const session = state.sessions.find((s) => s.id === sessionId)
@@ -239,12 +248,13 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
   const storedActiveTabId = terminalTabs?.activeTabId ?? null
 
   const servicesInfo = useDevcontainerServices(sessionId)
+  const devcontainerMissing = useDevcontainerMissing(sessionId)
   const agentInstalled = useAgentInstalled(agentCommand)
 
   // Build the combined tab list: Agent tab first, then optional Services tab, then optional Docker tab, then user tabs
   const agentTab = { id: AGENT_TAB_ID, name: 'Agent' }
   const servicesTab = servicesInfo ? { id: SERVICES_TAB_ID, name: 'Services' } : null
-  const dockerTab = isolated ? { id: DOCKER_TAB_ID, name: isolationMode === 'devcontainer' ? '(devcontainer)' : '(docker)' } : null
+  const dockerTab = isolated ? { id: DOCKER_TAB_ID, name: '(container)' } : null
   const allTabs = [agentTab, ...(servicesTab ? [servicesTab] : []), ...(dockerTab ? [dockerTab] : []), ...userTabs]
   const activeTabId = storedActiveTabId ?? AGENT_TAB_ID
 
@@ -376,11 +386,25 @@ export default function TabbedTerminal({ sessionId, cwd, isActive, agentCommand,
         )}
       </div>
 
+      {devcontainerMissing.missing && !devcontainerMissing.dismissed && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border-b border-yellow-500/30 text-xs text-yellow-300">
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <span>No devcontainer config found — running without container isolation. Use the &quot;Create Dev Container Config&quot; action in Source Control to add one.</span>
+          <button onClick={devcontainerMissing.dismiss} className="ml-auto text-yellow-400 hover:text-yellow-200 flex-shrink-0">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <TerminalPanels
         sessionId={sessionId} cwd={cwd} isActive={isActive} activeTabId={activeTabId}
         agentCommand={agentCommand} agentEnv={agentEnv} agentInstalled={agentInstalled}
         agentResumeCommand={agentResumeCommand} isRestored={isRestored}
-        isolated={isolated} isolationMode={isolationMode} dockerImage={dockerImage} repoRootDir={repoRootDir}
+        isolated={isolated} repoRootDir={repoRootDir}
         servicesInfo={servicesInfo} userTabs={userTabs}
       />
     </div>

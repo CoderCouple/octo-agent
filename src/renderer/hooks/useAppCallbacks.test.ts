@@ -363,10 +363,10 @@ describe('useAppCallbacks', () => {
 
   // --- getRepoIsolation ---
   it('getRepoIsolation returns isolation info when repo is isolated', () => {
-    const repos = [{ id: 'r1', rootDir: '/r', defaultBranch: 'main', isolated: true, dockerImage: 'my-image' }]
+    const repos = [{ id: 'r1', rootDir: '/r', defaultBranch: 'main', isolated: true }]
     const deps = makeDeps({ repos })
     const { result } = renderHook(() => useAppCallbacks(deps))
-    expect(result.current.getRepoIsolation({ repoId: 'r1' } as never)).toEqual({ isolated: true, isolationMode: 'docker', dockerImage: 'my-image', repoRootDir: '/r' })
+    expect(result.current.getRepoIsolation({ repoId: 'r1' } as never)).toEqual({ isolated: true, repoRootDir: '/r' })
   })
 
   it('getRepoIsolation returns undefined when repo is not isolated', () => {

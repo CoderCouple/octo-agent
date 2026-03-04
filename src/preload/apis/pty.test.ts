@@ -89,6 +89,30 @@ describe('preload pty API', () => {
     })
   })
 
+  describe('onDevcontainerMissing', () => {
+    it('registers event listener on pty:devcontainer-missing', () => {
+      const callback = vi.fn()
+      ptyApi.onDevcontainerMissing(callback)
+      expect(mockOn).toHaveBeenCalledWith('pty:devcontainer-missing', expect.any(Function))
+    })
+
+    it('returns a cleanup function that removes the listener', () => {
+      const callback = vi.fn()
+      const cleanup = ptyApi.onDevcontainerMissing(callback)
+      cleanup()
+      expect(mockRemoveListener).toHaveBeenCalledWith('pty:devcontainer-missing', expect.any(Function))
+    })
+
+    it('forwards event data to the callback', () => {
+      const callback = vi.fn()
+      ptyApi.onDevcontainerMissing(callback)
+      const handler = mockOn.mock.calls[0][1]
+      const event = { sessionId: 's1' }
+      handler({}, event)
+      expect(callback).toHaveBeenCalledWith(event)
+    })
+  })
+
   describe('onExit', () => {
     it('registers event listener on pty:exit:${id}', () => {
       const callback = vi.fn()

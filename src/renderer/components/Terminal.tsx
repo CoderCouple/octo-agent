@@ -28,12 +28,10 @@ interface TerminalProps {
   agentResumeCommand?: string
   isRestored?: boolean
   isolated?: boolean
-  isolationMode?: 'docker' | 'devcontainer'
-  dockerImage?: string
   repoRootDir?: string
 }
 
-export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isServicesTerminal = false, isActive = false, agentNotInstalled = false, agentResumeCommand, isRestored, isolated, isolationMode, dockerImage, repoRootDir }: TerminalProps) {
+export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isServicesTerminal = false, isActive = false, agentNotInstalled = false, agentResumeCommand, isRestored, isolated, repoRootDir }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [restartKey, setRestartKey] = useState(0)
   const [resumeDismissed, setResumeDismissed] = useState(false)
@@ -57,8 +55,6 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
     isActive,
     restartKey,
     isolated,
-    isolationMode,
-    dockerImage,
     repoRootDir,
   }
 

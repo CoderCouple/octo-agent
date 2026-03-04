@@ -62,6 +62,7 @@ export function SourceControl({
 }: SourceControlProps) {
   const [scView, setScView] = useState<'working' | 'branch' | 'commits'>('working')
   const [showSetupDialog, setShowSetupDialog] = useState(false)
+  const [noDevcontainer, setNoDevcontainer] = useState(false)
 
   // Load commands.json
   const { config: commandsConfig, exists: commandsExists } = useCommandsConfig(directory)
@@ -76,6 +77,19 @@ export function SourceControl({
     pushedToMainAt, pushedToMainCommit, onClearPushToMain,
     repoId, scView,
   })
+
+  // Check if repo has isolation enabled but no devcontainer config
+  useEffect(() => {
+    if (!directory || !repoId) { setNoDevcontainer(false); return }
+    if (!data.currentRepo?.isolated) { setNoDevcontainer(false); return }
+    let cancelled = false
+    window.devcontainer.hasConfig(directory).then((has) => {
+      if (!cancelled) setNoDevcontainer(!has)
+    }).catch(() => {
+      if (!cancelled) setNoDevcontainer(false)
+    })
+    return () => { cancelled = true }
+  }, [directory, repoId, data.currentRepo?.isolated])
 
   const actions = useSourceControlActions({
     directory, onGitStatusRefresh, agentPtyId, agentId, onRecordPushToMain, data,
@@ -92,8 +106,9 @@ export function SourceControl({
       allowPushToMain: data.currentRepo?.allowPushToMain ?? true,
       behindMainCount: data.behindMainCount,
       issueNumber,
+      noDevcontainer,
     }),
-    [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.behindMainCount, issueNumber]
+    [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.behindMainCount, issueNumber, noDevcontainer]
   )
 
   // Template variables for action labels and prompts
