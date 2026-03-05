@@ -9,7 +9,6 @@ import {
   loadCommandsConfig,
   commandsConfigPath,
   getDefaultCommandsConfig,
-  getDefaultPromptFiles,
   ensureOutputGitignore,
   type ActionDefinition,
 } from '../utils/commandsConfig'
@@ -67,18 +66,11 @@ export function CommandsEditor({ directory, onClose }: CommandsEditorProps) {
     setCreating(true)
     try {
       const broomyDir = `${directory}/.broomy`
-      const promptsDir = `${broomyDir}/prompts`
 
       await window.fs.mkdir(broomyDir)
-      await window.fs.mkdir(promptsDir)
 
       const config = getDefaultCommandsConfig()
       await window.fs.writeFile(commandsConfigPath(directory), JSON.stringify(config, null, 2))
-
-      const prompts = getDefaultPromptFiles()
-      for (const [filename, content] of Object.entries(prompts)) {
-        await window.fs.writeFile(`${promptsDir}/${filename}`, content)
-      }
 
       await ensureOutputGitignore(directory)
 

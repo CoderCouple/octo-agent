@@ -15,7 +15,6 @@ interface ActionButtonsProps {
   agentPtyId?: string
   agentId?: string | null
   onGitStatusRefresh?: () => void
-  onWritePrompt?: (builder: string, outputPath: string) => Promise<void>
   /** Called when an action specifies switchTab (e.g. "review") */
   onSwitchTab?: (tab: string) => void
   /** Opens the commands.json editor */
@@ -37,7 +36,6 @@ export function ActionButtons({
   agentPtyId,
   agentId,
   onGitStatusRefresh,
-  onWritePrompt,
   onSwitchTab,
   onOpenCommandsEditor,
 }: ActionButtonsProps) {
@@ -67,7 +65,6 @@ export function ActionButtons({
       agentPtyId,
       agentId,
       templateVars,
-      onWritePrompt,
       onGitStatusRefresh,
     }
 
@@ -82,7 +79,7 @@ export function ActionButtons({
     if (!result.success && result.error) {
       setActionErrors(prev => ({ ...prev, [action.id]: result.error! }))
     }
-  }, [directory, agentPtyId, agentId, templateVars, onWritePrompt, onGitStatusRefresh, onSwitchTab])
+  }, [directory, agentPtyId, agentId, templateVars, onGitStatusRefresh, onSwitchTab])
 
   if (visibleActions.length === 0 && !onOpenCommandsEditor) return null
 

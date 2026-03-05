@@ -8,7 +8,6 @@ import {
   loadCommandsConfig,
   detectAgentType,
   getDefaultCommandsConfig,
-  getDefaultPromptFiles,
   ensureOutputGitignore,
 } from './commandsConfig'
 import type { ConditionState, TemplateVars } from './commandsConfig'
@@ -146,15 +145,6 @@ describe('getDefaultCommandsConfig', () => {
     expect(config.version).toBe(1)
     expect(config.actions.length).toBeGreaterThan(0)
     expect(config.actions.every(a => a.id && a.label && a.type)).toBe(true)
-  })
-})
-
-describe('getDefaultPromptFiles', () => {
-  it('returns prompt files keyed by filename', () => {
-    const files = getDefaultPromptFiles()
-    expect(files['commit.md']).toContain('Commit')
-    expect(files['push-to-main.md']).toContain('Push')
-    expect(files['resolve-conflicts.md']).toContain('Resolve')
   })
 })
 

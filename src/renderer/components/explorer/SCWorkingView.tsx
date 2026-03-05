@@ -39,7 +39,6 @@ export interface SCWorkingViewProps {
   templateVars: TemplateVars
   agentPtyId?: string
   agentId?: string | null
-  onWritePrompt?: (builder: string, outputPath: string) => Promise<void>
   onOpenCommandsEditor?: () => void
 }
 
@@ -239,7 +238,6 @@ export function SCWorkingView({
   templateVars,
   agentPtyId,
   agentId,
-  onWritePrompt,
   onOpenCommandsEditor,
 }: SCWorkingViewProps) {
   const hasChanges = gitStatus.length > 0
@@ -270,7 +268,6 @@ export function SCWorkingView({
         agentPtyId={agentPtyId}
         agentId={agentId}
         onGitStatusRefresh={onGitStatusRefresh}
-        onWritePrompt={onWritePrompt}
         onSwitchTab={onSwitchTab}
         onOpenCommandsEditor={onOpenCommandsEditor}
       />
