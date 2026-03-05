@@ -2,7 +2,7 @@
  * Markdown-based ReviewPanel that renders .broomy/review.md with auto-collapsing headings.
  * Action buttons come from commands.json filtered by surface='review'.
  */
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -64,6 +64,40 @@ function splitMarkdownSections(markdown: string): { title: string; body: string 
   return sections
 }
 
+/** Split a section body by `### ` headings into sub-sections (skipping headings inside fenced code blocks) */
+function splitSubSections(body: string): { preamble: string; subsections: { title: string; body: string }[] } {
+  const lines = body.split('\n')
+  const preambleLines: string[] = []
+  const subsections: { title: string; body: string }[] = []
+  let currentTitle: string | null = null
+  let currentLines: string[] = []
+  let inCodeBlock = false
+
+  for (const line of lines) {
+    if (/^(`{3,}|~{3,})/.test(line.trimStart())) {
+      inCodeBlock = !inCodeBlock
+    }
+
+    if (!inCodeBlock && line.startsWith('### ')) {
+      if (currentTitle !== null) {
+        subsections.push({ title: currentTitle, body: currentLines.join('\n').trim() })
+      }
+      currentTitle = line.slice(4).trim()
+      currentLines = []
+    } else if (currentTitle === null) {
+      preambleLines.push(line)
+    } else {
+      currentLines.push(line)
+    }
+  }
+
+  if (currentTitle !== null) {
+    subsections.push({ title: currentTitle, body: currentLines.join('\n').trim() })
+  }
+
+  return { preamble: preambleLines.join('\n').trim(), subsections }
+}
+
 /** Check if a section body contains incomplete task checkboxes */
 function hasIncompleteCheckboxes(body: string): boolean {
   return body.includes('- [ ]')
@@ -122,44 +156,110 @@ function ReviewEmptyState({
   return null
 }
 
-/** Render a markdown section with custom link handling */
+/** Build customized markdown components with review-specific link handling */
+function useReviewMarkdownComponents(onSelectFile: (filePath: string, openInDiffMode: boolean) => void) {
+  return useMemo(() => {
+    const components = createMarkdownComponents('compact')
+    return {
+      ...components,
+      // Strip ### headings from rendered markdown since they're rendered as card titles
+      h3: () => null,
+      a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
+        const handleClick = (e: React.MouseEvent) => {
+          e.preventDefault()
+          if (!href) return
+          if (href.startsWith('https://github.com/')) {
+            onSelectFile(href, false)
+          } else if (href.startsWith('https://') || href.startsWith('http://')) {
+            void window.shell.openExternal(href)
+          }
+        }
+        return (
+          <a href={href} className="text-accent hover:underline cursor-pointer" onClick={handleClick}>
+            {children}
+          </a>
+        )
+      },
+    }
+  }, [onSelectFile])
+}
+
+/** A collapsible card for a ### sub-section within a ## section */
+function SubSectionCard({ title, body, defaultOpen, customComponents }: {
+  title: string
+  body: string
+  defaultOpen: boolean
+  customComponents: ReturnType<typeof createMarkdownComponents>
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <div className="border border-border rounded-md mb-2 bg-bg-primary/50">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-text-primary hover:bg-bg-tertiary/30 transition-colors rounded-t-md"
+      >
+        <svg
+          className={`w-3 h-3 flex-shrink-0 transition-transform text-text-secondary ${open ? 'rotate-90' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <span className="text-left">{title}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-2 border-t border-border/50">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={customComponents}
+            urlTransform={(url: string) => url}
+          >
+            {body}
+          </ReactMarkdown>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Render a markdown section, splitting ### sub-sections into cards */
 function MarkdownSection({ body, onSelectFile }: {
   body: string
   onSelectFile: (filePath: string, openInDiffMode: boolean) => void
 }) {
-  const components = createMarkdownComponents('compact')
+  const customComponents = useReviewMarkdownComponents(onSelectFile)
+  const { preamble, subsections } = splitSubSections(body)
 
-  // Override link handler: GitHub URLs open in file panel webview, others in system browser
-  const customComponents = {
-    ...components,
-    a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
-      const handleClick = (e: React.MouseEvent) => {
-        e.preventDefault()
-        if (!href) return
-        if (href.startsWith('https://github.com/')) {
-          onSelectFile(href, false)
-        } else if (href.startsWith('https://') || href.startsWith('http://')) {
-          void window.shell.openExternal(href)
-        }
-      }
-      return (
-        <a href={href} className="text-accent hover:underline cursor-pointer" onClick={handleClick}>
-          {children}
-        </a>
-      )
-    },
-  }
+  // Restore h3 rendering for preamble (no card splitting needed there)
+  const preambleComponents = useMemo(() => {
+    const base = createMarkdownComponents('compact')
+    return { ...customComponents, h3: base.h3 }
+  }, [customComponents])
 
   return (
     <div className="px-3">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
-        components={customComponents}
-        urlTransform={(url: string) => url}
-      >
-        {body}
-      </ReactMarkdown>
+      {preamble && (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={preambleComponents}
+          urlTransform={(url: string) => url}
+        >
+          {preamble}
+        </ReactMarkdown>
+      )}
+      {subsections.map((sub, i) => (
+        <SubSectionCard
+          key={`${sub.title}-${i}`}
+          title={sub.title}
+          body={sub.body}
+          defaultOpen={hasIncompleteCheckboxes(sub.body) || i === 0}
+          customComponents={customComponents}
+        />
+      ))}
     </div>
   )
 }
