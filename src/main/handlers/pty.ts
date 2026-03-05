@@ -32,7 +32,7 @@ function resolveInitialCommand(command: string, isE2ETest: boolean): string {
 }
 
 /** Disposables for each PTY's onData/onExit listeners, keyed by PTY id. */
-const ptyDisposables = new Map<string, Array<{ dispose: () => void }>>()
+const ptyDisposables = new Map<string, { dispose: () => void }[]>()
 
 /** Dispose all event listeners for a PTY and remove from the disposables map. */
 function disposePtyListeners(id: string) {
