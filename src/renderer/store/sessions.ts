@@ -130,7 +130,7 @@ interface SessionStore {
 
   // Actions
   loadSessions: (profileId?: string) => Promise<void>
-  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<import('./sessionCoreActions').DuplicateSessionResult | undefined>
+  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string; lastKnownPrState?: PrState }) => Promise<import('./sessionCoreActions').DuplicateSessionResult | undefined>
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
   updateSessionBranch: (id: string, branch: string) => void
