@@ -6,6 +6,8 @@ import { exec } from 'child_process'
 import { getExecShell, normalizePath, getAvailableShells, getDefaultShell } from '../platform'
 import { HandlerContext, expandHomePath } from './types'
 
+const isDev = process.env.ELECTRON_RENDERER_URL !== undefined
+
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('shell:exec', async (_event, command: string, cwd: string) => {
     if (ctx.isE2ETest) {
@@ -84,10 +86,14 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
         {
           label: 'View',
           submenu: [
-            { role: 'reload' },
-            { role: 'forceReload' },
-            { role: 'toggleDevTools' },
-            { type: 'separator' },
+            ...(isDev
+              ? [
+                  { role: 'reload' as const },
+                  { role: 'forceReload' as const },
+                  { role: 'toggleDevTools' as const },
+                  { type: 'separator' as const },
+                ]
+              : []),
             { role: 'resetZoom' },
             { role: 'zoomIn' },
             { role: 'zoomOut' },
