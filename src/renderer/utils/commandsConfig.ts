@@ -38,6 +38,10 @@ export interface ActionDefinition {
     builder: string
   }
 
+  // Where this action appears: 'source-control', 'review', etc.
+  // Defaults to 'source-control' if not specified.
+  surface?: string | string[]
+
   // Switch to a different explorer tab after executing (e.g. "review")
   switchTab?: string
 }
@@ -117,6 +121,18 @@ function evaluateToken(token: string, state: ConditionState): boolean {
 export function evaluateShowWhen(conditions: string[], state: ConditionState): boolean {
   if (conditions.length === 0) return true
   return conditions.every(token => evaluateToken(token, state))
+}
+
+// --- Surface matching ---
+
+/**
+ * Check if an action should appear on a given surface.
+ * Actions without a surface property default to 'source-control'.
+ */
+export function matchesSurface(action: ActionDefinition, surface: string): boolean {
+  if (!action.surface) return surface === 'source-control'
+  if (Array.isArray(action.surface)) return action.surface.includes(surface)
+  return action.surface === surface
 }
 
 // --- Loading ---
@@ -228,6 +244,7 @@ export function getDefaultCommandsConfig(): CommandsConfig {
         prompt: 'Read and follow the instructions in `.broomy/output/review-prompt.md`. Write your review to `.broomy/output/review.md` as a markdown document.',
         showWhen: ['clean', 'pushed|open'],
         style: 'accent',
+        surface: ['source-control', 'review'],
         writePrompt: { file: '.broomy/output/review-prompt.md', builder: 'review' },
         agents: { claude: { skill: 'broomy-action-review' } },
         switchTab: 'review',
@@ -305,6 +322,52 @@ Analyze this repository and create a \`.devcontainer/devcontainer.json\` file th
 
 Keep the configuration minimal — only include what the project actually needs.
 `,
+  }
+}
+
+// --- Legacy .broomy gitignore helpers ---
+
+/**
+ * Check if .broomy/ itself is in the repo's .gitignore (legacy pattern).
+ */
+export async function checkLegacyBroomyGitignore(directory: string): Promise<boolean> {
+  try {
+    const gitignorePath = `${directory}/.gitignore`
+    const exists = await window.fs.exists(gitignorePath)
+    if (!exists) return false
+
+    const content = await window.fs.readFile(gitignorePath)
+    const lines = content.split(/\r?\n/).map((l: string) => l.trim())
+    return lines.some((line: string) => line === '.broomy' || line === '.broomy/' || line === '/.broomy' || line === '/.broomy/')
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Remove .broomy/ from the repo's .gitignore (legacy cleanup).
+ */
+export async function removeLegacyBroomyGitignore(directory: string): Promise<void> {
+  try {
+    const gitignorePath = `${directory}/.gitignore`
+    const exists = await window.fs.exists(gitignorePath)
+    if (!exists) return
+
+    const content = await window.fs.readFile(gitignorePath)
+    const lines = content.split(/\r?\n/)
+    const filtered = lines.filter((line: string) => {
+      const trimmed = line.trim()
+      if (trimmed === '.broomy' || trimmed === '.broomy/' || trimmed === '/.broomy' || trimmed === '/.broomy/') return false
+      return true
+    })
+    // Also remove "# Broomy review data" comment lines that preceded the entry
+    const cleaned = filtered.filter((line: string, i: number) => {
+      if (line.trim() === '# Broomy review data' && (i === filtered.length - 1 || filtered[i + 1]?.trim() === '')) return false
+      return true
+    })
+    await window.fs.writeFile(gitignorePath, cleaned.join('\n'))
+  } catch {
+    // Non-fatal
   }
 }
 

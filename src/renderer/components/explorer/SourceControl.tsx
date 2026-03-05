@@ -19,6 +19,56 @@ import { useCommandsConfig } from '../../hooks/useCommandsConfig'
 import { computeConditionState } from '../../utils/conditionState'
 import type { TemplateVars } from '../../utils/commandsConfig'
 
+/** Extracted prompt builder to keep SourceControl under the line limit. */
+async function runWritePromptBuilder(
+  builder: string,
+  outputPath: string,
+  directory: string,
+  data: { branchBaseName: string; prStatus?: { number?: number; title?: string; url?: string } | null },
+) {
+  const outputDir = `${directory}/.broomy/output`
+  await window.fs.mkdir(`${directory}/.broomy`)
+  await window.fs.mkdir(outputDir)
+
+  if (builder === 'create-pr') {
+    const { buildCreatePrPrompt } = await import('../../utils/prPromptBuilder')
+    const prompt = buildCreatePrPrompt(data.branchBaseName || 'main')
+    await window.fs.writeFile(outputPath, prompt)
+    await window.fs.rm(`${outputDir}/pr-result.json`)
+  } else if (builder === 'resolve-conflicts') {
+    const { buildMergePrompt } = await import('../../utils/mergePromptBuilder')
+    const prompt = buildMergePrompt(data.branchBaseName || 'main')
+    await window.fs.writeFile(outputPath, prompt)
+  } else if (builder === 'review') {
+    const { buildMarkdownReviewPrompt } = await import('../../utils/reviewPromptBuilder')
+    const { ensureOutputGitignore } = await import('../../utils/commandsConfig')
+    const baseBranch = data.branchBaseName || 'main'
+
+    await ensureOutputGitignore(directory)
+
+    try { await window.git.fetchBranch(directory, baseBranch) } catch { /* non-fatal */ }
+
+    const prNumber = data.prStatus?.number
+    if (prNumber) {
+      try {
+        const branch = await window.git.getBranch(directory)
+        await window.git.syncReviewBranch(directory, branch, prNumber)
+      } catch { /* non-fatal */ }
+    }
+
+    const prompt = buildMarkdownReviewPrompt(
+      { prBaseBranch: baseBranch, prNumber, prTitle: data.prStatus?.title, prUrl: data.prStatus?.url },
+      '',
+      {},
+    )
+    await window.fs.writeFile(outputPath, prompt)
+
+    await window.fs.writeFile(`${outputDir}/context.json`, JSON.stringify({
+      prNumber, prBaseBranch: baseBranch, prUrl: data.prStatus?.url,
+    }, null, 2))
+  }
+}
+
 interface SourceControlProps {
   directory?: string
   gitStatus: GitFileStatus[]
@@ -119,30 +169,9 @@ export function SourceControl({
   }), [data.branchBaseName, syncStatus?.current, directory])
 
   const handleWritePrompt = useCallback(async (builder: string, outputPath: string) => {
-    // Built-in prompt builders for complex prompts
     if (!directory) return
-
-    const { buildCreatePrPrompt } = await import('../../utils/prPromptBuilder')
-    const { buildMergePrompt } = await import('../../utils/mergePromptBuilder')
-
-    const outputDir = `${directory}/.broomy/output`
-    await window.fs.mkdir(`${directory}/.broomy`)
-    await window.fs.mkdir(outputDir)
-
-    if (builder === 'create-pr') {
-      const prompt = buildCreatePrPrompt(data.branchBaseName || 'main')
-      await window.fs.writeFile(outputPath, prompt)
-      // Remove stale pr-result.json
-      await window.fs.rm(`${outputDir}/pr-result.json`)
-    } else if (builder === 'resolve-conflicts') {
-      const prompt = buildMergePrompt(data.branchBaseName || 'main')
-      await window.fs.writeFile(outputPath, prompt)
-    } else if (builder === 'review') {
-      // Review has its own flow via the review panel — the writePrompt just ensures
-      // the review-prompt.md is generated. The review panel handles this.
-      // For now, we don't generate it here — the review action triggers the review panel.
-    }
-  }, [directory, data.branchBaseName])
+    await runWritePromptBuilder(builder, outputPath, directory, data)
+  }, [directory, data.branchBaseName, data.prStatus])
 
   if (!directory) return null
 

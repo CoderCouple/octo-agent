@@ -209,6 +209,10 @@ export default function Explorer({
               onSelectFile={(filePath, openInDiffMode, scrollToLine, diffBaseRef) => {
                 onFileSelect?.({ filePath, openInDiffMode, scrollToLine, diffBaseRef })
               }}
+              gitStatus={gitStatus}
+              syncStatus={syncStatus}
+              branchStatus={branchStatus}
+              onGitStatusRefresh={onGitStatusRefresh}
             />
           </PanelErrorBoundary>
         )}

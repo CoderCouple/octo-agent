@@ -1,17 +1,24 @@
 /**
  * Markdown-based ReviewPanel that renders .broomy/review.md with auto-collapsing headings.
+ * Action buttons come from commands.json filtered by surface='review'.
  */
+import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import type { Session } from '../../store/sessions'
 import type { ManagedRepo } from '../../../preload/index'
+import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
+import type { BranchStatus } from '../../store/sessions'
 import type { FetchingStatus } from './useReviewData'
 import { CollapsibleSection } from './CollapsibleSection'
-import { GitignoreModal } from './GitignoreModal'
 import { createMarkdownComponents } from '../../utils/markdownComponents'
 import { useReviewData } from './useReviewData'
 import { useReviewActions } from './useReviewActions'
+import { useCommandsConfig } from '../../hooks/useCommandsConfig'
+import { computeConditionState } from '../../utils/conditionState'
+import type { TemplateVars } from '../../utils/commandsConfig'
+import { ActionButtons } from '../explorer/ActionButtons'
 
 /** Split markdown into sections by `## ` headings (skipping headings inside fenced code blocks) */
 function splitMarkdownSections(markdown: string): { title: string; body: string }[] {
@@ -115,65 +122,6 @@ function ReviewEmptyState({
   return null
 }
 
-function GenerateButton({ fetching, waitingForAgent, reviewMarkdown, disabled, onClick }: {
-  fetching: boolean
-  waitingForAgent: boolean
-  reviewMarkdown: string | null
-  disabled: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="flex-1 py-1.5 text-xs rounded bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-    >
-      {fetching ? (
-        <span className="flex items-center justify-center gap-1.5">
-          <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Fetching latest...
-        </span>
-      ) : waitingForAgent ? (
-        <span className="flex items-center justify-center gap-1.5">
-          <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Waiting for agent...
-        </span>
-      ) : reviewMarkdown ? 'Regenerate Review' : 'Generate Review'}
-    </button>
-  )
-}
-
-function ReviewPanelHeader({ session, fetching, waitingForAgent, reviewMarkdown, error, onGenerate, onOpenPr }: {
-  session: Session; fetching: boolean; waitingForAgent: boolean; reviewMarkdown: string | null
-  error: string | null
-  onGenerate: () => void; onOpenPr: () => void
-}) {
-  return (
-    <div className="px-3 py-2 border-b border-border flex-shrink-0">
-      <div className="flex items-center gap-2 mb-1">
-        <h3 className="text-sm font-medium text-text-primary truncate flex-1">
-          {session.prTitle || 'Review'}
-        </h3>
-        {session.prUrl && (
-          <button onClick={onOpenPr} className="text-xs text-accent hover:text-accent/80 flex-shrink-0 transition-colors" title="Open PR on GitHub">
-            #{session.prNumber}
-          </button>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <GenerateButton fetching={fetching} waitingForAgent={waitingForAgent} reviewMarkdown={reviewMarkdown} disabled={fetching || waitingForAgent || !session.agentPtyId} onClick={onGenerate} />
-      </div>
-      {error && <div className="text-xs text-red-400 mt-1">{error}</div>}
-    </div>
-  )
-}
-
 /** Render a markdown section with custom link handling */
 function MarkdownSection({ body, onSelectFile }: {
   body: string
@@ -250,55 +198,83 @@ interface ReviewPanelProps {
   session: Session
   repo?: ManagedRepo
   onSelectFile: (filePath: string, openInDiffMode: boolean, scrollToLine?: number, diffBaseRef?: string) => void
+  gitStatus?: GitFileStatus[]
+  syncStatus?: GitStatusResult | null
+  branchStatus?: BranchStatus
+  onGitStatusRefresh?: () => void
 }
 
-export default function ReviewPanel({ session, repo, onSelectFile }: ReviewPanelProps) {
+export default function ReviewPanel({ session, repo, onSelectFile, gitStatus, syncStatus, branchStatus, onGitStatusRefresh }: ReviewPanelProps) {
   const state = useReviewData(session.id, session.directory, session.prBaseBranch)
 
   const {
     reviewMarkdown, fetching, waitingForAgent, fetchingStatus,
-    error, showGitignoreModal,
+    error,
   } = state
 
   const {
-    handleGenerateReview, handleOpenPrUrl,
-    handleGitignoreAdd, handleGitignoreContinue, handleGitignoreCancel,
+    handleWritePrompt, handleOpenPrUrl,
   } = useReviewActions(session, repo, onSelectFile, state)
 
+  // Load commands config for action buttons
+  const { config: commandsConfig } = useCommandsConfig(session.directory)
+
+  // Compute condition state for action button visibility
+  const conditionState = useMemo(() =>
+    computeConditionState({
+      gitStatus: gitStatus ?? [],
+      syncStatus,
+      branchStatus,
+      prNumber: session.prNumber,
+      hasWriteAccess: true,
+      allowPushToMain: true,
+      behindMainCount: 0,
+      issueNumber: session.issueNumber,
+    }),
+    [gitStatus, syncStatus, branchStatus, session.prNumber, session.issueNumber]
+  )
+
+  const templateVars: TemplateVars = useMemo(() => ({
+    main: session.prBaseBranch || 'main',
+    branch: syncStatus?.current ?? '',
+    directory: session.directory,
+  }), [session.prBaseBranch, syncStatus?.current, session.directory])
+
   const showEmptyState = !reviewMarkdown && (fetching || waitingForAgent)
-  const showPromo = !reviewMarkdown && !fetching && !waitingForAgent
 
   return (
     <div className="h-full flex flex-col bg-bg-secondary overflow-hidden">
-      {showGitignoreModal && (
-        <GitignoreModal
-          onAddToGitignore={handleGitignoreAdd}
-          onContinueWithout={handleGitignoreContinue}
-          onCancel={handleGitignoreCancel}
-        />
-      )}
+      {/* Header with PR title and action buttons */}
+      <div className="px-3 py-2 border-b border-border flex-shrink-0">
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-sm font-medium text-text-primary truncate flex-1">
+            {session.prTitle || 'Review'}
+          </h3>
+          {session.prUrl && (
+            <button onClick={handleOpenPrUrl} className="text-xs text-accent hover:text-accent/80 flex-shrink-0 transition-colors" title="Open PR on GitHub">
+              #{session.prNumber}
+            </button>
+          )}
+        </div>
+        {error && <div className="text-xs text-red-400 mt-1">{error}</div>}
+      </div>
 
-      <ReviewPanelHeader
-        session={session} fetching={fetching} waitingForAgent={waitingForAgent}
-        reviewMarkdown={reviewMarkdown}
-        error={error}
-        onGenerate={handleGenerateReview}
-        onOpenPr={handleOpenPrUrl}
+      {/* Action buttons from commands.json filtered by surface='review' */}
+      <ActionButtons
+        actions={commandsConfig?.actions ?? null}
+        conditionState={conditionState}
+        templateVars={templateVars}
+        directory={session.directory}
+        agentPtyId={session.agentPtyId}
+        agentId={session.agentId}
+        onGitStatusRefresh={onGitStatusRefresh}
+        onWritePrompt={handleWritePrompt}
+        surface="review"
       />
 
       <div className="flex-1 overflow-y-auto">
         {showEmptyState && (
           <ReviewEmptyState fetching={fetching} waitingForAgent={waitingForAgent} fetchingStatus={fetchingStatus} prBaseBranch={session.prBaseBranch} />
-        )}
-
-        {showPromo && (
-          <div className="flex items-center justify-center h-full text-text-primary text-sm px-4 text-center">
-            <div>
-              <p className="mb-2">Click "Generate Review" to get an AI-generated review of this PR.</p>
-              <p className="text-xs text-text-secondary">The review will be written as markdown to <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/output/review.md</code></p>
-              <p className="text-xs text-text-secondary mt-1">Customize the review process by editing <code className="font-mono bg-bg-tertiary px-1 rounded">.claude/commands/broomy-action-review-md.md</code></p>
-            </div>
-          </div>
         )}
 
         {reviewMarkdown && (

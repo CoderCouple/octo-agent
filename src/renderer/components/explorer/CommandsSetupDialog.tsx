@@ -8,12 +8,10 @@ import {
   getDefaultPromptFiles,
   commandsConfigPath,
   ensureOutputGitignore,
-} from '../../utils/commandsConfig'
-import { SKILL_ACTIONS, skillCommandPath } from '../../utils/skillActions'
-import {
   checkLegacyBroomyGitignore,
   removeLegacyBroomyGitignore,
-} from '../review/useReviewActions'
+} from '../../utils/commandsConfig'
+import { SKILL_ACTIONS, skillCommandPath } from '../../utils/skillActions'
 
 interface CommandsSetupDialogProps {
   directory: string

@@ -1,7 +1,6 @@
 /**
  * Builds the agent prompt for generating structured code reviews with requested changes.
  */
-import type { Session } from '../store/sessions'
 import type { RequestedChange } from '../types/review'
 
 export interface PrComment {
@@ -18,7 +17,7 @@ export interface ReviewPromptOptions {
   currentUser?: string
 }
 
-function buildSchema(session: Session, hasPreviousReview: boolean): string {
+function buildSchema(session: ReviewSessionInfo, hasPreviousReview: boolean): string {
   const changesSinceLastReviewSchema = `  "changesSinceLastReview": {
     "summary": "<1-3 sentence overview of what changed since the last review>",
     "responsesToComments": [
@@ -103,7 +102,7 @@ function buildGuidelines(): string {
 
 // Build a first-time review prompt
 function buildFirstReviewPrompt(
-  session: Session,
+  session: ReviewSessionInfo,
   reviewInstructions: string,
   options?: ReviewPromptOptions,
 ): string {
@@ -161,7 +160,7 @@ Please analyze the PR now and write the result to \`.broomy/output/review.json\`
 
 // Build a re-review prompt focused on changes since last review
 function buildReReviewPrompt(
-  session: Session,
+  session: ReviewSessionInfo,
   reviewInstructions: string,
   previousRequestedChanges: RequestedChange[],
   options: ReviewPromptOptions,
@@ -268,11 +267,18 @@ Please analyze the changes since the last review and write the result to \`.broo
   return prompt
 }
 
+export interface ReviewSessionInfo {
+  prBaseBranch?: string
+  prNumber?: number
+  prTitle?: string
+  prUrl?: string
+}
+
 /**
  * Build a markdown-format review prompt that instructs the agent to write `.broomy/output/review.md`.
  */
 export function buildMarkdownReviewPrompt(
-  session: Session,
+  session: ReviewSessionInfo,
   reviewInstructions: string,
   options?: ReviewPromptOptions,
 ): string {
@@ -378,7 +384,7 @@ Please analyze the PR now and write the result to \`.broomy/output/review.md\`.
 
 // Build the review generation prompt — picks first-review or re-review based on context
 export function buildReviewPrompt(
-  session: Session,
+  session: ReviewSessionInfo,
   reviewInstructions: string,
   previousRequestedChanges: RequestedChange[],
   options?: ReviewPromptOptions,

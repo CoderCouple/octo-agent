@@ -10,7 +10,11 @@ import {
   getDefaultCommandsConfig,
   getDefaultPromptFiles,
   ensureOutputGitignore,
+  matchesSurface,
+  checkLegacyBroomyGitignore,
+  removeLegacyBroomyGitignore,
 } from './commandsConfig'
+import type { ActionDefinition } from './commandsConfig'
 import type { ConditionState, TemplateVars } from './commandsConfig'
 
 beforeEach(() => {
@@ -155,6 +159,96 @@ describe('getDefaultPromptFiles', () => {
     expect(files['commit.md']).toContain('Commit')
     expect(files['push-to-main.md']).toContain('Push')
     expect(files['resolve-conflicts.md']).toContain('Resolve')
+  })
+})
+
+describe('matchesSurface', () => {
+  const base: ActionDefinition = { id: 'test', label: 'Test', type: 'agent', showWhen: [] }
+
+  it('defaults to source-control when no surface specified', () => {
+    expect(matchesSurface(base, 'source-control')).toBe(true)
+    expect(matchesSurface(base, 'review')).toBe(false)
+  })
+
+  it('matches string surface', () => {
+    expect(matchesSurface({ ...base, surface: 'review' }, 'review')).toBe(true)
+    expect(matchesSurface({ ...base, surface: 'review' }, 'source-control')).toBe(false)
+  })
+
+  it('matches array surface', () => {
+    const action = { ...base, surface: ['source-control', 'review'] }
+    expect(matchesSurface(action, 'source-control')).toBe(true)
+    expect(matchesSurface(action, 'review')).toBe(true)
+    expect(matchesSurface(action, 'other')).toBe(false)
+  })
+})
+
+describe('checkLegacyBroomyGitignore', () => {
+  it('returns false when .gitignore does not exist', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(false)
+    expect(await checkLegacyBroomyGitignore('/repo')).toBe(false)
+  })
+
+  it('returns true when .broomy/ is in .gitignore', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n.broomy/\n')
+    expect(await checkLegacyBroomyGitignore('/repo')).toBe(true)
+  })
+
+  it('returns true for .broomy without trailing slash', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('.broomy\n')
+    expect(await checkLegacyBroomyGitignore('/repo')).toBe(true)
+  })
+
+  it('returns true for /.broomy/ with leading slash', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('/.broomy/\n')
+    expect(await checkLegacyBroomyGitignore('/repo')).toBe(true)
+  })
+
+  it('returns false when .broomy is not in .gitignore', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n')
+    expect(await checkLegacyBroomyGitignore('/repo')).toBe(false)
+  })
+
+  it('returns false on error', async () => {
+    vi.mocked(window.fs.exists).mockRejectedValue(new Error('fail'))
+    expect(await checkLegacyBroomyGitignore('/repo')).toBe(false)
+  })
+})
+
+describe('removeLegacyBroomyGitignore', () => {
+  it('does nothing when .gitignore does not exist', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(false)
+    await removeLegacyBroomyGitignore('/repo')
+    expect(window.fs.writeFile).not.toHaveBeenCalled()
+  })
+
+  it('removes .broomy/ entries from .gitignore', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n.broomy/\ndist/\n')
+    await removeLegacyBroomyGitignore('/repo')
+    expect(window.fs.writeFile).toHaveBeenCalledWith(
+      '/repo/.gitignore',
+      'node_modules/\ndist/\n'
+    )
+  })
+
+  it('removes # Broomy review data comment lines', async () => {
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n# Broomy review data\n.broomy/\n')
+    await removeLegacyBroomyGitignore('/repo')
+    const written = vi.mocked(window.fs.writeFile).mock.calls[0][1]
+    expect(written).not.toContain('Broomy review data')
+    expect(written).not.toContain('.broomy')
+  })
+
+  it('handles errors gracefully', async () => {
+    vi.mocked(window.fs.exists).mockRejectedValue(new Error('fail'))
+    // Should not throw
+    await removeLegacyBroomyGitignore('/repo')
   })
 })
 

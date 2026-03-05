@@ -95,6 +95,30 @@ describe('ActionButtons', () => {
     expect(screen.getByText('Commit with AI')).toBeTruthy()
   })
 
+  it('filters actions by surface', () => {
+    const actions: ActionDefinition[] = [
+      { id: 'commit', label: 'Commit', type: 'agent', prompt: 'commit', showWhen: ['has-changes'] },
+      { id: 'review', label: 'Review', type: 'agent', prompt: 'review', showWhen: ['has-changes'], surface: 'review' },
+      { id: 'both', label: 'Both', type: 'agent', prompt: 'both', showWhen: ['has-changes'], surface: ['source-control', 'review'] },
+    ]
+    render(
+      <ActionButtons actions={actions} conditionState={BASE_STATE} templateVars={VARS}
+        directory="/repo" agentPtyId="pty-1" surface="source-control" />
+    )
+    expect(screen.getByText('Commit')).toBeTruthy()
+    expect(screen.queryByText('Review')).toBeNull()
+    expect(screen.getByText('Both')).toBeTruthy()
+
+    cleanup()
+    render(
+      <ActionButtons actions={actions} conditionState={BASE_STATE} templateVars={VARS}
+        directory="/repo" agentPtyId="pty-1" surface="review" />
+    )
+    expect(screen.queryByText('Commit')).toBeNull()
+    expect(screen.getByText('Review')).toBeTruthy()
+    expect(screen.getByText('Both')).toBeTruthy()
+  })
+
   it('calls onSwitchTab when action has switchTab', async () => {
     const onSwitchTab = vi.fn()
     const actions: ActionDefinition[] = [
