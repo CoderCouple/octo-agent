@@ -24,6 +24,14 @@ import { PromptVariants } from './PromptVariants'
 import { useAgentStore } from '../store/agents'
 
 const STYLE_OPTIONS = ['primary', 'secondary', 'accent', 'danger'] as const
+const SWITCH_TAB_OPTIONS = [
+  { value: '', label: 'None' },
+  { value: 'source-control', label: 'Source Control' },
+  { value: 'files', label: 'Files' },
+  { value: 'search', label: 'Search' },
+  { value: 'recent', label: 'Recent Files' },
+  { value: 'review', label: 'Review' },
+] as const
 
 interface CommandsEditorProps {
   directory: string
@@ -367,6 +375,19 @@ function ActionCard({
             >
               {STYLE_OPTIONS.map((s) => (
                 <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Switch Tab" hint="Navigate to an explorer tab after running this action">
+            <select
+              value={action.switchTab ?? ''}
+              onChange={(e) => onUpdate({ switchTab: e.target.value || undefined })}
+              className="w-full px-2 py-1.5 text-sm rounded border border-border bg-bg-secondary text-text-primary focus:outline-none focus:border-accent"
+              data-testid={`action-switch-tab-${action.id}`}
+            >
+              {SWITCH_TAB_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </Field>

@@ -268,6 +268,33 @@ describe('CommandsEditor', () => {
     })
   })
 
+  describe('switch tab', () => {
+    it('shows switch tab dropdown when action is expanded', async () => {
+      mockExistingConfig()
+      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByTestId('action-header-action-1'))
+      const select = screen.getByTestId<HTMLSelectElement>('action-switch-tab-action-1')
+      expect(select).toBeTruthy()
+      expect(select.value).toBe('') // None by default
+    })
+
+    it('updates switchTab when changed', async () => {
+      mockExistingConfig()
+      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByTestId('action-header-action-1'))
+      const select = screen.getByTestId<HTMLSelectElement>('action-switch-tab-action-1')
+      fireEvent.change(select, { target: { value: 'review' } })
+      expect(select.value).toBe('review')
+      expect(screen.getByTestId('save-commands')).not.toBeDisabled()
+    })
+  })
+
   describe('ShowWhenPicker', () => {
     it('shows active conditions with dropdown and remove button', async () => {
       mockExistingConfig()
