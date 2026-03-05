@@ -81,7 +81,7 @@ async function executeAgentAction(
  *
  * When a skill override is specified, checks whether the skill file exists
  * on disk (`.claude/commands/<skill>.md`). If missing, falls through to the
- * action's default prompt/promptFile so the action still works without skills.
+ * action's default prompt so the action still works without skills.
  */
 async function resolveAgentPrompt(action: ActionDefinition, ctx: ActionExecutionContext): Promise<string> {
   // Check for agent-specific override
@@ -97,24 +97,18 @@ async function resolveAgentPrompt(action: ActionDefinition, ctx: ActionExecution
           if (exists) {
             return `/${override.skill}`
           }
-          // Skill file missing — fall through to default prompt/promptFile
+          // Skill file missing — fall through to default prompt
         }
         if (override.prompt) {
           return resolveTemplateVars(override.prompt, ctx.templateVars)
-        }
-        if (override.promptFile) {
-          return `Please read and follow the instructions in ${resolveTemplateVars(override.promptFile, ctx.templateVars)}`
         }
       }
     }
   }
 
-  // Default: use prompt or promptFile
+  // Default: use prompt
   if (action.prompt) {
     return resolveTemplateVars(action.prompt, ctx.templateVars)
-  }
-  if (action.promptFile) {
-    return `Please read and follow the instructions in ${resolveTemplateVars(action.promptFile, ctx.templateVars)}`
   }
 
   return `Run the "${action.label}" action`

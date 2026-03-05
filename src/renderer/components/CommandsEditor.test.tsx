@@ -156,54 +156,14 @@ describe('CommandsEditor', () => {
     })
   })
 
-  describe('prompt toggle', () => {
-    it('defaults to inline prompt mode when action has prompt', async () => {
+  describe('prompt field', () => {
+    it('shows prompt textarea for agent actions', async () => {
       mockExistingConfig()
       render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
       await waitFor(() => {
         expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
       })
       fireEvent.click(screen.getByTestId('action-header-action-1'))
-      // Inline prompt toggle should be active (accent bg)
-      expect(screen.getByTestId('prompt-mode-inline-action-1')).toBeTruthy()
-      expect(screen.getByTestId('action-prompt-action-1')).toBeTruthy()
-      // promptFile input should not be visible
-      expect(screen.queryByTestId('action-promptFile-action-1')).toBeNull()
-    })
-
-    it('defaults to file mode when only promptFile is set', async () => {
-      const fileConfig = {
-        version: 1,
-        actions: [
-          { id: 'action-f', label: 'File Action', type: 'agent', promptFile: '.broomy/prompts/test.md', showWhen: [], style: 'primary' },
-        ],
-      }
-      vi.mocked(window.fs.exists).mockResolvedValue(true)
-      vi.mocked(window.fs.readFile).mockResolvedValue(JSON.stringify(fileConfig))
-      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
-      await waitFor(() => {
-        expect(screen.getByTestId('action-header-action-f')).toBeTruthy()
-      })
-      fireEvent.click(screen.getByTestId('action-header-action-f'))
-      expect(screen.getByTestId('action-promptFile-action-f')).toBeTruthy()
-      expect(screen.queryByTestId('action-prompt-action-f')).toBeNull()
-    })
-
-    it('switches between inline and file mode', async () => {
-      mockExistingConfig()
-      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
-      await waitFor(() => {
-        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
-      })
-      fireEvent.click(screen.getByTestId('action-header-action-1'))
-      // Start in inline mode
-      expect(screen.getByTestId('action-prompt-action-1')).toBeTruthy()
-      // Switch to file mode
-      fireEvent.click(screen.getByTestId('prompt-mode-file-action-1'))
-      expect(screen.getByTestId('action-promptFile-action-1')).toBeTruthy()
-      expect(screen.queryByTestId('action-prompt-action-1')).toBeNull()
-      // Switch back
-      fireEvent.click(screen.getByTestId('prompt-mode-inline-action-1'))
       expect(screen.getByTestId('action-prompt-action-1')).toBeTruthy()
     })
   })

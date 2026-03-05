@@ -4,7 +4,7 @@
  * Shows an accordion list of action definitions with editable fields.
  * When no commands.json exists, shows a setup prompt with a "Create" button.
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   loadCommandsConfig,
   commandsConfigPath,
@@ -256,15 +256,6 @@ function ActionCard({
   deleteConfirm: boolean
   onCancelDelete: () => void
 }) {
-  // Derive prompt mode from action data, allow manual override
-  const derivedMode = (action.promptFile && !action.prompt) ? 'file' as const : 'inline' as const
-  const [promptMode, setPromptMode] = useState<'inline' | 'file'>(derivedMode)
-  const prevActionId = useRef(action.id)
-  if (prevActionId.current !== action.id) {
-    prevActionId.current = action.id
-    setPromptMode(derivedMode)
-  }
-
   return (
     <div className="rounded border border-border bg-bg-primary overflow-hidden">
       {/* Collapsed header */}
@@ -338,49 +329,14 @@ function ActionCard({
 
           {action.type === 'agent' && (
             <Field label="Prompt">
-              <div className="flex gap-1 mb-2">
-                <button
-                  onClick={() => setPromptMode('inline')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    promptMode === 'inline'
-                      ? 'bg-accent text-white'
-                      : 'bg-bg-tertiary text-text-secondary hover:text-text-primary'
-                  } transition-colors`}
-                  data-testid={`prompt-mode-inline-${action.id}`}
-                >
-                  Inline Prompt
-                </button>
-                <button
-                  onClick={() => setPromptMode('file')}
-                  className={`px-3 py-1 text-xs rounded ${
-                    promptMode === 'file'
-                      ? 'bg-accent text-white'
-                      : 'bg-bg-tertiary text-text-secondary hover:text-text-primary'
-                  } transition-colors`}
-                  data-testid={`prompt-mode-file-${action.id}`}
-                >
-                  Prompt File
-                </button>
-              </div>
-              {promptMode === 'inline' ? (
-                <textarea
-                  value={action.prompt ?? ''}
-                  onChange={(e) => onUpdate({ prompt: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm rounded border border-border bg-bg-secondary text-text-primary font-mono focus:outline-none focus:border-accent resize-y min-h-[60px]"
-                  placeholder="Enter an inline prompt..."
-                  rows={3}
-                  data-testid={`action-prompt-${action.id}`}
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={action.promptFile ?? ''}
-                  onChange={(e) => onUpdate({ promptFile: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm rounded border border-border bg-bg-secondary text-text-primary font-mono focus:outline-none focus:border-accent"
-                  placeholder=".broomy/prompts/my-action.md"
-                  data-testid={`action-promptFile-${action.id}`}
-                />
-              )}
+              <textarea
+                value={action.prompt ?? ''}
+                onChange={(e) => onUpdate({ prompt: e.target.value })}
+                className="w-full px-2 py-1.5 text-sm rounded border border-border bg-bg-secondary text-text-primary font-mono focus:outline-none focus:border-accent resize-y min-h-[60px]"
+                placeholder="Enter a prompt for the agent..."
+                rows={3}
+                data-testid={`action-prompt-${action.id}`}
+              />
             </Field>
           )}
 

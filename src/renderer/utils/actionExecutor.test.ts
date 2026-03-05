@@ -174,20 +174,6 @@ describe('executeAction - agent', () => {
     expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Make a commit')
   })
 
-  it('falls back to promptFile when skill file is missing and no prompt', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      promptFile: '.broomy/prompts/commit.md', showWhen: [],
-      agents: { claude: { skill: 'broomy-action-commit' } },
-    }
-
-    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Please read and follow the instructions in .broomy/prompts/commit.md')
-  })
-
   it('uses agent-specific prompt override', async () => {
     const { sendAgentPrompt } = await import('./focusHelpers')
 
@@ -199,19 +185,6 @@ describe('executeAction - agent', () => {
 
     await executeAction(action, makeCtx({ agentId: 'agent-1' }))
     expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'claude-specific prompt')
-  })
-
-  it('uses agent-specific promptFile override', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      prompt: 'default prompt', showWhen: [],
-      agents: { claude: { promptFile: '.broomy/prompts/custom.md' } },
-    }
-
-    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Please read and follow the instructions in .broomy/prompts/custom.md')
   })
 
   it('falls back to default prompt when agent type has no override', async () => {
@@ -228,19 +201,7 @@ describe('executeAction - agent', () => {
     expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'default prompt')
   })
 
-  it('uses promptFile when no prompt is set', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      promptFile: '.broomy/prompts/commit.md', showWhen: [],
-    }
-
-    await executeAction(action, makeCtx())
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Please read and follow the instructions in .broomy/prompts/commit.md')
-  })
-
-  it('falls back to label when no prompt or promptFile', async () => {
+  it('falls back to label when no prompt is set', async () => {
     const { sendAgentPrompt } = await import('./focusHelpers')
 
     const action: ActionDefinition = {

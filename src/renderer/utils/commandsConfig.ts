@@ -13,9 +13,8 @@ export interface ActionDefinition {
   label: string
   type: 'agent' | 'shell'
 
-  // For type: "agent" — one of prompt or promptFile
+  // For type: "agent"
   prompt?: string
-  promptFile?: string
 
   // For type: "shell"
   command?: string
@@ -36,7 +35,6 @@ export interface ActionDefinition {
 export interface AgentOverride {
   skill?: string
   prompt?: string
-  promptFile?: string
 }
 
 export interface CommandsConfig {
