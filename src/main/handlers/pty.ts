@@ -31,26 +31,41 @@ function resolveInitialCommand(command: string, isE2ETest: boolean): string {
   return command
 }
 
+/** Disposables for each PTY's onData/onExit listeners, keyed by PTY id. */
+const ptyDisposables = new Map<string, Array<{ dispose: () => void }>>()
+
+/** Dispose all event listeners for a PTY and remove from the disposables map. */
+function disposePtyListeners(id: string) {
+  const disposables = ptyDisposables.get(id)
+  if (disposables) {
+    for (const d of disposables) d.dispose()
+    ptyDisposables.delete(id)
+  }
+}
+
 /** Wire onData/onExit events for a PTY, registering it in the context maps. */
 function wirePtyEvents(ctx: HandlerContext, ptyProcess: IPty, id: string, senderWindow: BrowserWindow | null) {
   ctx.ptyProcesses.set(id, ptyProcess)
   if (senderWindow) ctx.ptyOwnerWindows.set(id, senderWindow)
 
-  ptyProcess.onData((data) => {
+  const dataDisposable = ptyProcess.onData((data) => {
     const ownerWindow = ctx.ptyOwnerWindows.get(id) || ctx.mainWindow
     if (ownerWindow && !ownerWindow.isDestroyed()) {
       ownerWindow.webContents.send(`pty:data:${id}`, data)
     }
   })
 
-  ptyProcess.onExit(({ exitCode }) => {
+  const exitDisposable = ptyProcess.onExit(({ exitCode }) => {
     const ownerWindow = ctx.ptyOwnerWindows.get(id) || ctx.mainWindow
     if (ownerWindow && !ownerWindow.isDestroyed()) {
       ownerWindow.webContents.send(`pty:exit:${id}`, exitCode)
     }
+    disposePtyListeners(id)
     ctx.ptyProcesses.delete(id)
     ctx.ptyOwnerWindows.delete(id)
   })
+
+  ptyDisposables.set(id, [dataDisposable, exitDisposable])
 }
 
 /**
@@ -219,14 +234,16 @@ function createDevcontainerPty(
       displayTerminalError(id, `Failed to spawn Docker process: ${err instanceof Error ? err.message : String(err)}`, senderWindow)
       return
     }
-    ptyProcess.onExit(() => {}) // prevent unhandled-exit crashes
+    const earlyExitDisposable = ptyProcess.onExit(() => {}) // prevent unhandled-exit crashes
 
     // Final check: session may have been killed between spawn and wire
     if (!pendingSetups.has(id)) {
+      earlyExitDisposable.dispose()
       ptyProcess.kill()
       return
     }
     pendingSetups.delete(id)
+    earlyExitDisposable.dispose()
     wirePtyEvents(ctx, ptyProcess, id, senderWindow)
   }
 
@@ -292,6 +309,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     // Kill any existing PTY with the same ID (e.g. React strict mode double-mount)
     const existing = ctx.ptyProcesses.get(options.id)
     if (existing) {
+      disposePtyListeners(options.id)
       existing.kill()
       ctx.ptyProcesses.delete(options.id)
       ctx.ptyOwnerWindows.delete(options.id)
@@ -381,6 +399,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     pendingSetups.delete(id)
     const ptyProcess = ctx.ptyProcesses.get(id)
     if (ptyProcess) {
+      disposePtyListeners(id)
       ptyProcess.kill()
       ctx.ptyProcesses.delete(id)
       ctx.ptyOwnerWindows.delete(id)
