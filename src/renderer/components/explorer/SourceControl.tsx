@@ -2,7 +2,7 @@
  * Top-level source control container that composes the PR banner, view toggle, and sub-views.
  * Integrates the modular commands.json action system.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus, PrState } from '../../store/sessions'
 import type { NavigationTarget } from '../../utils/fileNavigation'
@@ -18,56 +18,6 @@ import { CommandsSetupDialog } from './CommandsSetupDialog'
 import { useCommandsConfig } from '../../hooks/useCommandsConfig'
 import { computeConditionState } from '../../utils/conditionState'
 import type { TemplateVars } from '../../utils/commandsConfig'
-
-/** Extracted prompt builder to keep SourceControl under the line limit. */
-async function runWritePromptBuilder(
-  builder: string,
-  outputPath: string,
-  directory: string,
-  data: { branchBaseName: string; prStatus?: { number?: number; title?: string; url?: string } | null },
-) {
-  const outputDir = `${directory}/.broomy/output`
-  await window.fs.mkdir(`${directory}/.broomy`)
-  await window.fs.mkdir(outputDir)
-
-  if (builder === 'create-pr') {
-    const { buildCreatePrPrompt } = await import('../../utils/prPromptBuilder')
-    const prompt = buildCreatePrPrompt(data.branchBaseName || 'main')
-    await window.fs.writeFile(outputPath, prompt)
-    await window.fs.rm(`${outputDir}/pr-result.json`)
-  } else if (builder === 'resolve-conflicts') {
-    const { buildMergePrompt } = await import('../../utils/mergePromptBuilder')
-    const prompt = buildMergePrompt(data.branchBaseName || 'main')
-    await window.fs.writeFile(outputPath, prompt)
-  } else if (builder === 'review') {
-    const { buildMarkdownReviewPrompt } = await import('../../utils/reviewPromptBuilder')
-    const { ensureOutputGitignore } = await import('../../utils/commandsConfig')
-    const baseBranch = data.branchBaseName || 'main'
-
-    await ensureOutputGitignore(directory)
-
-    try { await window.git.fetchBranch(directory, baseBranch) } catch { /* non-fatal */ }
-
-    const prNumber = data.prStatus?.number
-    if (prNumber) {
-      try {
-        const branch = await window.git.getBranch(directory)
-        await window.git.syncReviewBranch(directory, branch, prNumber)
-      } catch { /* non-fatal */ }
-    }
-
-    const prompt = buildMarkdownReviewPrompt(
-      { prBaseBranch: baseBranch, prNumber, prTitle: data.prStatus?.title, prUrl: data.prStatus?.url },
-      '',
-      {},
-    )
-    await window.fs.writeFile(outputPath, prompt)
-
-    await window.fs.writeFile(`${outputDir}/context.json`, JSON.stringify({
-      prNumber, prBaseBranch: baseBranch, prUrl: data.prStatus?.url,
-    }, null, 2))
-  }
-}
 
 interface SourceControlProps {
   directory?: string
@@ -88,6 +38,8 @@ interface SourceControlProps {
   onRecordPushToMain?: (commitHash: string) => void
   onClearPushToMain?: () => void
   onSwitchTab?: (tab: string) => void
+  onOpenCommandsEditor?: () => void
+  isReview?: boolean
 }
 
 export function SourceControl({
@@ -109,6 +61,8 @@ export function SourceControl({
   onRecordPushToMain,
   onClearPushToMain,
   onSwitchTab,
+  onOpenCommandsEditor,
+  isReview,
 }: SourceControlProps) {
   const [scView, setScView] = useState<'working' | 'branch' | 'commits'>('working')
   const [showSetupDialog, setShowSetupDialog] = useState(false)
@@ -157,8 +111,9 @@ export function SourceControl({
       behindMainCount: data.behindMainCount,
       issueNumber,
       noDevcontainer,
+      isReview,
     }),
-    [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.behindMainCount, issueNumber, noDevcontainer]
+    [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.behindMainCount, issueNumber, noDevcontainer, isReview]
   )
 
   // Template variables for action labels and prompts
@@ -166,12 +121,8 @@ export function SourceControl({
     main: data.branchBaseName || 'main',
     branch: syncStatus?.current ?? '',
     directory: directory ?? '',
-  }), [data.branchBaseName, syncStatus?.current, directory])
-
-  const handleWritePrompt = useCallback(async (builder: string, outputPath: string) => {
-    if (!directory) return
-    await runWritePromptBuilder(builder, outputPath, directory, data)
-  }, [directory, data.branchBaseName, data.prStatus])
+    issueNumber: issueNumber ? String(issueNumber) : undefined,
+  }), [data.branchBaseName, syncStatus?.current, directory, issueNumber])
 
   if (!directory) return null
 
@@ -282,7 +233,7 @@ export function SourceControl({
         templateVars={templateVars}
         agentPtyId={agentPtyId}
         agentId={agentId}
-        onWritePrompt={handleWritePrompt}
+        onOpenCommandsEditor={commandsExists ? onOpenCommandsEditor : undefined}
       />
     </div>
   )

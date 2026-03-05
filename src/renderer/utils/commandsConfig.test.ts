@@ -7,8 +7,8 @@ import {
   commandsConfigPath,
   loadCommandsConfig,
   detectAgentType,
+  getAgentTypes,
   getDefaultCommandsConfig,
-  getDefaultPromptFiles,
   ensureOutputGitignore,
   matchesSurface,
   checkLegacyBroomyGitignore,
@@ -45,7 +45,7 @@ describe('evaluateShowWhen', () => {
     'no-tracking': false, ahead: false, behind: false, 'behind-main': false,
     'on-main': false, 'in-progress': true, pushed: true, empty: false,
     open: false, merged: false, closed: false, 'no-pr': true,
-    'has-write-access': true, 'allow-push-to-main': false, 'has-issue': false, 'no-devcontainer': false,
+    'has-write-access': true, 'allow-push-to-main': false, 'has-issue': false, 'no-devcontainer': false, review: false,
   }
 
   it('returns true for empty conditions', () => {
@@ -115,6 +115,42 @@ describe('loadCommandsConfig', () => {
     expect(result).toBeNull()
   })
 
+  it('strips agent overrides with no prompt (legacy skill-only entries)', async () => {
+    const config = {
+      version: 1,
+      actions: [
+        {
+          id: 'commit', label: 'Commit', type: 'agent', showWhen: [],
+          prompt: 'default prompt',
+          agents: { claude: { skill: 'broomy-action-commit' }, aider: { prompt: 'aider prompt' } },
+        },
+      ],
+    }
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue(JSON.stringify(config))
+
+    const result = await loadCommandsConfig('/repo')
+    // claude override (skill-only, no prompt) should be stripped
+    expect(result!.actions[0].agents).toEqual({ aider: { prompt: 'aider prompt' } })
+  })
+
+  it('removes agents field entirely when all overrides are skill-only', async () => {
+    const config = {
+      version: 1,
+      actions: [
+        {
+          id: 'commit', label: 'Commit', type: 'agent', showWhen: [],
+          agents: { claude: { skill: 'broomy-action-commit' } },
+        },
+      ],
+    }
+    vi.mocked(window.fs.exists).mockResolvedValue(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue(JSON.stringify(config))
+
+    const result = await loadCommandsConfig('/repo')
+    expect(result!.actions[0].agents).toBeUndefined()
+  })
+
   it('returns null on read error', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(true)
     vi.mocked(window.fs.readFile).mockRejectedValue(new Error('read error'))
@@ -138,9 +174,46 @@ describe('detectAgentType', () => {
     expect(detectAgentType('cursor')).toBe('cursor')
   })
 
+  it('detects codex', () => {
+    expect(detectAgentType('codex')).toBe('codex')
+    expect(detectAgentType('/usr/local/bin/codex --flag')).toBe('codex')
+  })
+
+  it('detects gemini', () => {
+    expect(detectAgentType('gemini')).toBe('gemini')
+  })
+
   it('returns null for unknown agent', () => {
     expect(detectAgentType('unknown-agent')).toBeNull()
     expect(detectAgentType('vim')).toBeNull()
+  })
+})
+
+describe('getAgentTypes', () => {
+  it('returns unique sorted agent types', () => {
+    const agents = [
+      { command: 'claude' },
+      { command: 'aider --model gpt-4' },
+      { command: 'claude --flag' },
+    ]
+    expect(getAgentTypes(agents)).toEqual(['aider', 'claude'])
+  })
+
+  it('returns empty array when no recognized agents', () => {
+    expect(getAgentTypes([{ command: 'vim' }])).toEqual([])
+  })
+
+  it('returns empty array for empty input', () => {
+    expect(getAgentTypes([])).toEqual([])
+  })
+
+  it('includes codex and gemini', () => {
+    const agents = [
+      { command: 'codex' },
+      { command: 'gemini' },
+      { command: 'claude' },
+    ]
+    expect(getAgentTypes(agents)).toEqual(['claude', 'codex', 'gemini'])
   })
 })
 
@@ -150,15 +223,6 @@ describe('getDefaultCommandsConfig', () => {
     expect(config.version).toBe(1)
     expect(config.actions.length).toBeGreaterThan(0)
     expect(config.actions.every(a => a.id && a.label && a.type)).toBe(true)
-  })
-})
-
-describe('getDefaultPromptFiles', () => {
-  it('returns prompt files keyed by filename', () => {
-    const files = getDefaultPromptFiles()
-    expect(files['commit.md']).toContain('Commit')
-    expect(files['push-to-main.md']).toContain('Push')
-    expect(files['resolve-conflicts.md']).toContain('Resolve')
   })
 })
 

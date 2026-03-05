@@ -127,13 +127,12 @@ describe('executeAction - agent', () => {
     expect(result.error).toBe('No agent terminal available')
   })
 
-  it('writes context.json when action has context', async () => {
+  it('writes context.json with template vars before agent action', async () => {
     vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
 
     const action: ActionDefinition = {
       id: 'push', label: 'Push', type: 'agent',
       prompt: 'Push it', showWhen: [],
-      context: { targetBranch: '{main}' },
     }
 
     await executeAction(action, makeCtx())
@@ -142,65 +141,8 @@ describe('executeAction - agent', () => {
     expect(window.fs.mkdir).toHaveBeenCalledWith('/repo/.broomy/output')
     expect(window.fs.writeFile).toHaveBeenCalledWith(
       '/repo/.broomy/output/context.json',
-      expect.stringContaining('"targetBranch": "main"')
+      expect.stringContaining('"main"')
     )
-  })
-
-  it('calls writePrompt callback when specified', async () => {
-    const onWritePrompt = vi.fn().mockResolvedValue(undefined)
-
-    const action: ActionDefinition = {
-      id: 'review', label: 'Review', type: 'agent',
-      prompt: 'Review it', showWhen: [],
-      writePrompt: { file: '.broomy/output/review-prompt.md', builder: 'review' },
-    }
-
-    await executeAction(action, makeCtx({ onWritePrompt }))
-
-    expect(onWritePrompt).toHaveBeenCalledWith('review', '/repo/.broomy/output/review-prompt.md')
-  })
-
-  it('uses agent-specific skill override for claude when skill file exists', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-    vi.mocked(window.fs.exists).mockResolvedValue(true)
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      prompt: 'Make a commit', showWhen: [],
-      agents: { claude: { skill: 'broomy-action-commit' } },
-    }
-
-    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
-    expect(window.fs.exists).toHaveBeenCalledWith('/repo/.claude/commands/broomy-action-commit.md')
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', '/broomy-action-commit')
-  })
-
-  it('falls back to default prompt when skill file is missing', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      prompt: 'Make a commit', showWhen: [],
-      agents: { claude: { skill: 'broomy-action-commit' } },
-    }
-
-    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Make a commit')
-  })
-
-  it('falls back to promptFile when skill file is missing and no prompt', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      promptFile: '.broomy/prompts/commit.md', showWhen: [],
-      agents: { claude: { skill: 'broomy-action-commit' } },
-    }
-
-    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Please read and follow the instructions in .broomy/prompts/commit.md')
   })
 
   it('uses agent-specific prompt override', async () => {
@@ -214,19 +156,6 @@ describe('executeAction - agent', () => {
 
     await executeAction(action, makeCtx({ agentId: 'agent-1' }))
     expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'claude-specific prompt')
-  })
-
-  it('uses agent-specific promptFile override', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      prompt: 'default prompt', showWhen: [],
-      agents: { claude: { promptFile: '.broomy/prompts/custom.md' } },
-    }
-
-    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Please read and follow the instructions in .broomy/prompts/custom.md')
   })
 
   it('falls back to default prompt when agent type has no override', async () => {
@@ -243,19 +172,7 @@ describe('executeAction - agent', () => {
     expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'default prompt')
   })
 
-  it('uses promptFile when no prompt is set', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
-
-    const action: ActionDefinition = {
-      id: 'commit', label: 'Commit', type: 'agent',
-      promptFile: '.broomy/prompts/commit.md', showWhen: [],
-    }
-
-    await executeAction(action, makeCtx())
-    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Please read and follow the instructions in .broomy/prompts/commit.md')
-  })
-
-  it('falls back to label when no prompt or promptFile', async () => {
+  it('falls back to label when no prompt is set', async () => {
     const { sendAgentPrompt } = await import('./focusHelpers')
 
     const action: ActionDefinition = {
@@ -266,13 +183,68 @@ describe('executeAction - agent', () => {
     expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Run the "Commit" action')
   })
 
+  it('uses aider override when current agent is aider', async () => {
+    const { sendAgentPrompt } = await import('./focusHelpers')
+
+    const action: ActionDefinition = {
+      id: 'commit', label: 'Commit', type: 'agent',
+      prompt: 'default prompt', showWhen: [],
+      agents: {
+        claude: { prompt: 'claude prompt' },
+        aider: { prompt: 'aider prompt' },
+      },
+    }
+
+    // agent-2 is aider
+    await executeAction(action, makeCtx({ agentId: 'agent-2' }))
+    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'aider prompt')
+  })
+
+  it('falls back to base prompt when override prompt is empty', async () => {
+    const { sendAgentPrompt } = await import('./focusHelpers')
+
+    const action: ActionDefinition = {
+      id: 'commit', label: 'Commit', type: 'agent',
+      prompt: 'base prompt', showWhen: [],
+      agents: { claude: { prompt: '' } },
+    }
+
+    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
+    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'base prompt')
+  })
+
+  it('resolves template vars in agent override prompt', async () => {
+    const { sendAgentPrompt } = await import('./focusHelpers')
+
+    const action: ActionDefinition = {
+      id: 'pr', label: 'Create PR', type: 'agent',
+      prompt: 'default', showWhen: [],
+      agents: { claude: { prompt: 'Create PR against {main} on {branch}' } },
+    }
+
+    await executeAction(action, makeCtx({ agentId: 'agent-1' }))
+    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'Create PR against main on feature/test')
+  })
+
+  it('uses base prompt when agentId is null', async () => {
+    const { sendAgentPrompt } = await import('./focusHelpers')
+
+    const action: ActionDefinition = {
+      id: 'commit', label: 'Commit', type: 'agent',
+      prompt: 'base prompt', showWhen: [],
+      agents: { claude: { prompt: 'claude prompt' } },
+    }
+
+    await executeAction(action, makeCtx({ agentId: null }))
+    expect(sendAgentPrompt).toHaveBeenCalledWith('pty-1', 'base prompt')
+  })
+
   it('handles errors during execution', async () => {
     vi.mocked(window.fs.mkdir).mockRejectedValue(new Error('mkdir failed'))
 
     const action: ActionDefinition = {
       id: 'push', label: 'Push', type: 'agent',
       prompt: 'Push', showWhen: [],
-      context: { targetBranch: '{main}' },
     }
 
     const result = await executeAction(action, makeCtx())

@@ -25,7 +25,6 @@ const mockReviewDataState = {
 }
 
 const mockActions = {
-  handleWritePrompt: vi.fn(),
   handleOpenPrUrl: vi.fn(),
 }
 

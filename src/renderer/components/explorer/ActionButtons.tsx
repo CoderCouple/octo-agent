@@ -15,11 +15,12 @@ interface ActionButtonsProps {
   agentPtyId?: string
   agentId?: string | null
   onGitStatusRefresh?: () => void
-  onWritePrompt?: (builder: string, outputPath: string) => Promise<void>
   /** Called when an action specifies switchTab (e.g. "review") */
   onSwitchTab?: (tab: string) => void
   /** Filter actions by surface (e.g. 'source-control', 'review'). Defaults to 'source-control'. */
   surface?: string
+  /** Opens the commands.json editor */
+  onOpenCommandsEditor?: () => void
 }
 
 const STYLE_CLASSES: Record<string, string> = {
@@ -37,9 +38,9 @@ export function ActionButtons({
   agentPtyId,
   agentId,
   onGitStatusRefresh,
-  onWritePrompt,
   onSwitchTab,
   surface = 'source-control',
+  onOpenCommandsEditor,
 }: ActionButtonsProps) {
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set())
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
@@ -67,7 +68,6 @@ export function ActionButtons({
       agentPtyId,
       agentId,
       templateVars,
-      onWritePrompt,
       onGitStatusRefresh,
     }
 
@@ -82,9 +82,9 @@ export function ActionButtons({
     if (!result.success && result.error) {
       setActionErrors(prev => ({ ...prev, [action.id]: result.error! }))
     }
-  }, [directory, agentPtyId, agentId, templateVars, onWritePrompt, onGitStatusRefresh, onSwitchTab])
+  }, [directory, agentPtyId, agentId, templateVars, onGitStatusRefresh, onSwitchTab])
 
-  if (visibleActions.length === 0) return null
+  if (visibleActions.length === 0 && !onOpenCommandsEditor) return null
 
   return (
     <div className="px-3 py-2 border-b border-border flex flex-col gap-1.5">
@@ -122,6 +122,15 @@ export function ActionButtons({
           </div>
         )
       })}
+      {onOpenCommandsEditor && (
+        <button
+          onClick={onOpenCommandsEditor}
+          className="mt-1 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+          data-testid="edit-commands-link"
+        >
+          edit commands
+        </button>
+      )}
     </div>
   )
 }

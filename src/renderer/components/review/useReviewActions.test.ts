@@ -75,11 +75,6 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.useFakeTimers()
-})
-
-afterEach(() => {
-  vi.useRealTimers()
 })
 
 describe('useReviewActions', () => {
@@ -99,150 +94,19 @@ describe('useReviewActions', () => {
     expect(onSelectFile).toHaveBeenCalledWith('https://github.com/pr/42', false)
   })
 
-  it('handleWritePrompt ignores non-review builders', async () => {
-    const state = makeState()
-    const { result } = renderHook(() =>
-      useReviewActions(makeSession(), undefined, vi.fn(), state)
-    )
-
-    await act(async () => {
-      await result.current.handleWritePrompt('create-pr', '/test/output.md')
-    })
-
-    expect(state.setFetching).not.toHaveBeenCalled()
-  })
-
-  it('handleWritePrompt fetches base branch before generating', async () => {
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-
-    const state = makeState()
-    const session = makeSession({ prBaseBranch: 'develop' })
-
-    const { result } = renderHook(() =>
-      useReviewActions(session, undefined, vi.fn(), state)
-    )
-
-    await act(async () => {
-      await result.current.handleWritePrompt('review', '/test/repo/.broomy/output/review-prompt.md')
-    })
-
-    expect(window.git.fetchBranch).toHaveBeenCalledWith('/test/repo', 'develop')
-  })
-
-  it('handleWritePrompt pulls PR branch when prNumber is set', async () => {
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-    vi.mocked(window.git.getBranch).mockResolvedValue('feature/review')
-
-    const state = makeState()
-    const session = makeSession({ prNumber: 42 })
-
-    const { result } = renderHook(() =>
-      useReviewActions(session, undefined, vi.fn(), state)
-    )
-
-    await act(async () => {
-      await result.current.handleWritePrompt('review', '/test/repo/.broomy/output/review-prompt.md')
-    })
-
-    expect(window.git.syncReviewBranch).toHaveBeenCalledWith('/test/repo', 'feature/review', 42)
-  })
-
-  it('handleWritePrompt writes review prompt', async () => {
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-    vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
-
-    const state = makeState()
-    const session = makeSession()
-
-    const { result } = renderHook(() =>
-      useReviewActions(session, undefined, vi.fn(), state)
-    )
-
-    await act(async () => {
-      await result.current.handleWritePrompt('review', '/test/repo/.broomy/output/review-prompt.md')
-    })
-
-    expect(window.fs.writeFile).toHaveBeenCalledWith(
-      '/test/repo/.broomy/output/review-prompt.md',
-      expect.stringContaining('PR Review')
-    )
-  })
-
-  it('handleWritePrompt writes context.json with PR info', async () => {
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-    vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
-
-    const state = makeState()
-    const session = makeSession({ prNumber: 42, prBaseBranch: 'main', prUrl: 'https://github.com/pr/42' })
-
-    const { result } = renderHook(() =>
-      useReviewActions(session, undefined, vi.fn(), state)
-    )
-
-    await act(async () => {
-      await result.current.handleWritePrompt('review', '/test/repo/.broomy/output/review-prompt.md')
-    })
-
-    expect(window.fs.writeFile).toHaveBeenCalledWith(
-      '/test/repo/.broomy/output/context.json',
-      expect.stringContaining('"prNumber": 42')
-    )
-  })
-
-  it('handleWritePrompt sets fetching and waitingForAgent states', async () => {
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-
-    const state = makeState()
-    const session = makeSession()
-
-    const { result } = renderHook(() =>
-      useReviewActions(session, undefined, vi.fn(), state)
-    )
-
-    await act(async () => {
-      await result.current.handleWritePrompt('review', '/test/repo/.broomy/output/review-prompt.md')
-    })
-
-    expect(state.setFetching).toHaveBeenCalledWith(true)
-    expect(state.setWaitingForAgent).toHaveBeenCalledWith(true)
-    expect(state.setFetchingStatus).toHaveBeenCalledWith('sent')
-  })
-
-  it('handleWritePrompt handles errors', async () => {
-    vi.mocked(window.fs.exists).mockResolvedValue(false)
-    vi.mocked(window.fs.mkdir).mockRejectedValue(new Error('mkdir failed'))
-
-    const state = makeState()
-    const session = makeSession()
-
-    const { result } = renderHook(() =>
-      useReviewActions(session, undefined, vi.fn(), state)
-    )
-
-    await act(async () => {
-      await result.current.handleWritePrompt('review', '/test/repo/.broomy/output/review-prompt.md')
-    })
-
-    expect(state.setError).toHaveBeenCalledWith('mkdir failed')
-    expect(state.setWaitingForAgent).toHaveBeenCalledWith(false)
-  })
-
   it('handleOpenPrUrl does nothing when no prUrl', () => {
-    const openSpy = vi.fn()
-    vi.stubGlobal('open', openSpy)
-
+    const onSelectFile = vi.fn()
     const session = makeSession({ prUrl: undefined })
     const state = makeState()
 
     const { result } = renderHook(() =>
-      useReviewActions(session, undefined, vi.fn(), state)
+      useReviewActions(session, undefined, onSelectFile, state)
     )
 
     act(() => {
       result.current.handleOpenPrUrl()
     })
 
-    expect(openSpy).not.toHaveBeenCalled()
-    vi.unstubAllGlobals()
+    expect(onSelectFile).not.toHaveBeenCalled()
   })
 })

@@ -213,7 +213,7 @@ export default function ReviewPanel({ session, repo, onSelectFile, gitStatus, sy
   } = state
 
   const {
-    handleWritePrompt, handleOpenPrUrl,
+    handleOpenPrUrl,
   } = useReviewActions(session, repo, onSelectFile, state)
 
   // Load commands config for action buttons
@@ -268,7 +268,6 @@ export default function ReviewPanel({ session, repo, onSelectFile, gitStatus, sy
         agentPtyId={session.agentPtyId}
         agentId={session.agentId}
         onGitStatusRefresh={onGitStatusRefresh}
-        onWritePrompt={handleWritePrompt}
         surface="review"
       />
 
