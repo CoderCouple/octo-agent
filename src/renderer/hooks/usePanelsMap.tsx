@@ -1,7 +1,7 @@
 /**
  * Builds the map of panel ID to rendered React element for the layout system, wiring up each panel to active session state.
  */
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect, useCallback, memo } from 'react'
 import TabbedTerminal from '../components/TabbedTerminal'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import Explorer from '../components/explorer'
@@ -11,13 +11,41 @@ import AgentSettings from '../components/AgentSettings'
 import SessionList from '../components/sessionList'
 import WelcomeScreen from '../components/WelcomeScreen'
 import TutorialPanel from '../components/TutorialPanel'
-import { type Session } from '../store/sessions'
+import { useSessionStore, type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
 import { useIssuePlanDetection } from './useIssuePlanDetection'
 import type { FileStatus, ViewMode } from '../components/FileViewer'
 import type { GitFileStatus, GitStatusResult, ManagedRepo } from '../../preload/index'
 import type { ExplorerFilter, PrState } from '../store/sessions'
 import type { NavigationTarget } from '../utils/fileNavigation'
+
+/** Wrapper that subscribes each session terminal to its own visibility from the store. */
+const SessionTerminal = memo(function SessionTerminal({
+  sessionId, cwd, branch, agentCommand, agentEnv, agentResumeCommand, isRestored, isolated, repoRootDir,
+}: {
+  sessionId: string; cwd: string; branch: string
+  agentCommand?: string; agentEnv?: Record<string, string>
+  agentResumeCommand?: string; isRestored?: boolean
+  isolated: boolean; repoRootDir?: string
+}) {
+  const isVisible = useSessionStore((s) => s.activeSessionId === sessionId)
+  return (
+    <div className={`absolute inset-0 ${isVisible ? '' : 'invisible pointer-events-none'}`}>
+      <PanelErrorBoundary name={`Session ${branch || sessionId}`}>
+        <TabbedTerminal
+          sessionId={sessionId}
+          cwd={cwd}
+          agentCommand={agentCommand}
+          agentEnv={agentEnv}
+          agentResumeCommand={agentResumeCommand}
+          isRestored={isRestored}
+          isolated={isolated}
+          repoRootDir={repoRootDir}
+        />
+      </PanelErrorBoundary>
+    </div>
+  )
+})
 
 export interface PanelsMapConfig {
   sessions: Session[]
@@ -199,7 +227,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
 
 export function usePanelsMap(config: PanelsMapConfig) {
   const {
-    sessions, activeSessionId, activeSession,
+    sessions,
     handleSelectSession, handleNewSession, removeSession, refreshPrStatus,
     archiveSession, unarchiveSession,
     getAgentCommand, getAgentEnv, getAgentResumeCommand,
@@ -221,49 +249,44 @@ export function usePanelsMap(config: PanelsMapConfig) {
       {sessions.filter(s => !s.isArchived).map((session) => {
         const repo = session.repoId ? repos.find(r => r.id === session.repoId) : undefined
         return (
-          <div
+          <SessionTerminal
             key={session.id}
-            className={`absolute inset-0 ${session.id === activeSessionId ? '' : 'invisible pointer-events-none'}`}
-          >
-            <PanelErrorBoundary name={`Session ${session.branch || session.id}`}>
-              <TabbedTerminal
-                sessionId={session.id}
-                cwd={session.directory}
-                isActive={session.id === activeSessionId}
-                agentCommand={getAgentCommand(session)}
-                agentEnv={getAgentEnv(session)}
-                agentResumeCommand={getAgentResumeCommand(session)}
-                isRestored={session.isRestored}
-                isolated={repo?.isolated ?? false}
-                repoRootDir={repo?.rootDir}
-              />
-            </PanelErrorBoundary>
-          </div>
+            sessionId={session.id}
+            cwd={session.directory}
+            branch={session.branch}
+            agentCommand={getAgentCommand(session)}
+            agentEnv={getAgentEnv(session)}
+            agentResumeCommand={getAgentResumeCommand(session)}
+            isRestored={session.isRestored}
+            isolated={repo?.isolated ?? false}
+            repoRootDir={repo?.rootDir}
+          />
         )
       })}
       {sessions.length === 0 && (
         <WelcomeScreen onNewSession={handleNewSession} />
       )}
     </div>
-  ), [terminalSessionKey, activeSessionId, getAgentCommand, getAgentEnv, getAgentResumeCommand, handleNewSession, repos])
+  ), [terminalSessionKey, getAgentCommand, getAgentEnv, getAgentResumeCommand, handleNewSession, repos])
 
   const explorerPanel = useExplorerPanel(config)
   const fileViewerPanel = useFileViewerPanel(config)
 
+  const sidebarPanel = useMemo(() => (
+    <SessionList
+      sessions={sessions}
+      repos={repos}
+      onSelectSession={handleSelectSession}
+      onNewSession={handleNewSession}
+      onDeleteSession={removeSession}
+      onRefreshPrStatus={refreshPrStatus}
+      onArchiveSession={archiveSession}
+      onUnarchiveSession={unarchiveSession}
+    />
+  ), [sessions, repos, handleSelectSession, handleNewSession, removeSession, refreshPrStatus, archiveSession, unarchiveSession])
+
   const panelsMap = useMemo(() => ({
-    [PANEL_IDS.SIDEBAR]: (
-      <SessionList
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        repos={repos}
-        onSelectSession={handleSelectSession}
-        onNewSession={handleNewSession}
-        onDeleteSession={removeSession}
-        onRefreshPrStatus={refreshPrStatus}
-        onArchiveSession={archiveSession}
-        onUnarchiveSession={unarchiveSession}
-      />
-    ),
+    [PANEL_IDS.SIDEBAR]: sidebarPanel,
     terminal: terminalPanel,
     [PANEL_IDS.EXPLORER]: explorerPanel,
     [PANEL_IDS.FILE_VIEWER]: fileViewerPanel,
@@ -276,11 +299,10 @@ export function usePanelsMap(config: PanelsMapConfig) {
       <TutorialPanel />
     ),
   }), [
-    sessions, activeSessionId, activeSession,
+    sidebarPanel,
     terminalPanel,
     explorerPanel, fileViewerPanel,
     globalPanelVisibility,
-    repos,
   ])
 
   return panelsMap

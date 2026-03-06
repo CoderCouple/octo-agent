@@ -20,10 +20,13 @@ export interface TerminalConfig {
   env: Record<string, string> | undefined
   isAgentTerminal: boolean
   isServicesTerminal?: boolean
-  isActive: boolean
   restartKey: number
   isolated?: boolean
   repoRootDir?: string
+  /** Store session ID — used to subscribe to activation state without re-rendering. */
+  storeSessionId?: string
+  /** Tab ID within the session — used with storeSessionId to detect activation. */
+  tabId?: string
 }
 
 export interface ExitInfo {
@@ -35,6 +38,7 @@ export interface ExitInfo {
 export interface TerminalSetupResult {
   terminalRef: React.MutableRefObject<XTerm | null>
   ptyIdRef: React.MutableRefObject<string | null>
+  isActiveRef: React.MutableRefObject<boolean>
   showScrollButton: boolean
   handleScrollToBottom: () => void
   exitInfo: ExitInfo | null
@@ -245,7 +249,7 @@ export function useTerminalSetup(
   config: TerminalConfig,
   containerRef: React.RefObject<HTMLDivElement | null>,
 ): TerminalSetupResult {
-  const { sessionId, isAgentTerminal, isActive, restartKey } = config
+  const { sessionId, isAgentTerminal, restartKey, storeSessionId, tabId } = config
   const s = useTerminalState(config)
   const defaultShell = useRepoStore((state) => state.defaultShell)
 
@@ -426,21 +430,36 @@ export function useTerminalSetup(
     }
   }, [sessionId, restartKey]) // Recreate terminal when session identity changes or on restart
 
-  // Fit, focus, and flush buffered data when terminal becomes visible
+  // Subscribe to store for activation changes — imperative only, no re-render.
   useEffect(() => {
-    s.isActiveRef.current = isActive
-    s.lastInteractionRef.current = Date.now()
-    if (isActive) {
-      // Fit first so the terminal has correct dimensions before flushing.
-      // Without this, buffered TUI frames render at stale dimensions and
-      // leave orphaned lines / blank gaps in the scrollback.
-      try { s.fitAddonRef.current?.fit() } catch { /* ignore */ }
-      s.dataHandlerRef.current?.flush()
-      requestAnimationFrame(() => {
-        s.terminalRef.current?.focus()
-      })
-    }
-  }, [isActive])
+    if (!storeSessionId || !tabId) return
+    // Derive initial state
+    const initState = useSessionStore.getState()
+    const initSession = initState.sessions.find((ss) => ss.id === storeSessionId)
+    const resolveTabId = (s_: { terminalTabs: { activeTabId: string | null } } | undefined) =>
+      s_?.terminalTabs.activeTabId ?? '__agent__'
+    s.isActiveRef.current = initState.activeSessionId === storeSessionId && resolveTabId(initSession) === tabId
+
+    return useSessionStore.subscribe((state, prevState) => {
+      const session = state.sessions.find((ss) => ss.id === storeSessionId)
+      const prevSession = prevState.sessions.find((ss) => ss.id === storeSessionId)
+      const isNowActive = state.activeSessionId === storeSessionId && resolveTabId(session) === tabId
+      const wasActive = prevState.activeSessionId === storeSessionId && resolveTabId(prevSession) === tabId
+      if (isNowActive === wasActive) return
+      s.isActiveRef.current = isNowActive
+      s.lastInteractionRef.current = Date.now()
+      if (isNowActive) {
+        // Fit first so the terminal has correct dimensions before flushing.
+        // Without this, buffered TUI frames render at stale dimensions and
+        // leave orphaned lines / blank gaps in the scrollback.
+        try { s.fitAddonRef.current?.fit() } catch { /* ignore */ }
+        s.dataHandlerRef.current?.flush()
+        requestAnimationFrame(() => {
+          s.terminalRef.current?.focus()
+        })
+      }
+    })
+  }, [storeSessionId, tabId])
 
   // Track window focus/blur to suppress activity detection briefly
   useEffect(() => {
@@ -453,5 +472,5 @@ export function useTerminalSetup(
     }
   }, [])
 
-  return { terminalRef: s.terminalRef, ptyIdRef: s.ptyIdRef, showScrollButton: s.showScrollButton, handleScrollToBottom: s.handleScrollToBottom, exitInfo: s.exitInfo }
+  return { terminalRef: s.terminalRef, ptyIdRef: s.ptyIdRef, isActiveRef: s.isActiveRef, showScrollButton: s.showScrollButton, handleScrollToBottom: s.handleScrollToBottom, exitInfo: s.exitInfo }
 }

@@ -2,7 +2,7 @@
  * Top-level source control container that composes the PR banner, view toggle, and sub-views.
  * Integrates the modular commands.json action system.
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus, PrState } from '../../store/sessions'
 import type { NavigationTarget } from '../../utils/fileNavigation'
@@ -67,6 +67,7 @@ export function SourceControl({
   const [scView, setScView] = useState<'working' | 'branch' | 'commits'>('working')
   const [showSetupDialog, setShowSetupDialog] = useState(false)
   const [noDevcontainer, setNoDevcontainer] = useState(false)
+  const [hasDevcontainerLoaded, setHasDevcontainerLoaded] = useState(false)
 
   // Load commands.json
   const { config: commandsConfig, exists: commandsExists } = useCommandsConfig(directory)
@@ -74,6 +75,7 @@ export function SourceControl({
   // Reset view when directory (session) changes
   useEffect(() => {
     setScView('working')
+    setHasDevcontainerLoaded(false)
   }, [directory])
 
   const data = useSourceControlData({
@@ -84,13 +86,13 @@ export function SourceControl({
 
   // Check if repo has isolation enabled but no devcontainer config
   useEffect(() => {
-    if (!directory || !repoId) { setNoDevcontainer(false); return }
-    if (!data.currentRepo?.isolated) { setNoDevcontainer(false); return }
+    if (!directory || !repoId) { setNoDevcontainer(false); setHasDevcontainerLoaded(true); return }
+    if (!data.currentRepo?.isolated) { setNoDevcontainer(false); setHasDevcontainerLoaded(true); return }
     let cancelled = false
     window.devcontainer.hasConfig(directory).then((has) => {
-      if (!cancelled) setNoDevcontainer(!has)
+      if (!cancelled) { setNoDevcontainer(!has); setHasDevcontainerLoaded(true) }
     }).catch(() => {
-      if (!cancelled) setNoDevcontainer(false)
+      if (!cancelled) { setNoDevcontainer(false); setHasDevcontainerLoaded(true) }
     })
     return () => { cancelled = true }
   }, [directory, repoId, data.currentRepo?.isolated])
@@ -99,8 +101,11 @@ export function SourceControl({
     directory, onGitStatusRefresh, agentPtyId, agentId, onRecordPushToMain, data,
   })
 
-  // Compute condition state for action button visibility
-  const conditionState = useMemo(() =>
+  // All async sources must complete before we update condition state.
+  // This prevents buttons from appearing one-at-a-time as independent fetches resolve.
+  const allSourcesReady = !data.isInitialLoading && hasDevcontainerLoaded
+
+  const latestConditionState = useMemo(() =>
     computeConditionState({
       gitStatus,
       syncStatus,
@@ -115,6 +120,13 @@ export function SourceControl({
     }),
     [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.behindMainCount, issueNumber, noDevcontainer, isReview]
   )
+
+  // Hold the last settled snapshot until all sources are ready again
+  const settledConditionState = useRef(latestConditionState)
+  if (allSourcesReady) {
+    settledConditionState.current = latestConditionState
+  }
+  const conditionState = settledConditionState.current
 
   // Template variables for action labels and prompts
   const templateVars: TemplateVars = useMemo(() => ({

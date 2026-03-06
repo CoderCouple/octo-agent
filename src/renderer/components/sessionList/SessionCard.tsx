@@ -1,6 +1,8 @@
 /**
  * Individual session card with status indicator, branch name, and action buttons.
  */
+import { memo } from 'react'
+import { useSessionStore } from '../../store/sessions'
 import type { Session, SessionStatus, BranchStatus } from '../../store/sessions'
 
 const statusLabels: Record<SessionStatus, string> = {
@@ -73,19 +75,18 @@ function BranchStatusChip({ status }: { status: BranchStatus }) {
   )
 }
 
-export default function SessionCard({
+export default memo(function SessionCard({
   session,
-  isActive,
   onSelect,
   onDelete,
   onArchive,
 }: {
   session: Session
-  isActive: boolean
   onSelect: () => void
   onDelete: (e: React.MouseEvent) => void
   onArchive?: (e: React.MouseEvent) => void
 }) {
+  const isActive = useSessionStore((s) => s.activeSessionId === session.id)
   const isUnread = session.isUnread
 
   return (
@@ -190,4 +191,4 @@ export default function SessionCard({
       )}
     </div>
   )
-}
+})

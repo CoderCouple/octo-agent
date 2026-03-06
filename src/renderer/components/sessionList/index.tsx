@@ -17,7 +17,6 @@ import UpdateBanner from './UpdateBanner'
 
 interface SessionListProps {
   sessions: Session[]
-  activeSessionId: string | null
   repos: ManagedRepo[]
   onSelectSession: (id: string) => void
   onNewSession: () => void
@@ -29,7 +28,6 @@ interface SessionListProps {
 
 export default function SessionList({
   sessions,
-  activeSessionId,
   repos,
   onSelectSession,
   onNewSession,
@@ -152,7 +150,6 @@ export default function SessionList({
           <PanelErrorBoundary key={session.id} name={`Session ${session.branch}`}>
             <SessionCard
               session={session}
-              isActive={session.id === activeSessionId}
               onSelect={() => handleSelectSession(session)}
               onDelete={(e) => handleDelete(e, session)}
               onArchive={(e) => handleArchive(e, session)}
@@ -199,7 +196,6 @@ export default function SessionList({
                   <PanelErrorBoundary key={session.id} name={`Session ${session.branch}`}>
                     <SessionCard
                       session={session}
-                      isActive={session.id === activeSessionId}
                       onSelect={() => handleSelectSession(session)}
                       onDelete={(e) => handleDelete(e, session)}
                       onArchive={(e) => handleUnarchive(e, session)}
