@@ -71,7 +71,7 @@ export function NewBranchView({
         if (pushResult.error?.startsWith('BRANCH_EXISTS:')) {
           const existingSession = sessions.find(
             (s) => s.branch === branchName && !s.isArchived &&
-              (s.repoId === repo.id || s.directory.startsWith(repo.rootDir + '/'))
+              (s.repoId === repo.id || s.directory.startsWith(`${repo.rootDir}/`))
           )
           if (existingSession) {
             setExistingSessionId(existingSession.id)
