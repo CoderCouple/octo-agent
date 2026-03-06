@@ -39,6 +39,7 @@ const mockGit: Mocked<GitApi> = {
   status: vi.fn().mockResolvedValue({ files: [], ahead: 0, behind: 0, tracking: null, current: 'main', isMerging: false }),
   diff: vi.fn().mockResolvedValue(''),
   show: vi.fn().mockResolvedValue(''),
+  showBase64: vi.fn().mockResolvedValue(''),
   stage: vi.fn().mockResolvedValue({ success: true }),
   stageAll: vi.fn().mockResolvedValue({ success: true }),
   unstage: vi.fn().mockResolvedValue({ success: true }),

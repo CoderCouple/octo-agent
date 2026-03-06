@@ -39,7 +39,7 @@ export function SettingsRepoScreen({
           <div>
             <div className="text-sm text-text-primary">Edit Commands</div>
             <div className="text-xs text-text-secondary">
-              Configure action buttons shown in source control
+              Configure actions shown in the Broomy UI
             </div>
           </div>
           <svg

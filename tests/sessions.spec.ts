@@ -21,6 +21,8 @@ test.beforeAll(async () => {
   page = await electronApp.firstWindow()
   await page.waitForLoadState('domcontentloaded')
   await page.waitForSelector('#root > div', { timeout: 10000 })
+  // Wait for sessions to load
+  await page.waitForSelector('.cursor-pointer', { timeout: 10000 })
 })
 
 test.afterAll(async () => {
@@ -147,7 +149,6 @@ test.describe('Session Search', () => {
   test('should filter sessions by search text', async () => {
     const searchInput = page.locator('[data-session-search]')
     await searchInput.fill('backend')
-    await page.waitForTimeout(300)
 
     // backend-api should be visible
     const backendSession = page.locator('.cursor-pointer:has-text("backend-api")')
@@ -159,7 +160,6 @@ test.describe('Session Search', () => {
 
     // Clear search
     await searchInput.fill('')
-    await page.waitForTimeout(300)
 
     // All sessions should be visible again
     await expect(broomySession).toBeVisible()
@@ -169,13 +169,11 @@ test.describe('Session Search', () => {
   test('should show "No matching sessions" for bad search', async () => {
     const searchInput = page.locator('[data-session-search]')
     await searchInput.fill('nonexistent-repo-xyz')
-    await page.waitForTimeout(300)
 
     await expect(page.locator('text=No matching sessions')).toBeVisible()
 
     // Clear search
     await searchInput.fill('')
-    await page.waitForTimeout(300)
   })
 })
 
@@ -197,7 +195,6 @@ test.describe('Session Archive', () => {
     // Archive it
     const archiveBtn = docsSession.locator('button[title="Archive session"]')
     await archiveBtn.click()
-    await page.waitForTimeout(300)
 
     // Session should no longer be in the main list
     await expect(page.locator('.cursor-pointer:has-text("docs-site")')).not.toBeVisible()
@@ -208,14 +205,15 @@ test.describe('Session Archive', () => {
 
     // Expand archived section
     await archivedHeader.click()
-    await page.waitForTimeout(300)
+
+    // Wait for archived session to appear
+    const archivedSession = page.locator('.cursor-pointer:has-text("docs-site")')
+    await expect(archivedSession).toBeVisible()
 
     // Unarchive it
-    const archivedSession = page.locator('.cursor-pointer:has-text("docs-site")')
     await archivedSession.hover()
     const unarchiveBtn = archivedSession.locator('button[title="Unarchive session"]')
     await unarchiveBtn.click()
-    await page.waitForTimeout(300)
 
     // Session should be back in the main list
     await expect(page.locator('.cursor-pointer:has-text("docs-site")')).toBeVisible()
@@ -242,7 +240,6 @@ test.describe('Session Delete', () => {
 
     // Cancel the delete
     await page.locator('button:has-text("Cancel")').click()
-    await page.waitForTimeout(300)
 
     // Session should still exist
     await expect(page.locator('.cursor-pointer:has-text("docs-site")')).toBeVisible()
@@ -260,7 +257,6 @@ test.describe('Session Keyboard Navigation', () => {
 
     // Alt+ArrowDown should switch to the next session
     await page.keyboard.press('Alt+ArrowDown')
-    await page.waitForTimeout(300)
 
     // backend-api should now be the active session
     const backendSession = page.locator('.cursor-pointer:has-text("backend-api")')
@@ -268,7 +264,6 @@ test.describe('Session Keyboard Navigation', () => {
 
     // Alt+ArrowUp should switch back
     await page.keyboard.press('Alt+ArrowUp')
-    await page.waitForTimeout(300)
     await expect(broomySession).toHaveClass(/bg-accent\/15/)
   })
 })

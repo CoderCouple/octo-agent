@@ -24,11 +24,14 @@ interface TerminalProps {
   env?: Record<string, string>
   isAgentTerminal?: boolean
   isServicesTerminal?: boolean
-  isActive?: boolean
   agentNotInstalled?: boolean
   isRestored?: boolean
   isolated?: boolean
   repoRootDir?: string
+  /** Store session ID — for activation detection without re-rendering. */
+  storeSessionId?: string
+  /** Tab ID within the session — for activation detection without re-rendering. */
+  tabId?: string
 }
 
 function ExitErrorBanner({ exitInfo, onDismiss }: { exitInfo: ExitInfo; onDismiss: () => void }) {
@@ -64,7 +67,7 @@ function ExitErrorBanner({ exitInfo, onDismiss }: { exitInfo: ExitInfo; onDismis
   )
 }
 
-export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isServicesTerminal = false, isActive = false, agentNotInstalled = false, isRestored, isolated, repoRootDir }: TerminalProps) {
+export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal = false, isServicesTerminal = false, agentNotInstalled = false, isRestored, isolated, repoRootDir, storeSessionId, tabId }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [restartKey, setRestartKey] = useState(0)
   const [resumeDismissed, setResumeDismissed] = useState(false)
@@ -85,25 +88,26 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
     env,
     isAgentTerminal,
     isServicesTerminal,
-    isActive,
     restartKey,
     isolated,
     repoRootDir,
+    storeSessionId,
+    tabId,
   }
 
-  const { terminalRef, ptyIdRef, showScrollButton, handleScrollToBottom, exitInfo } = useTerminalSetup(config, containerRef)
+  const { terminalRef, ptyIdRef, isActiveRef, showScrollButton, handleScrollToBottom, exitInfo } = useTerminalSetup(config, containerRef)
   const [exitDismissed, setExitDismissed] = useState(false)
 
   // Select all terminal content when this terminal is the active one
   useEffect(() => {
     const handleSelectAll = () => {
-      if (isActive && terminalRef.current) {
+      if (isActiveRef.current && terminalRef.current) {
         terminalRef.current.selectAll()
       }
     }
     window.addEventListener('app:select-all', handleSelectAll)
     return () => window.removeEventListener('app:select-all', handleSelectAll)
-  }, [isActive, terminalRef])
+  }, [isActiveRef, terminalRef])
 
   const handleContextMenu = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault()

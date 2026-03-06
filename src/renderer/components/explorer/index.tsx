@@ -97,10 +97,7 @@ export default function Explorer({
       {/* Issue plan chip */}
       <IssuePlanChip
         directory={directory}
-        issueNumber={issueNumber}
         issuePlanExists={issuePlanExists}
-        agentPtyId={agentPtyId}
-        agentId={session?.agentId}
         onFileSelect={onFileSelect}
       />
 

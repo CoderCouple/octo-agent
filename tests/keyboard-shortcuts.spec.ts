@@ -21,6 +21,8 @@ test.beforeAll(async () => {
   page = await electronApp.firstWindow()
   await page.waitForLoadState('domcontentloaded')
   await page.waitForSelector('#root > div', { timeout: 10000 })
+  // Wait for sessions to load
+  await page.waitForSelector('.cursor-pointer', { timeout: 10000 })
 })
 
 test.afterAll(async () => {
@@ -64,7 +66,6 @@ test.describe('Keyboard Shortcuts - Session Navigation', () => {
 
     // Move to next session
     await page.keyboard.press('Alt+ArrowDown')
-    await page.waitForTimeout(300)
 
     // backend-api should now be selected (active)
     const backendSession = page.locator('.cursor-pointer:has-text("backend-api")')
@@ -74,7 +75,6 @@ test.describe('Keyboard Shortcuts - Session Navigation', () => {
   test('Alt+ArrowUp should move to previous session', async () => {
     // Currently on backend-api, move back
     await page.keyboard.press('Alt+ArrowUp')
-    await page.waitForTimeout(300)
 
     // broomy should be selected again
     const broomySession = page.locator('.cursor-pointer:has-text("broomy")')

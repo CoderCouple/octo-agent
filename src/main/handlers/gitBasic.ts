@@ -280,6 +280,24 @@ async function handleShow(ctx: HandlerContext, repoPath: string, filePath: strin
   }
 }
 
+async function handleShowBase64(ctx: HandlerContext, repoPath: string, filePath: string, ref = 'HEAD') {
+  if (ctx.isE2ETest) {
+    return ''
+  }
+
+  try {
+    const { stdout } = await execFileAsync('git', ['show', `${ref}:${filePath}`], {
+      cwd: repoPath,
+      encoding: 'buffer',
+      maxBuffer: 10 * 1024 * 1024,
+    })
+    return (stdout as unknown as Buffer).toString('base64')
+  } catch (error) {
+    console.error('git show base64 error:', error)
+    return ''
+  }
+}
+
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('git:getBranch', (_event, repoPath: string) => handleGetBranch(ctx, repoPath))
   ipcMain.handle('git:isGitRepo', (_event, dirPath: string) => handleIsGitRepo(ctx, dirPath))
@@ -294,4 +312,5 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('git:pull', (_event, repoPath: string) => handlePull(ctx, repoPath))
   ipcMain.handle('git:diff', (_event, repoPath: string, filePath?: string) => handleDiff(ctx, repoPath, filePath))
   ipcMain.handle('git:show', (_event, repoPath: string, filePath: string, ref = 'HEAD') => handleShow(ctx, repoPath, filePath, ref))
+  ipcMain.handle('git:showBase64', (_event, repoPath: string, filePath: string, ref = 'HEAD') => handleShowBase64(ctx, repoPath, filePath, ref))
 }

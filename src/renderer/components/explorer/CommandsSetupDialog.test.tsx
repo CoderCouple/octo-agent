@@ -26,7 +26,7 @@ describe('CommandsSetupDialog', () => {
   it('renders dialog title and description', () => {
     render(<CommandsSetupDialog directory="/repo" onClose={vi.fn()} onCreated={vi.fn()} />)
     expect(screen.getByText('Set up Broomy Actions')).toBeTruthy()
-    expect(screen.getByText(/defines the action buttons/)).toBeTruthy()
+    expect(screen.getByText(/defines the actions/)).toBeTruthy()
   })
 
   it('renders Cancel and Create buttons', () => {

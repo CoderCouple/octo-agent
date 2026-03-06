@@ -9,6 +9,7 @@ vi.mock('../hooks/useTerminalSetup', () => ({
   useTerminalSetup: vi.fn().mockReturnValue({
     terminalRef: { current: null },
     ptyIdRef: { current: 'pty-123' },
+    isActiveRef: { current: false },
     showScrollButton: false,
     handleScrollToBottom: vi.fn(),
     exitInfo: null,
@@ -57,6 +58,7 @@ describe('Terminal', () => {
     vi.mocked(useTerminalSetup).mockReturnValue({
       terminalRef: { current: null },
       ptyIdRef: { current: 'pty-123' },
+      isActiveRef: { current: false },
       showScrollButton: true,
       handleScrollToBottom: vi.fn(),
       exitInfo: null,
@@ -71,6 +73,7 @@ describe('Terminal', () => {
     vi.mocked(useTerminalSetup).mockReturnValue({
       terminalRef: { current: null },
       ptyIdRef: { current: 'pty-123' },
+      isActiveRef: { current: false },
       showScrollButton: true,
       handleScrollToBottom,
       exitInfo: null,
@@ -117,7 +120,6 @@ describe('Terminal', () => {
         cwd="/tmp/test"
         command="echo hello"
         isAgentTerminal={true}
-        isActive={true}
       />
     )
     expect(useTerminalSetup).toHaveBeenCalled()
@@ -126,7 +128,6 @@ describe('Terminal', () => {
     expect(config.cwd).toBe('/tmp/test')
     expect(config.command).toBe('echo hello')
     expect(config.isAgentTerminal).toBe(true)
-    expect(config.isActive).toBe(true)
   })
 
   it('does not show not-installed banner when agent is installed', () => {
@@ -188,6 +189,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: { hasSelection: mockHasSelection, getSelection: mockGetSelection, selectAll: vi.fn() } as never },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: null,
@@ -221,6 +223,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: null },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: null,
@@ -234,6 +237,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: null },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: null,
@@ -250,6 +254,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: null },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: { code: 137, message: 'Agent killed by Docker out-of-memory killer (SIGKILL)', detail: 'Some detail' },
@@ -263,6 +268,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: null },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: null,
@@ -276,6 +282,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: null },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: { code: 137, message: 'Process killed (SIGKILL)' },
@@ -293,6 +300,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: null },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: { code: 137, message: 'Process killed (SIGKILL)' },
@@ -309,6 +317,7 @@ describe('Terminal', () => {
       vi.mocked(useTerminalSetup).mockReturnValue({
         terminalRef: { current: null },
         ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: false },
         showScrollButton: false,
         handleScrollToBottom: vi.fn(),
         exitInfo: { code: 137, message: 'Agent killed by OOM', detail: 'Docker Desktop runs all containers...' },

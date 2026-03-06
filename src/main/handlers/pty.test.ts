@@ -51,6 +51,8 @@ vi.mock('../platform', () => ({
   isWindows: false,
   getDefaultShell: () => '/bin/zsh',
   normalizePath: (p: string) => p.replace(/\\/g, '/'),
+  resolveCommand: () => null,
+  enhancedPath: (p: string) => p || '',
 }))
 
 function createMockPtyProcess() {

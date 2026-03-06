@@ -37,6 +37,7 @@ function usePrEffects(config: PrEffectsConfig) {
   const [hasWriteAccess, setHasWriteAccess] = useState(false)
   const [isPushingToMain, setIsPushingToMain] = useState(false)
   const [currentHeadCommit, setCurrentHeadCommit] = useState<string | null>(null)
+  const [hasPrLoadedOnce, setHasPrLoadedOnce] = useState(false)
 
   const hasChangesSincePush = useMemo(() => {
     if (!pushedToMainCommit || !currentHeadCommit) return true
@@ -45,7 +46,7 @@ function usePrEffects(config: PrEffectsConfig) {
 
   // Fetch PR status and write access when source control is active
   useEffect(() => {
-    if (!directory) return
+    if (!directory) { setHasPrLoadedOnce(true); return }
     let cancelled = false
     setIsPrLoading(true)
 
@@ -66,6 +67,7 @@ function usePrEffects(config: PrEffectsConfig) {
         setHasWriteAccess(false)
       }
       setIsPrLoading(false)
+      setHasPrLoadedOnce(true)
     }
 
     void fetchPrInfo()
@@ -97,6 +99,7 @@ function usePrEffects(config: PrEffectsConfig) {
   const resetPr = () => {
     setPrStatus(null)
     setHasWriteAccess(false)
+    setHasPrLoadedOnce(false)
   }
 
   return {
@@ -104,6 +107,7 @@ function usePrEffects(config: PrEffectsConfig) {
     hasWriteAccess,
     isPushingToMain, setIsPushingToMain,
     currentHeadCommit,
+    hasPrLoadedOnce,
     hasChangesSincePush,
     resetPr,
   }
@@ -144,6 +148,7 @@ export function useSourceControlData({
   // Behind-main state
   const [behindMainCount, setBehindMainCount] = useState(0)
   const [isFetchingBehindMain, setIsFetchingBehindMain] = useState(false)
+  const [hasBehindMainLoadedOnce, setHasBehindMainLoadedOnce] = useState(false)
 
   // Agent merge message (shown as info banner instead of error)
   const [agentMergeMessage, setAgentMergeMessage] = useState<string | null>(null)
@@ -169,6 +174,7 @@ export function useSourceControlData({
     setGitOpError(null)
     setAgentMergeMessage(null)
     setBehindMainCount(0)
+    setHasBehindMainLoadedOnce(false)
     setBranchCommits([])
     setExpandedCommits(new Set())
     setCommitFilesByHash({})
@@ -179,10 +185,12 @@ export function useSourceControlData({
   useEffect(() => {
     if (scView !== 'working' || !directory || gitStatus.length > 0) {
       setBehindMainCount(0)
+      setHasBehindMainLoadedOnce(true)
       return
     }
     if (branchStatus !== 'pushed' && branchStatus !== 'empty' && branchStatus !== 'open') {
       setBehindMainCount(0)
+      setHasBehindMainLoadedOnce(true)
       return
     }
 
@@ -193,10 +201,12 @@ export function useSourceControlData({
       if (cancelled) return
       setBehindMainCount(result.behind)
       setIsFetchingBehindMain(false)
+      setHasBehindMainLoadedOnce(true)
     }).catch(() => {
       if (cancelled) return
       setBehindMainCount(0)
       setIsFetchingBehindMain(false)
+      setHasBehindMainLoadedOnce(true)
     })
 
     return () => { cancelled = true }
@@ -246,8 +256,13 @@ export function useSourceControlData({
     return () => { cancelled = true }
   }, [scView, directory])
 
+  // All async condition-state sources must complete before we reveal the condition state.
+  // This prevents buttons from appearing one-at-a-time as independent fetches resolve.
+  const isInitialLoading = !pr.hasPrLoadedOnce || !hasBehindMainLoadedOnce
+
   return {
     // State values
+    isInitialLoading,
     commitMessage, setCommitMessage,
     isCommitting, setIsCommitting,
     commitError, setCommitError,

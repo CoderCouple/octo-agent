@@ -16,7 +16,6 @@ import {
   removeLegacyBroomyGitignore,
   type ActionDefinition,
 } from '../utils/commandsConfig'
-import { SKILL_ACTIONS, skillCommandPath } from '../utils/skillActions'
 import { ShowWhenPicker } from './ShowWhenPicker'
 import { PromptVariants } from './PromptVariants'
 import { useAgentStore } from '../store/agents'
@@ -97,18 +96,6 @@ export function CommandsEditor({ directory, onClose }: CommandsEditorProps) {
 
       await ensureOutputGitignore(directory)
 
-      // Write Claude Code skill files
-      const commandsDir = `${directory}/.claude/commands`
-      await window.fs.mkdir(`${directory}/.claude`)
-      await window.fs.mkdir(commandsDir)
-      for (const action of SKILL_ACTIONS) {
-        const path = skillCommandPath(directory, action.name)
-        const fileExists = await window.fs.exists(path)
-        if (!fileExists) {
-          await window.fs.writeFile(path, action.defaultContent)
-        }
-      }
-
       // Remove legacy .broomy from .gitignore if present
       const hasLegacy = await checkLegacyBroomyGitignore(directory)
       if (hasLegacy) {
@@ -171,7 +158,7 @@ export function CommandsEditor({ directory, onClose }: CommandsEditorProps) {
             <h3 className="text-lg font-medium text-text-primary">No commands.json</h3>
             <p className="text-sm text-text-secondary">
               <code className="font-mono bg-bg-tertiary px-1 rounded">commands.json</code> defines
-              the action buttons shown in source control. Each action can be a shell command or an
+              the actions shown in the Broomy UI. Each action can be a shell command or an
               agent prompt, shown based on your git state.
             </p>
             <button

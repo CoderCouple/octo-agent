@@ -156,10 +156,34 @@ function ReviewEmptyState({
   return null
 }
 
+/** Parse a repo-relative file link like "src/file.tsx#L12-L45" into path and line number */
+function parseFileLink(href: string): { relativePath: string; line?: number } | null {
+  // Skip external URLs
+  if (/^https?:\/\//.test(href)) return null
+
+  // Split off fragment: src/file.tsx#L12-L45 → path=src/file.tsx, fragment=L12-L45
+  const [path, fragment] = href.split('#')
+  if (!path) return null
+
+  let line: number | undefined
+  if (fragment) {
+    // Match L12 or L12-L45 (take the start line)
+    const match = /^L(\d+)/.exec(fragment)
+    if (match) line = parseInt(match[1], 10)
+  }
+
+  return { relativePath: path, line }
+}
+
 /** Build customized markdown components with review-specific link handling */
-function useReviewMarkdownComponents(onSelectFile: (filePath: string, openInDiffMode: boolean) => void) {
+function useReviewMarkdownComponents(
+  onSelectFile: (filePath: string, openInDiffMode: boolean, scrollToLine?: number, diffBaseRef?: string) => void,
+  sessionDirectory: string,
+  prBaseBranch?: string,
+) {
   return useMemo(() => {
     const components = createMarkdownComponents('compact')
+    const diffBaseRef = `origin/${prBaseBranch || 'main'}`
     return {
       ...components,
       // Strip ### headings from rendered markdown since they're rendered as card titles
@@ -168,20 +192,23 @@ function useReviewMarkdownComponents(onSelectFile: (filePath: string, openInDiff
         const handleClick = (e: React.MouseEvent) => {
           e.preventDefault()
           if (!href) return
-          if (href.startsWith('https://github.com/')) {
-            onSelectFile(href, false)
+
+          const fileLink = parseFileLink(href)
+          if (fileLink) {
+            const fullPath = `${sessionDirectory}/${fileLink.relativePath}`
+            onSelectFile(fullPath, true, fileLink.line, diffBaseRef)
           } else if (href.startsWith('https://') || href.startsWith('http://')) {
             void window.shell.openExternal(href)
           }
         }
         return (
-          <a href={href} className="text-accent hover:underline cursor-pointer" onClick={handleClick}>
+          <a href={href} className="text-accent hover:underline cursor-pointer break-all" onClick={handleClick}>
             {children}
           </a>
         )
       },
     }
-  }, [onSelectFile])
+  }, [onSelectFile, sessionDirectory, prBaseBranch])
 }
 
 /** A collapsible card for a ### sub-section within a ## section */
@@ -194,10 +221,10 @@ function SubSectionCard({ title, body, defaultOpen, customComponents }: {
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div className="border border-border rounded-md mb-2 bg-bg-primary/50">
+    <div className="border border-border rounded-md bg-bg-primary/50 overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-text-primary hover:bg-bg-tertiary/30 transition-colors rounded-t-md"
+        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-tertiary/30 transition-colors rounded-t-md"
       >
         <svg
           className={`w-3 h-3 flex-shrink-0 transition-transform text-text-secondary ${open ? 'rotate-90' : ''}`}
@@ -210,7 +237,7 @@ function SubSectionCard({ title, body, defaultOpen, customComponents }: {
         <span className="text-left">{title}</span>
       </button>
       {open && (
-        <div className="px-3 pb-2 border-t border-border/50">
+        <div className="px-2 pb-1.5 border-t border-border/50">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -226,11 +253,13 @@ function SubSectionCard({ title, body, defaultOpen, customComponents }: {
 }
 
 /** Render a markdown section, splitting ### sub-sections into cards */
-function MarkdownSection({ body, onSelectFile }: {
+function MarkdownSection({ body, onSelectFile, sessionDirectory, prBaseBranch }: {
   body: string
-  onSelectFile: (filePath: string, openInDiffMode: boolean) => void
+  onSelectFile: (filePath: string, openInDiffMode: boolean, scrollToLine?: number, diffBaseRef?: string) => void
+  sessionDirectory: string
+  prBaseBranch?: string
 }) {
-  const customComponents = useReviewMarkdownComponents(onSelectFile)
+  const customComponents = useReviewMarkdownComponents(onSelectFile, sessionDirectory, prBaseBranch)
   const { preamble, subsections } = splitSubSections(body)
 
   // Restore h3 rendering for preamble (no card splitting needed there)
@@ -240,7 +269,7 @@ function MarkdownSection({ body, onSelectFile }: {
   }, [customComponents])
 
   return (
-    <div className="px-3">
+    <div className="min-w-0">
       {preamble && (
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
@@ -265,29 +294,31 @@ function MarkdownSection({ body, onSelectFile }: {
 }
 
 /** Render the full markdown review with collapsible sections */
-function MarkdownReviewContent({ markdown, onSelectFile }: {
+function MarkdownReviewContent({ markdown, onSelectFile, sessionDirectory, prBaseBranch }: {
   markdown: string
-  onSelectFile: (filePath: string, openInDiffMode: boolean) => void
+  onSelectFile: (filePath: string, openInDiffMode: boolean, scrollToLine?: number, diffBaseRef?: string) => void
+  sessionDirectory: string
+  prBaseBranch?: string
 }) {
   const sections = splitMarkdownSections(markdown)
 
   if (sections.length === 0) {
     return (
-      <div className="px-3 py-2">
-        <MarkdownSection body={markdown} onSelectFile={onSelectFile} />
+      <div className="px-1.5 py-1">
+        <MarkdownSection body={markdown} onSelectFile={onSelectFile} sessionDirectory={sessionDirectory} prBaseBranch={prBaseBranch} />
       </div>
     )
   }
 
   return (
-    <div className="px-3 py-2">
+    <div className="px-1.5 py-1">
       {sections.map((section, i) => (
         <CollapsibleSection
           key={`${section.title}-${i}`}
           title={section.title}
           defaultOpen={hasIncompleteCheckboxes(section.body) || i === 0}
         >
-          <MarkdownSection body={section.body} onSelectFile={onSelectFile} />
+          <MarkdownSection body={section.body} onSelectFile={onSelectFile} sessionDirectory={sessionDirectory} prBaseBranch={prBaseBranch} />
         </CollapsibleSection>
       ))}
     </div>
@@ -377,7 +408,7 @@ export default function ReviewPanel({ session, repo, onSelectFile, gitStatus, sy
         )}
 
         {reviewMarkdown && (
-          <MarkdownReviewContent markdown={reviewMarkdown} onSelectFile={onSelectFile} />
+          <MarkdownReviewContent markdown={reviewMarkdown} onSelectFile={onSelectFile} sessionDirectory={session.directory} prBaseBranch={session.prBaseBranch} />
         )}
       </div>
     </div>

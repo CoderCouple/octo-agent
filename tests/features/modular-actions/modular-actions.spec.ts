@@ -145,7 +145,7 @@ test.describe.serial('Feature: Modular Actions', () => {
           description:
             'The setup dialog explains what commands.json does and lists the files that ' +
             'will be created: .broomy/commands.json (action definitions), .broomy/prompts/ ' +
-            '(editable prompt templates), .claude/commands/ (Claude Code skill files), and ' +
+            '(editable prompt templates) and ' +
             '.broomy/.gitignore (ignores generated output). If the repo has a legacy .broomy/ ' +
             'entry in .gitignore, a warning offers to remove it.',
         })

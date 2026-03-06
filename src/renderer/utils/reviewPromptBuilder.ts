@@ -284,7 +284,6 @@ export function buildMarkdownReviewPrompt(
 ): string {
   const baseBranch = session.prBaseBranch || 'main'
   const { prDescription, previousHeadCommit } = options || {}
-  const prChangesUrl = session.prUrl ? `${session.prUrl}/files` : null
 
   let prompt = `# PR Review
 
@@ -322,7 +321,7 @@ Write your review to \`.broomy/output/review.md\` as a markdown document. Follow
 - Use \`### Sub-heading\` for individual issues, findings, or change groups within a section
 - Use \`- [ ] Check name\` for in-progress checks and \`- [x] Check name\` for completed checks (place these under the relevant \`###\` sub-heading)
 - Sections with incomplete checkboxes (\`- [ ]\`) will stay expanded in the UI
-- **IMPORTANT — Links**: Every mention of a file, function, or code location MUST include a clickable link to the PR diff view. Never omit links — the reader navigates the review by clicking them. All links MUST point to the PR diff view, never to the blob/file view. ${prChangesUrl ? `Use \`${prChangesUrl}\` as the base URL and append \`#diff-<sha256-of-filepath>\` for each file.` : 'Use the PR files/changes URL (e.g. `https://github.com/owner/repo/pull/N/files#diff-<sha256-of-filepath>`) for each file.'} To compute the anchor, take the SHA-256 hash of the file's relative path. Example: for \`src/app.tsx\` → \`${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256 of "src/app.tsx">\`. You can run \`echo -n "path" | shasum -a 256\` to compute the hash.
+- **IMPORTANT — Links**: Every mention of a file, function, or code location MUST be a markdown link using the repo-relative file path. The link text should be the file path with optional line range, and the URL should be the relative path with an optional line anchor. Format: \`[src/file.tsx:12-45](src/file.tsx#L12-L45)\` for a range, or \`[src/file.tsx:12](src/file.tsx#L12)\` for a single line. Never paste raw URLs or GitHub links — the UI renders these as clickable links that open an internal diff viewer. Never omit links — the reader navigates the review by clicking them.
 - You can use \`<!-- include: .broomy/review-detail-name.md -->\` to break out sub-analyses into separate files — the UI will inline them when they exist
 - Write the file incrementally — the UI polls and re-renders as you write
 
@@ -338,11 +337,11 @@ Brief summary of what this PR does and the approach taken.
 
 ### Theme context and provider
 Description of this change group.
-[src/file.tsx](${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256>)
+[src/theme/ThemeProvider.tsx:15-42](src/theme/ThemeProvider.tsx#L15-L42)
 
 ### CSS variable updates
 Description of this change group.
-[src/styles.css](${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256>)
+[src/styles.css:1-20](src/styles.css#L1-L20)
 
 ## Potential Issues
 
@@ -350,7 +349,7 @@ Description of this change group.
 - [ ] Resolved
 
 Description of the issue and its impact.
-Location: [src/file.tsx](${prChangesUrl || 'https://github.com/owner/repo/pull/N/files'}#diff-<sha256>)
+Location: [src/file.tsx:45-52](src/file.tsx#L45-L52)
 
 ## Design Decisions
 

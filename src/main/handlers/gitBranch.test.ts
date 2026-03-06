@@ -225,6 +225,18 @@ describe('gitBranch handlers', () => {
       expect(result.error).toContain('Authentication failed')
     })
 
+    it('returns BRANCH_EXISTS error on non-fast-forward rejection', async () => {
+      mockGitInstance.push.mockRejectedValue(new Error(
+        '! refs/heads/fix/lint:refs/heads/fix/lint [rejected] (non-fast-forward)'
+      ))
+      const handlers = setupHandlers()
+      const result = await handlers['git:pushNewBranch'](null, '/repo', 'fix/lint')
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('BRANCH_EXISTS:')
+      expect(result.error).toContain('"fix/lint"')
+      expect(result.error).toContain('has diverged')
+    })
+
     it('returns friendly error on cannot lock ref', async () => {
       mockGitInstance.push.mockRejectedValue(new Error(
         'cannot lock ref \'refs/heads/release\': \'refs/heads/release/linux\' exists'

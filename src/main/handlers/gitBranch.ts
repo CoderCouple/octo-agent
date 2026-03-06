@@ -106,6 +106,14 @@ async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branch
       }
     }
 
+    // Detect non-fast-forward rejection — remote branch with same name has different history
+    if (errorStr.includes('non-fast-forward') || errorStr.includes('rejected')) {
+      return {
+        success: false,
+        error: `BRANCH_EXISTS:The remote branch "${branchName}" has diverged. You can create a session from the remote branch instead.`,
+      }
+    }
+
     let url: string | undefined
     try {
       const remotes = await simpleGit(expandHomePath(repoPath)).getRemotes(true)

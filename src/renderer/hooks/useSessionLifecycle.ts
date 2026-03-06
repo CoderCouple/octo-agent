@@ -6,7 +6,7 @@ import type { Session } from '../store/sessions'
 import type { ProfileData } from '../store/profiles'
 import { terminalBufferRegistry } from '../utils/terminalBufferRegistry'
 import { loadMonacoProjectContext } from '../utils/monacoProjectContext'
-import { focusAgentTerminal } from '../utils/focusHelpers'
+import { focusActiveTerminal } from '../utils/focusHelpers'
 
 export function useSessionLifecycle({
   sessions,
@@ -94,13 +94,13 @@ export function useSessionLifecycle({
     }
   }, [activeSession?.directory])
 
-  // Mark session as read when it becomes active, and focus agent terminal
+  // Mark session as read when it becomes active, and focus the active terminal tab
   useEffect(() => {
     if (activeSessionId) {
       markSessionRead(activeSessionId)
-      // Focus the agent terminal after a short delay to let it render
+      // Focus the active terminal after a short delay to let it render
       const timeout = setTimeout(() => {
-        focusAgentTerminal()
+        focusActiveTerminal()
       }, 100)
       return () => clearTimeout(timeout)
     }
