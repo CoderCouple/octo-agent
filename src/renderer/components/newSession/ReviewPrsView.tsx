@@ -69,7 +69,7 @@ export function ReviewPrsView({
 }: {
   repo: ManagedRepo
   onBack: () => void
-  onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => void
+  onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string; lastKnownPrState?: 'OPEN' | 'MERGED' | 'CLOSED' | null }) => void
 }) {
   const { agents } = useAgentStore()
 
@@ -118,6 +118,7 @@ export function ReviewPrsView({
         prTitle: selectedPr.title,
         prUrl: selectedPr.url,
         prBaseBranch: selectedPr.baseRefName,
+        lastKnownPrState: 'OPEN',
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

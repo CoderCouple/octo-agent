@@ -3,7 +3,7 @@
  */
 import { basename } from 'path-browserify'
 import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/types'
-import type { Session, PanelVisibility, TerminalTabsState } from './sessions'
+import type { Session, PanelVisibility, TerminalTabsState, PrState } from './sessions'
 import {
   debouncedSave,
   createPanelVisibilityFromLegacy,
@@ -234,7 +234,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
       }
     },
 
-    addSession: async (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }): Promise<DuplicateSessionResult | undefined> => {
+    addSession: async (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string; lastKnownPrState?: PrState }): Promise<DuplicateSessionResult | undefined> => {
       const isGitRepo = await window.git.isGitRepo(directory)
       if (!isGitRepo) {
         throw new Error('Selected directory is not a git repository')
@@ -291,7 +291,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         workingStartTime: null,
         recentFiles: [],
         terminalTabs: createDefaultTerminalTabs(),
-        branchStatus: 'in-progress',
+        branchStatus: extra?.lastKnownPrState === 'OPEN' ? 'open' : 'in-progress',
         isArchived: false,
         isRestored: false,
       }
