@@ -79,8 +79,8 @@ test.describe.serial('Feature: Condition State Batching', () => {
     const explorer = page.locator('[data-panel-id="explorer"]')
     await expect(explorer).toBeVisible()
 
-    // Allow async sources to settle
-    await page.waitForTimeout(500)
+    // Wait for action buttons to settle
+    await expect(explorer.locator('button').filter({ hasText: /Commit|Sync|Push|Create|Review|Get latest/i }).first()).toBeVisible()
 
     await screenshotElement(page, explorer, path.join(SCREENSHOTS, '01-settled-buttons.png'), {
       maxHeight: 600,
@@ -110,10 +110,10 @@ test.describe.serial('Feature: Condition State Batching', () => {
 
     await openSourceControl()
 
-    // Allow all async sources to settle after session switch
-    await page.waitForTimeout(500)
-
     const explorer = page.locator('[data-panel-id="explorer"]')
+    // Wait for action buttons to settle after session switch
+    await expect(explorer.locator('button').filter({ hasText: /Commit|Sync|Push|Create|Review|Get latest/i }).first()).toBeVisible()
+
     await screenshotElement(page, explorer, path.join(SCREENSHOTS, '02-session-switch.png'), {
       maxHeight: 600,
     })
@@ -142,12 +142,12 @@ test.describe.serial('Feature: Condition State Batching', () => {
     })
 
     await openSourceControl()
-    await page.waitForTimeout(500)
 
     const explorer = page.locator('[data-panel-id="explorer"]')
 
-    // Verify action buttons are present (not empty due to loading)
+    // Wait for action buttons to settle and verify they are present
     const actionButtons = explorer.locator('button').filter({ hasText: /Commit|Sync|Push|Create|Review|Get latest/i })
+    await expect(actionButtons.first()).toBeVisible()
     const buttonCount = await actionButtons.count()
     expect(buttonCount).toBeGreaterThan(0)
 
