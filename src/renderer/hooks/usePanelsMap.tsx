@@ -227,7 +227,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
 
 export function usePanelsMap(config: PanelsMapConfig) {
   const {
-    sessions, activeSessionId, activeSession,
+    sessions,
     handleSelectSession, handleNewSession, removeSession, refreshPrStatus,
     archiveSession, unarchiveSession,
     getAgentCommand, getAgentEnv, getAgentResumeCommand,

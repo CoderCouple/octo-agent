@@ -436,13 +436,15 @@ export function useTerminalSetup(
     // Derive initial state
     const initState = useSessionStore.getState()
     const initSession = initState.sessions.find((ss) => ss.id === storeSessionId)
-    s.isActiveRef.current = initState.activeSessionId === storeSessionId && initSession?.terminalTabs.activeTabId === tabId
+    const resolveTabId = (s_: { terminalTabs: { activeTabId: string | null } } | undefined) =>
+      s_?.terminalTabs.activeTabId ?? '__agent__'
+    s.isActiveRef.current = initState.activeSessionId === storeSessionId && resolveTabId(initSession) === tabId
 
     return useSessionStore.subscribe((state, prevState) => {
       const session = state.sessions.find((ss) => ss.id === storeSessionId)
       const prevSession = prevState.sessions.find((ss) => ss.id === storeSessionId)
-      const isNowActive = state.activeSessionId === storeSessionId && session?.terminalTabs.activeTabId === tabId
-      const wasActive = prevState.activeSessionId === storeSessionId && prevSession?.terminalTabs.activeTabId === tabId
+      const isNowActive = state.activeSessionId === storeSessionId && resolveTabId(session) === tabId
+      const wasActive = prevState.activeSessionId === storeSessionId && resolveTabId(prevSession) === tabId
       if (isNowActive === wasActive) return
       s.isActiveRef.current = isNowActive
       s.lastInteractionRef.current = Date.now()
