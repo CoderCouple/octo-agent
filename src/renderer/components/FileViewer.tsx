@@ -11,6 +11,7 @@
  */
 import { basename } from 'path-browserify'
 import MonacoDiffViewer from './fileViewers/MonacoDiffViewer'
+import ImageDiffViewer from './fileViewers/ImageDiffViewer'
 import FileViewerToolbar from './FileViewerToolbar'
 import { useFileViewer } from '../hooks/useFileViewer'
 import { DialogErrorBanner } from './ErrorBanner'
@@ -140,7 +141,15 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
       <div className="flex-1 min-h-0">
         <PanelErrorBoundary name="File Viewer Content">
           {viewer.viewMode === 'diff' ? (
-            viewer.isLoadingDiff ? (
+            viewer.isImageFile ? (
+              <ImageDiffViewer
+                filePath={filePath}
+                directory={directory}
+                fileStatus={fileStatus}
+                diffBaseRef={diffBaseRef}
+                diffCurrentRef={diffCurrentRef}
+              />
+            ) : viewer.isLoadingDiff ? (
               <div className="h-full flex items-center justify-center text-text-secondary text-sm">
                 Loading diff...
               </div>
