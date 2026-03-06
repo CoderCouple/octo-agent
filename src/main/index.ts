@@ -17,7 +17,7 @@ import { join, dirname } from 'path'
 import { existsSync, readFileSync, FSWatcher } from 'fs'
 import { execFileSync } from 'child_process'
 import * as pty from 'node-pty'
-import { isWindows, isMac, isLinux, resolveWindowsCommand } from './platform'
+import { isWindows, isMac, isLinux, resolveWindowsCommand, enhancedPath } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
 import { resolveShellEnv } from './shellEnv'
 import { writeCrashLog } from './crashLog'
@@ -34,7 +34,11 @@ const isE2ETest = process.env.E2E_TEST === 'true'
 // Check if we should hide the window (headless mode)
 const isHeadless = process.env.E2E_HEADLESS !== 'false'
 
-// On Windows, ensure git and gh are on PATH even if installed in non-standard locations
+// Extend PATH with common bin directories (e.g. ~/.local/bin, /opt/homebrew/bin)
+// so tools like claude, git, gh are found even before resolveShellEnv() runs.
+process.env.PATH = enhancedPath(process.env.PATH)
+
+// On Windows, also resolve git/gh from well-known install locations
 if (isWindows) {
   const dirsToAdd = new Set<string>()
   for (const cmd of ['git', 'gh'] as const) {

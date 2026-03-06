@@ -9,7 +9,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import simpleGit from 'simple-git'
 import { buildPrCreateUrl } from '../gitStatusParser'
-import { isWindows, getExecShell, resolveWindowsCommand } from '../platform'
+import { isWindows, getExecShell, resolveCommand, enhancedPath } from '../platform'
 import { HandlerContext, expandHomePath } from './types'
 import { getScenarioData } from './scenarios'
 import { getDefaultBranch } from './gitUtils'
@@ -45,15 +45,15 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
         await execFileAsync('where', [baseCommand], { encoding: 'utf-8' })
       } else {
         const shell = getExecShell() || '/bin/sh'
-        await execFileAsync(shell, ['-c', 'command -v "$1"', '--', baseCommand], { encoding: 'utf-8', timeout: 5000 })
+        // Use enhanced PATH so common dirs like ~/.local/bin are included
+        // even if resolveShellEnv() failed at startup
+        const env = { ...process.env, PATH: enhancedPath(process.env.PATH) }
+        await execFileAsync(shell, ['-c', 'command -v "$1"', '--', baseCommand], { encoding: 'utf-8', timeout: 5000, env })
       }
       return true
     } catch {
-      // On Windows, fall back to well-known install locations
-      if (isWindows) {
-        return resolveWindowsCommand(baseCommand) !== null
-      }
-      return false
+      // Fall back to well-known install locations on all platforms
+      return resolveCommand(baseCommand) !== null
     }
   })
 

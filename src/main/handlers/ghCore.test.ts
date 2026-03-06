@@ -33,7 +33,9 @@ vi.mock('../platform', () => ({
   isWindows: false,
   normalizePath: (p: string) => p.replace(/\\/g, '/'),
   getExecShell: vi.fn(() => undefined),
+  resolveCommand: vi.fn(() => null),
   resolveWindowsCommand: vi.fn(() => null),
+  enhancedPath: vi.fn((p: string) => p || ''),
 }))
 
 vi.mock('./types', async (importOriginal) => {

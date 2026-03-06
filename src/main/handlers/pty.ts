@@ -9,23 +9,23 @@ import { join } from 'path'
 import { homedir } from 'os'
 import * as pty from 'node-pty'
 import type { IPty } from 'node-pty'
-import { isWindows, getDefaultShell, resolveWindowsCommand } from '../platform'
+import { isWindows, getDefaultShell, resolveCommand, enhancedPath } from '../platform'
 import { HandlerContext } from './types'
 import { getScenarioData } from './scenarios'
 import { isDockerAvailable, dockerSetupMessage, ensureAgentInstalled, acquireSetupLock } from '../containerUtils'
 import { isDevcontainerCliAvailable, hasDevcontainerConfig, devcontainerUp, buildDevcontainerExecArgs, devcontainerSetupMessage } from '../devcontainer'
 
 /**
- * On Windows, resolve the base command to its full path so agents installed
- * outside PATH (e.g. %USERPROFILE%\.local\bin) can still be launched.
+ * Resolve the base command to its full path so agents installed outside
+ * PATH (e.g. ~/.local/bin, %USERPROFILE%\.local\bin) can still be launched.
  */
 function resolveInitialCommand(command: string, isE2ETest: boolean): string {
-  if (!isWindows || isE2ETest) return command
+  if (isE2ETest) return command
   const parts = command.trim().split(/\s+/)
   const baseCmd = parts[0]
-  const resolved = resolveWindowsCommand(baseCmd)
+  const resolved = resolveCommand(baseCmd)
   if (resolved && resolved !== baseCmd) {
-    parts[0] = `"${resolved}"`
+    parts[0] = isWindows ? `"${resolved}"` : resolved
     return parts.join(' ')
   }
   return command
@@ -331,8 +331,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     const { shell, shellArgs, initialCommand: resolvedCommand } = resolveShellConfig(ctx, options)
     let initialCommand = resolvedCommand
 
-    // Build environment
-    const baseEnv = { ...process.env } as Record<string, string>
+    // Build environment — extend PATH with common bin dirs so agents in
+    // ~/.local/bin, /opt/homebrew/bin, etc. are reachable even if the
+    // login shell profile doesn't add them or resolveShellEnv() failed.
+    const baseEnv = { ...process.env, PATH: enhancedPath(process.env.PATH) } as Record<string, string>
     delete baseEnv.CLAUDE_CONFIG_DIR
 
     const expandHome = (value: string) => {
