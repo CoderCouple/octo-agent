@@ -361,18 +361,22 @@ export function useTerminalSetup(
 
     s.cleanupRef.current = () => { isStale = true; dataHandler.clearTimers(); removeDataListener(); removeExitListener() }
 
+    // Register terminal→PTY input handler BEFORE spawning the PTY so that
+    // xterm.js automatic responses (e.g. DSR cursor-position replies) are
+    // forwarded immediately. Without this, agents like Codex that query
+    // cursor position on startup may time out and crash.
+    terminal.onData((data) => {
+      s.lastUserInputRef.current = Date.now()
+      if (s.sessionIdRef.current) s.markSessionReadRef.current(s.sessionIdRef.current)
+      void window.pty.write(id, data)
+    })
+
     window.pty.create({ id, cwd: effectCwd, command: cmd, sessionId, env: envVars, shell: defaultShell || undefined, isolated: s.isolatedRef.current, repoRootDir: s.repoRootDirRef.current })
       .then(() => {
         // Guard against stale effect: terminal may have been disposed during async setup
         if (isStale) return
 
         if (isAgentTerminal && sessionId) s.setAgentPtyId(sessionId, id)
-
-        terminal.onData((data) => {
-          s.lastUserInputRef.current = Date.now()
-          if (s.sessionIdRef.current) s.markSessionReadRef.current(s.sessionIdRef.current)
-          void window.pty.write(id, data)
-        })
       })
       .catch((err: unknown) => {
         if (isStale) return
