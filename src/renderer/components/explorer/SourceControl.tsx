@@ -172,6 +172,7 @@ export function SourceControl({
         issueTitle={issueTitle}
         issueUrl={issueUrl}
         onRetryGitOp={actions.handleSync}
+        onFileSelect={onFileSelect}
       />
     </>
   )
