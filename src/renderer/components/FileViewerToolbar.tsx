@@ -31,6 +31,7 @@ interface FileViewerToolbarProps {
   fileStatus?: FileStatus
   position: FileViewerPosition
   prFilesUrl?: string
+  onOpenFile?: (filePath: string) => void
   onPositionChange?: (position: FileViewerPosition) => void
   onClose?: () => void
   onSaveButton: () => void
@@ -55,6 +56,7 @@ export default function FileViewerToolbar({
   fileStatus,
   position,
   prFilesUrl,
+  onOpenFile,
   onPositionChange,
   onClose,
   onSaveButton,
@@ -71,9 +73,13 @@ export default function FileViewerToolbar({
     if (!prFilesUrl) return undefined
     return async () => {
       const url = await buildPrFileUrl(prFilesUrl, relativePath)
-      void window.shell.openExternal(url)
+      if (onOpenFile) {
+        onOpenFile(url)
+      } else {
+        void window.shell.openExternal(url)
+      }
     }
-  }, [prFilesUrl, relativePath])
+  }, [prFilesUrl, relativePath, onOpenFile])
 
   return (
     <div className="flex-shrink-0 p-3 border-b border-border flex items-center justify-between">
