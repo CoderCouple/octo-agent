@@ -376,8 +376,16 @@ export function useTerminalSetup(
     // forwarded immediately. Without this, agents like Codex that query
     // cursor position on startup may time out and crash.
     terminal.onData((data) => {
-      s.lastUserInputRef.current = Date.now()
-      if (s.sessionIdRef.current) s.markSessionReadRef.current(s.sessionIdRef.current)
+      // xterm.js fires onData for both real user keystrokes AND automatic
+      // responses to terminal queries (e.g. cursor position reports \x1b[row;colR
+      // in response to DSR \x1b[6n). Ink-based TUIs like Codex send these queries
+      // constantly during rendering. If we count auto-responses as user input,
+      // the activity detector stays permanently "paused" and never shows "working".
+      const isAutoResponse = /^\x1b\[\d+;\d+R$/.test(data)
+      if (!isAutoResponse) {
+        s.lastUserInputRef.current = Date.now()
+        if (s.sessionIdRef.current) s.markSessionReadRef.current(s.sessionIdRef.current)
+      }
       void window.pty.write(id, data)
     })
 
