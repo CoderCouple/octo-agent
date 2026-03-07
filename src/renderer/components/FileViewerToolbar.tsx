@@ -7,7 +7,7 @@ import type { EditorActions } from './fileViewers/types'
 import type { FileStatus, FileViewerPosition, ViewMode } from './FileViewer'
 import type { FileViewerPlugin } from './fileViewers'
 
-/** Build a GitHub PR files URL with a file-specific anchor (diff-<sha256hex of relative path>) */
+/** Build a GitHub PR files URL that filters to a specific file and anchors to its diff */
 async function buildPrFileUrl(prUrl: string, relativePath: string): Promise<string> {
   const encoded = new TextEncoder().encode(relativePath)
   const hashBuffer = await crypto.subtle.digest('SHA-256', encoded)
@@ -31,6 +31,7 @@ interface FileViewerToolbarProps {
   fileStatus?: FileStatus
   position: FileViewerPosition
   prFilesUrl?: string
+  onOpenFile?: (filePath: string) => void
   onPositionChange?: (position: FileViewerPosition) => void
   onClose?: () => void
   onSaveButton: () => void
@@ -55,6 +56,7 @@ export default function FileViewerToolbar({
   fileStatus,
   position,
   prFilesUrl,
+  onOpenFile,
   onPositionChange,
   onClose,
   onSaveButton,
@@ -71,9 +73,13 @@ export default function FileViewerToolbar({
     if (!prFilesUrl) return undefined
     return async () => {
       const url = await buildPrFileUrl(prFilesUrl, relativePath)
-      void window.shell.openExternal(url)
+      if (onOpenFile) {
+        onOpenFile(url)
+      } else {
+        void window.shell.openExternal(url)
+      }
     }
-  }, [prFilesUrl, relativePath])
+  }, [prFilesUrl, relativePath, onOpenFile])
 
   return (
     <div className="flex-shrink-0 p-3 border-b border-border flex items-center justify-between">
@@ -124,7 +130,7 @@ export default function FileViewerToolbar({
         {handleOpenOnGithub && viewMode === 'diff' && (
           <button
             onClick={() => void handleOpenOnGithub()}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded bg-bg-tertiary border border-border text-text-primary hover:bg-bg-tertiary/80 hover:border-accent/50 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded bg-bg-tertiary border border-border text-text-primary hover:bg-bg-tertiary/80 hover:border-accent/50 transition-colors whitespace-nowrap shrink-0"
             title="Open PR diff on GitHub to add comments"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

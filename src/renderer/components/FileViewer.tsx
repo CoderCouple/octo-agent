@@ -132,6 +132,7 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
         fileStatus={fileStatus}
         position={position}
         prFilesUrl={prFilesUrl}
+        onOpenFile={onOpenFile ? (path) => onOpenFile(path) : undefined}
         onPositionChange={onPositionChange}
         onClose={onClose}
         onSaveButton={viewer.handleSaveButton}
