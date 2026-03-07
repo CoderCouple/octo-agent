@@ -585,6 +585,46 @@ describe('useTerminalSetup', () => {
       }
     })
 
+    it('does not treat cursor position reports as user input', async () => {
+      let terminalOnDataCb: ((data: string) => void) | null = null
+      mockTerminalOnData.mockImplementation((cb: (data: string) => void) => {
+        terminalOnDataCb = cb
+        return { dispose: vi.fn() }
+      })
+
+      const markSessionRead = vi.fn()
+      useSessionStore.setState({
+        activeSessionId: 'session-1',
+        markSessionRead,
+        sessions: [{
+          id: 'session-1', name: 'test', directory: '/test', branch: 'main',
+          status: 'idle', agentId: null, panelVisibility: {}, showExplorer: false,
+          showFileViewer: false, showDiff: false, selectedFilePath: null,
+          planFilePath: null, fileViewerPosition: 'top' as const,
+          layoutSizes: { explorerWidth: 256, fileViewerSize: 300, userTerminalHeight: 192, diffPanelWidth: 320, tutorialPanelWidth: 320 },
+          explorerFilter: 'files' as const, lastMessage: null, lastMessageTime: null,
+          isUnread: false, workingStartTime: null, recentFiles: [],
+          terminalTabs: { tabs: [], activeTabId: '__agent__' },
+          branchStatus: 'in-progress' as const, isArchived: false, isRestored: false,
+        }],
+      } as never)
+
+      const config = makeConfig()
+      const containerRef = makeContainerRef()
+
+      renderHook(() => useTerminalSetup(config, containerRef))
+      await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+
+      if (terminalOnDataCb) {
+        // Cursor position report (xterm auto-response to DSR query)
+        act(() => { terminalOnDataCb!('\x1b[24;80R') })
+        // Should still forward to PTY
+        expect(window.pty.write).toHaveBeenCalledWith(expect.any(String), '\x1b[24;80R')
+        // Should NOT mark session as read (not real user input)
+        expect(markSessionRead).not.toHaveBeenCalled()
+      }
+    })
+
     it('processes agent activity detection on PTY data for agent terminals', async () => {
       const { evaluateActivity } = await import('../utils/terminalActivityDetector')
       vi.mocked(evaluateActivity).mockReturnValue({ status: 'working', scheduleIdle: true })
