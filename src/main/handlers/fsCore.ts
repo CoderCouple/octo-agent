@@ -210,7 +210,7 @@ async function handleReadFileBase64(ctx: HandlerContext, filePath: string) {
 
 const MAX_WATCHERS = 128
 
-function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string, dirPath: string) {
+async function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string, dirPath: string) {
   if (ctx.isE2ETest) {
     return { success: true }
   }
@@ -227,6 +227,13 @@ function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string
 
   if (senderWindow) {
     ctx.watcherOwnerWindows.set(id, senderWindow)
+  }
+
+  try {
+    await access(dirPath)
+  } catch {
+    // Directory doesn't exist yet — not an error, just nothing to watch
+    return { success: false, error: 'Directory does not exist' }
   }
 
   try {
