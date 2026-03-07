@@ -169,6 +169,7 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
             <ViewerComponent
               filePath={filePath}
               content={diffCurrentRef ? (viewer.diffModifiedContent ?? viewer.content) : viewer.content}
+              directory={directory}
               onSave={diffCurrentRef ? undefined : viewer.handleSave}
               onDirtyChange={diffCurrentRef ? undefined : viewer.handleDirtyChange}
               scrollToLine={scrollToLine}
