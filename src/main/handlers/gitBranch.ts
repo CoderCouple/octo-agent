@@ -18,7 +18,7 @@ function withNonInteractive(git: ReturnType<typeof simpleGit>) {
 }
 
 async function handleClone(ctx: HandlerContext, url: string, targetDir: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -39,7 +39,7 @@ async function handleClone(ctx: HandlerContext, url: string, targetDir: string) 
 }
 
 async function handleWorktreeAdd(ctx: HandlerContext, repoPath: string, worktreePath: string, branchName: string, baseBranch: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -62,7 +62,7 @@ async function handleWorktreeAdd(ctx: HandlerContext, repoPath: string, worktree
 }
 
 async function handleWorktreeList(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return [
       { path: repoPath, branch: 'main', head: 'abc1234' },
     ]
@@ -96,7 +96,7 @@ async function handleWorktreeList(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -140,7 +140,7 @@ async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branch
 }
 
 async function handleDefaultBranch(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'main'
   }
 
@@ -153,7 +153,7 @@ async function handleDefaultBranch(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleRemoteUrl(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'git@github.com:user/demo-project.git'
   }
 
@@ -168,7 +168,7 @@ async function handleRemoteUrl(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleHeadCommit(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'abc1234567890'
   }
 
@@ -182,7 +182,7 @@ async function handleHeadCommit(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleListBranches(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return [
       { name: 'main', isRemote: false, current: true },
       { name: 'feature/auth', isRemote: false, current: false },
@@ -217,7 +217,7 @@ async function handleListBranches(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleFetchBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -231,7 +231,7 @@ async function handleFetchBranch(ctx: HandlerContext, repoPath: string, branchNa
 }
 
 async function handleFetchReviewPrHead(ctx: HandlerContext, repoPath: string, prNumber: number, targetBranch?: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -254,7 +254,7 @@ async function handleFetchReviewPrHead(ctx: HandlerContext, repoPath: string, pr
 // Tries fetching by branch name first (same-repo PRs), falls back to PR ref (fork PRs).
 // Uses reset --hard instead of merge so force-pushed PRs update cleanly.
 async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, branchName: string, prNumber: number) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -279,7 +279,7 @@ async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, bra
 }
 
 async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return false
   }
 
@@ -311,7 +311,7 @@ async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: st
 }
 
 async function handleHasBranchCommits(ctx: HandlerContext, repoPath: string, ref: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return false
   }
 
@@ -326,7 +326,7 @@ async function handleHasBranchCommits(ctx: HandlerContext, repoPath: string, ref
 }
 
 async function handleWorktreeRemove(ctx: HandlerContext, repoPath: string, worktreePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -340,7 +340,7 @@ async function handleWorktreeRemove(ctx: HandlerContext, repoPath: string, workt
 }
 
 async function handleDeleteBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 

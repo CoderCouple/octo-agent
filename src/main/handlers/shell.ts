@@ -10,7 +10,7 @@ const isDev = process.env.ELECTRON_RENDERER_URL !== undefined
 
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('shell:exec', async (_event, command: string, cwd: string) => {
-    if (ctx.isE2ETest) {
+    if (ctx.isE2ETest && !ctx.e2eRealRepos) {
       return { success: true, stdout: '', stderr: '', exitCode: 0 }
     }
 

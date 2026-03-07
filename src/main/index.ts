@@ -266,6 +266,7 @@ function createWindow(profileId?: string): BrowserWindow {
 const context: HandlerContext & { createWindow: (profileId?: string) => BrowserWindow } = {
   isE2ETest,
   get e2eScenario() { return (process.env.E2E_SCENARIO || 'default') as import('./handlers/types').E2EScenario },
+  e2eRealRepos: process.env.E2E_REAL_REPOS === 'true',
   isDev,
   isWindows,
   ptyProcesses,
