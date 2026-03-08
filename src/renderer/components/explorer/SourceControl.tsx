@@ -33,10 +33,6 @@ interface SourceControlProps {
   issueNumber?: number
   issueTitle?: string
   issueUrl?: string
-  pushedToMainAt?: number
-  pushedToMainCommit?: string
-  onRecordPushToMain?: (commitHash: string) => void
-  onClearPushToMain?: () => void
   onSwitchTab?: (tab: string) => void
   onOpenCommandsEditor?: () => void
   isReview?: boolean
@@ -56,10 +52,6 @@ export function SourceControl({
   issueNumber,
   issueTitle,
   issueUrl,
-  pushedToMainAt,
-  pushedToMainCommit,
-  onRecordPushToMain,
-  onClearPushToMain,
   onSwitchTab,
   onOpenCommandsEditor,
   isReview,
@@ -80,7 +72,6 @@ export function SourceControl({
 
   const data = useSourceControlData({
     directory, gitStatus, syncStatus, branchStatus, onUpdatePrState,
-    pushedToMainAt, pushedToMainCommit, onClearPushToMain,
     repoId, scView,
   })
 
@@ -98,7 +89,7 @@ export function SourceControl({
   }, [directory, repoId, data.currentRepo?.isolated])
 
   const actions = useSourceControlActions({
-    directory, onGitStatusRefresh, agentPtyId, agentId, onRecordPushToMain, data,
+    directory, onGitStatusRefresh, agentPtyId, agentId, data,
   })
 
   // All async sources must complete before we update condition state.
@@ -112,7 +103,8 @@ export function SourceControl({
       branchStatus,
       prNumber: data.prStatus?.number,
       hasWriteAccess: data.hasWriteAccess,
-      allowPushToMain: data.currentRepo?.allowPushToMain ?? true,
+      allowApproveAndMerge: data.currentRepo?.allowApproveAndMerge ?? true,
+      checksStatus: data.checksStatus,
       behindMainCount: data.behindMainCount,
       issueNumber,
       noDevcontainer,

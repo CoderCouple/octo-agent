@@ -79,8 +79,6 @@ export interface PanelsMapConfig {
   toggleGlobalPanel: (panelId: string) => void
   selectFile: (sessionId: string, filePath: string) => void
   setExplorerFilter: (sessionId: string, filter: ExplorerFilter) => void
-  recordPushToMain: (sessionId: string, commitHash: string) => void
-  clearPushToMain: (sessionId: string) => void
   updatePrState: (sessionId: string, prState: PrState, prNumber?: number, prUrl?: string) => void
   setPanelVisibility: (sessionId: string, panelId: string, visible: boolean) => void
   setToolbarPanels: (panels: string[]) => void
@@ -92,7 +90,7 @@ function useExplorerPanel(config: PanelsMapConfig) {
   const {
     activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult,
     navigateToFile, fetchGitStatus, setExplorerFilter,
-    recordPushToMain, clearPushToMain, updatePrState, repos,
+    updatePrState, repos,
   } = config
 
   const issuePlanExists = useIssuePlanDetection(activeSessionId, activeSession?.directory)
@@ -113,10 +111,6 @@ function useExplorerPanel(config: PanelsMapConfig) {
         onGitStatusRefresh={fetchGitStatus}
         recentFiles={activeSession.recentFiles}
         sessionId={activeSessionId ?? undefined}
-        pushedToMainAt={activeSession.pushedToMainAt}
-        pushedToMainCommit={activeSession.pushedToMainCommit}
-        onRecordPushToMain={(commitHash) => activeSessionId && recordPushToMain(activeSessionId, commitHash)}
-        onClearPushToMain={() => activeSessionId && clearPushToMain(activeSessionId)}
         planFilePath={activeSession.planFilePath}
         branchStatus={activeSession.branchStatus}
         onUpdatePrState={(prState, prNumber, prUrl) => activeSessionId && updatePrState(activeSessionId, prState, prNumber, prUrl)}

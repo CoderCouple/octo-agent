@@ -200,8 +200,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             workingStartTime: null,
             recentFiles: [],
             terminalTabs: (sessionData.terminalTabs as TerminalTabsState | undefined) ?? createDefaultTerminalTabs(),
-            pushedToMainAt: sessionData.pushedToMainAt,
-            pushedToMainCommit: sessionData.pushedToMainCommit,
             hasHadCommits: sessionData.hasHadCommits,
             branchStatus: 'in-progress',
             lastKnownPrState: sessionData.lastKnownPrState,

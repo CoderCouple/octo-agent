@@ -58,7 +58,7 @@ export function useCommandsConfig(directory: string | undefined): {
         }
         setLoading(false)
         // If config exists, the file exists — start watching if not already
-        if (loaded) startWatching()
+        if (result !== null) startWatching()
       }
     }
 

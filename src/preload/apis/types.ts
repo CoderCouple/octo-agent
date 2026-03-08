@@ -41,7 +41,7 @@ export type ManagedRepo = {
   defaultBranch: string
   defaultAgentId?: string  // Default agent for sessions in this repo
   reviewInstructions?: string  // Custom instructions for AI review generation
-  allowPushToMain?: boolean  // Whether "Push to main" button is shown for this repo
+  allowApproveAndMerge?: boolean  // Whether "Approve and merge" button is shown for this repo
   isolated?: boolean         // Run sessions in this repo inside a dev container
   skipApproval?: boolean     // Auto-approve agent commands when isolated
 }
@@ -188,7 +188,7 @@ export type SessionData = {
   layoutSizes?: LayoutSizesData
   explorerFilter?: 'all' | 'changed' | 'files' | 'source-control' | 'search' | 'recent' | 'review'
   terminalTabs?: unknown
-  // Push to main tracking
+  // Legacy push-to-main tracking (deprecated, kept for config compat)
   pushedToMainAt?: number
   pushedToMainCommit?: string
   // Branch status PR tracking

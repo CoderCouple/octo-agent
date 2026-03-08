@@ -12,9 +12,6 @@ export interface SourceControlDataProps {
   syncStatus?: GitStatusResult | null
   branchStatus?: BranchStatus
   onUpdatePrState?: (prState: PrState, prNumber?: number, prUrl?: string) => void
-  pushedToMainAt?: number
-  pushedToMainCommit?: string
-  onClearPushToMain?: () => void
   repoId?: string
   scView: 'working' | 'branch' | 'commits'
 }
@@ -23,27 +20,18 @@ interface PrEffectsConfig {
   directory?: string
   syncStatus?: GitStatusResult | null
   onUpdatePrState?: (prState: PrState, prNumber?: number, prUrl?: string) => void
-  pushedToMainAt?: number
-  pushedToMainCommit?: string
-  onClearPushToMain?: () => void
 }
 
 /** PR data-fetching effects, extracted for function size limits. */
 function usePrEffects(config: PrEffectsConfig) {
-  const { directory, syncStatus, onUpdatePrState, pushedToMainAt, pushedToMainCommit, onClearPushToMain } = config
+  const { directory, syncStatus, onUpdatePrState } = config
   const [prStatus, setPrStatus] = useState<GitHubPrStatus>(null)
   const [isPrLoading, setIsPrLoading] = useState(false)
   const [hasWriteAccess, setHasWriteAccess] = useState(false)
-  const [isPushingToMain, setIsPushingToMain] = useState(false)
-  const [currentHeadCommit, setCurrentHeadCommit] = useState<string | null>(null)
+  const [checksStatus, setChecksStatus] = useState<'passed' | 'failed' | 'pending' | 'none'>('none')
   const [hasPrLoadedOnce, setHasPrLoadedOnce] = useState(false)
 
-  const hasChangesSincePush = useMemo(() => {
-    if (!pushedToMainCommit || !currentHeadCommit) return true
-    return pushedToMainCommit !== currentHeadCommit
-  }, [pushedToMainCommit, currentHeadCommit])
-
-  // Fetch PR status and write access when source control is active
+  // Fetch PR status, write access, and checks when source control is active
   useEffect(() => {
     if (!directory) { setHasPrLoadedOnce(true); return }
     let cancelled = false
@@ -51,22 +39,32 @@ function usePrEffects(config: PrEffectsConfig) {
 
     const fetchPrInfo = async () => {
       try {
-        const [prResult, writeAccess, headCommit] = await Promise.all([
+        const [prResult, writeAccess] = await Promise.all([
           window.gh.prStatus(directory),
           window.gh.hasWriteAccess(directory),
-          window.git.headCommit(directory),
         ])
         if (cancelled) return
         setPrStatus(prResult)
         setHasWriteAccess(writeAccess)
-        setCurrentHeadCommit(headCommit)
+
+        // Fetch checks status only if there's an open PR
+        if (prResult?.state === 'OPEN') {
+          const checks = await window.gh.prChecksStatus(directory).catch(() => 'none' as const)
+          setChecksStatus(checks)
+        } else {
+          setChecksStatus('none')
+        }
       } catch {
         if (cancelled) return
         setPrStatus(null)
         setHasWriteAccess(false)
+        setChecksStatus('none')
+      } finally {
+        if (!cancelled) {
+          setIsPrLoading(false)
+          setHasPrLoadedOnce(true)
+        }
       }
-      setIsPrLoading(false)
-      setHasPrLoadedOnce(true)
     }
 
     void fetchPrInfo()
@@ -84,27 +82,19 @@ function usePrEffects(config: PrEffectsConfig) {
     }
   }, [prStatus, isPrLoading])
 
-  // Clear pushed status if there are new changes
-  useEffect(() => {
-    if (pushedToMainAt && hasChangesSincePush && onClearPushToMain) {
-      onClearPushToMain()
-    }
-  }, [pushedToMainAt, hasChangesSincePush, onClearPushToMain])
-
   // Reset on directory change
   const resetPr = () => {
     setPrStatus(null)
     setHasWriteAccess(false)
+    setChecksStatus('none')
     setHasPrLoadedOnce(false)
   }
 
   return {
     prStatus, isPrLoading,
     hasWriteAccess,
-    isPushingToMain, setIsPushingToMain,
-    currentHeadCommit,
+    checksStatus,
     hasPrLoadedOnce,
-    hasChangesSincePush,
     resetPr,
   }
 }
@@ -115,9 +105,6 @@ export function useSourceControlData({
   syncStatus,
   branchStatus,
   onUpdatePrState,
-  pushedToMainAt,
-  pushedToMainCommit,
-  onClearPushToMain,
   repoId,
   scView,
 }: SourceControlDataProps) {
@@ -153,9 +140,9 @@ export function useSourceControlData({
   const [askedAgentToResolve, setAskedAgentToResolve] = useState(false)
 
   // PR effects
-  const pr = usePrEffects({ directory, syncStatus, onUpdatePrState, pushedToMainAt, pushedToMainCommit, onClearPushToMain })
+  const pr = usePrEffects({ directory, syncStatus, onUpdatePrState })
 
-  // Repo lookup for allowPushToMain
+  // Repo lookup for allowApproveAndMerge
   const repos = useRepoStore((s) => s.repos)
   const currentRepo = repoId ? repos.find((r) => r.id === repoId) : undefined
 

@@ -116,9 +116,6 @@ async function doSave(): Promise<void> {
       layoutSizes: s.layoutSizes,
       explorerFilter: s.explorerFilter,
       terminalTabs: s.terminalTabs,
-      // Push to main tracking
-      pushedToMainAt: s.pushedToMainAt,
-      pushedToMainCommit: s.pushedToMainCommit,
       // Commit tracking
       hasHadCommits: s.hasHadCommits || undefined,
       // PR state tracking

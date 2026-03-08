@@ -50,11 +50,11 @@
       "style": "primary"
     },
     {
-      "id": "push-to-main",
-      "label": "Push to {main}",
+      "id": "approve-and-merge",
+      "label": "Approve and Merge",
       "type": "agent",
-      "prompt": "Push this branch to {main} safely.\n\n1. Pull the latest from {main} and merge it into this branch, resolving any merge conflicts\n2. Run the project's validation checks to make sure everything still passes, and fix any failures\n3. Push this branch to its remote tracking branch\n4. If the push fails, resolve the error and retry\n5. Once the branch is pushed, run: `git push origin HEAD:{main}`\n\nDo NOT ask for permission before running the push command. It will fail safely if there are remote commits we don't have locally.",
-      "showWhen": ["clean", "pushed", "no-pr", "has-write-access", "allow-push-to-main"],
+      "prompt": "Approve and merge the open PR for this branch.\n\nRepeat the following steps until the PR is merged:\n\n1. Pull the latest from {main} and merge it into this branch. If there are merge conflicts, resolve them.\n2. Run the project's validation checks (lint, typecheck, tests). Fix any failures, including pre-existing ones — all checks must pass with zero errors.\n3. Push this branch to its remote tracking branch.\n4. Approve the PR: `gh pr review --approve`\n5. Merge the PR: `gh pr merge --merge --delete-branch`\n6. If the merge fails because the branch is not up to date, go back to step 1.\n\nDo NOT ask for permission before running any of these commands.",
+      "showWhen": ["clean", "open", "checks-passed", "has-write-access", "allow-approve-and-merge"],
       "style": "secondary"
     },
     {

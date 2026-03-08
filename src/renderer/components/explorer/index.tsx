@@ -25,10 +25,6 @@ export default function Explorer({
   onGitStatusRefresh,
   recentFiles = [],
   sessionId,
-  pushedToMainAt,
-  pushedToMainCommit,
-  onRecordPushToMain,
-  onClearPushToMain,
   planFilePath,
   branchStatus,
   onUpdatePrState,
@@ -130,10 +126,6 @@ export default function Explorer({
               issueNumber={issueNumber}
               issueTitle={issueTitle}
               issueUrl={issueUrl}
-              pushedToMainAt={pushedToMainAt}
-              pushedToMainCommit={pushedToMainCommit}
-              onRecordPushToMain={onRecordPushToMain}
-              onClearPushToMain={onClearPushToMain}
               onSwitchTab={(tab) => onFilterChange(tab as Parameters<typeof onFilterChange>[0])}
               onOpenCommandsEditor={handleOpenCommandsEditor}
               isReview={session?.sessionType === 'review'}

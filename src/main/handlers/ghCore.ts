@@ -192,28 +192,35 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     }
   })
 
-  ipcMain.handle('gh:mergeBranchToMain', async (_event, repoDir: string) => {
+  ipcMain.handle('gh:prChecksStatus', async (_event, repoDir: string) => {
     if (ctx.isE2ETest) {
-      return { success: true }
+      return 'passed'
     }
 
     try {
-      const git = simpleGit(expandHomePath(repoDir)).env('GIT_TERMINAL_PROMPT', '0').env('GIT_SSH_COMMAND', 'ssh -o BatchMode=yes')
+      const result = await runCommand('gh', [
+        'pr', 'view', '--json', 'statusCheckRollup',
+        '--jq', '.statusCheckRollup[] | .conclusion // .state',
+      ], {
+        cwd: expandHomePath(repoDir),
+        timeout: 15000,
+      })
 
-      const status = await git.status()
-      const currentBranch = status.current
-      if (!currentBranch) {
-        return { success: false, error: 'Could not determine current branch' }
-      }
+      const lines = result.trim().split('\n').filter(Boolean)
 
-      const defaultBranch = await getDefaultBranch(git)
+      // No checks configured
+      if (lines.length === 0) return 'none'
 
-      await git.push()
-      await git.push('origin', `HEAD:${defaultBranch}`)
+      // Any check still running
+      if (lines.some(l => ['PENDING', 'QUEUED', 'IN_PROGRESS', ''].includes(l.trim().toUpperCase()))) return 'pending'
 
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: String(error) }
+      // All checks must have succeeded
+      if (lines.every(l => l.trim().toUpperCase() === 'SUCCESS')) return 'passed'
+
+      return 'failed'
+    } catch {
+      // No PR or gh error — treat as no checks
+      return 'none'
     }
   })
 

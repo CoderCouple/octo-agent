@@ -124,7 +124,7 @@ test.describe.serial('Feature: Condition State Batching', () => {
         'When switching to a different session, all async data sources reset and re-fetch. ' +
         'The condition state stays at its previous settled value until the new session\'s ' +
         'PR status, behind-main count, and devcontainer check all complete. This prevents ' +
-        'the "Get latest from main" button from suddenly appearing and shifting "Push to main" ' +
+        'the "Get latest from main" button from suddenly appearing and shifting "Approve and Merge" ' +
         'or "Create PR" downward.',
     })
   })

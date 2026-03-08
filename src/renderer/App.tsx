@@ -144,7 +144,7 @@ function AppContent() {
     loadSessions, addSession, removeSession, setActiveSession,
     togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
     selectFile, setExplorerFilter, setFileViewerPosition, updateLayoutSize,
-    markSessionRead, recordPushToMain, clearPushToMain, markHasHadCommits,
+    markSessionRead, markHasHadCommits,
     updateBranchStatus, updatePrState, updateReviewStatus, archiveSession, unarchiveSession, setPanelVisibility, updateSessionBranch,
     closeCommandsEditor,
   } = useSessionStore()
@@ -268,7 +268,7 @@ function AppContent() {
     handleToggleFileViewer, handleFileViewerPositionChange,
     fetchGitStatus, getAgentCommand, getAgentEnv, getRepoIsolation,
     globalPanelVisibility, toggleGlobalPanel, selectFile, setExplorerFilter,
-    recordPushToMain, clearPushToMain, updatePrState,
+    updatePrState,
     setPanelVisibility, setToolbarPanels, closeCommandsEditor, repos,
   })
 

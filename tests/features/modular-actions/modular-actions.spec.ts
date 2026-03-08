@@ -199,8 +199,8 @@ test.describe.serial('Feature: Modular Actions', () => {
       caption: 'Action buttons on a feature branch',
       description:
         'On a feature branch, different actions become visible based on showWhen ' +
-        'conditions. For example, "Push to main" only shows when branchStatus is ' +
-        '"approved", while "Create PR" shows when there is no existing PR. The ' +
+        'conditions. For example, "Approve and Merge" only shows when there is an open PR ' +
+        'with passing checks, while "Create PR" shows when there is no existing PR. The ' +
         'action set adapts to the current git state automatically.',
     })
   })

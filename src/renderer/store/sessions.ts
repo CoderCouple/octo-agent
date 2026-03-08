@@ -93,9 +93,6 @@ export interface Session {
   recentFiles: string[]
   // User terminal tabs (persisted)
   terminalTabs: TerminalTabsState
-  // Direct push to main tracking (persisted)
-  pushedToMainAt?: number  // Timestamp when branch was pushed to main
-  pushedToMainCommit?: string  // The HEAD commit when pushed (to detect new changes)
   // Track whether this session has ever had commits ahead of remote (persisted)
   hasHadCommits?: boolean
   // Branch status (runtime, derived)
@@ -167,9 +164,6 @@ interface SessionStore {
   closeCommandsEditor: (sessionId: string) => void
   // Agent PTY tracking (runtime only)
   setAgentPtyId: (sessionId: string, ptyId: string) => void
-  // Direct push to main tracking
-  recordPushToMain: (sessionId: string, commitHash: string) => void
-  clearPushToMain: (sessionId: string) => void
   // Branch status actions
   markHasHadCommits: (sessionId: string) => void
   updateBranchStatus: (sessionId: string, status: BranchStatus) => void

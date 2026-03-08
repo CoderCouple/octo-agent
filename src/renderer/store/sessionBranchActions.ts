@@ -1,5 +1,5 @@
 /**
- * Session store actions for branch status, PR state, and push-to-main tracking.
+ * Session store actions for branch status, PR state, and session lifecycle.
  */
 import type { Session, BranchStatus, PrState } from './sessions'
 import { debouncedSave } from './sessionPersistence'
@@ -15,28 +15,6 @@ type StoreSet = (partial: Partial<{
 
 export function createBranchActions(get: StoreGet, set: StoreSet) {
   return {
-    recordPushToMain: (sessionId: string, commitHash: string) => {
-      const { sessions } = get()
-      const updatedSessions = sessions.map((s) =>
-        s.id === sessionId
-          ? { ...s, pushedToMainAt: Date.now(), pushedToMainCommit: commitHash }
-          : s
-      )
-      set({ sessions: updatedSessions })
-      debouncedSave()
-    },
-
-    clearPushToMain: (sessionId: string) => {
-      const { sessions } = get()
-      const updatedSessions = sessions.map((s) =>
-        s.id === sessionId
-          ? { ...s, pushedToMainAt: undefined, pushedToMainCommit: undefined }
-          : s
-      )
-      set({ sessions: updatedSessions })
-      debouncedSave()
-    },
-
     markHasHadCommits: (sessionId: string) => {
       const { sessions } = get()
       const session = sessions.find((s) => s.id === sessionId)

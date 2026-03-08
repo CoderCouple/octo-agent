@@ -21,7 +21,6 @@ import { ShowWhenPicker } from './ShowWhenPicker'
 import { PromptVariants } from './PromptVariants'
 import { useAgentStore } from '../store/agents'
 
-const SURFACE_OPTIONS = ['source-control', 'review'] as const
 const STYLE_OPTIONS = ['primary', 'secondary', 'accent', 'danger'] as const
 const SURFACE_OPTIONS = [
   { value: 'source-control', label: 'Source Control' },
@@ -400,7 +399,7 @@ function ActionCard({
               data-testid={`action-surface-${action.id}`}
             >
               {SURFACE_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
           </Field>

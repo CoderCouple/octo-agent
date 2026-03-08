@@ -61,7 +61,7 @@ export function RepoSettingsEditor({
   onClose: () => void
 }) {
   const [defaultAgentId, setDefaultAgentId] = useState(repo.defaultAgentId || '')
-  const [allowPushToMain, setAllowPushToMain] = useState(repo.allowPushToMain ?? false)
+  const [allowApproveAndMerge, setAllowPushToMain] = useState(repo.allowApproveAndMerge ?? false)
   const [isolated, setIsolated] = useState(repo.isolated ?? false)
   const [skipApproval, setSkipApproval] = useState(repo.skipApproval ?? false)
   const [devcontainerStatus, setDevcontainerStatus] = useState<DevcontainerStatus | null>(null)
@@ -69,7 +69,7 @@ export function RepoSettingsEditor({
   const [initScript, setInitScript] = useState('')
   const [loadingScript, setLoadingScript] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [pushToMainError, setPushToMainError] = useState<{ summary: string; details: string } | null>(null)
+  const [writeAccessError, setPushToMainError] = useState<{ summary: string; details: string } | null>(null)
   const [showErrorDetails, setShowErrorDetails] = useState(false)
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export function RepoSettingsEditor({
     try {
       onUpdate({
         defaultAgentId: defaultAgentId || undefined,
-        allowPushToMain,
+        allowApproveAndMerge,
         isolated: isolated || undefined,
         skipApproval: skipApproval || undefined,
       })
@@ -120,11 +120,11 @@ export function RepoSettingsEditor({
 
   return (
     <div className="space-y-3">
-      {pushToMainError && (
-        <ErrorBanner error={pushToMainError} onDismiss={() => setPushToMainError(null)} onShowDetails={() => setShowErrorDetails(true)} />
+      {writeAccessError && (
+        <ErrorBanner error={writeAccessError} onDismiss={() => setPushToMainError(null)} onShowDetails={() => setShowErrorDetails(true)} />
       )}
-      {showErrorDetails && pushToMainError && (
-        <ErrorDetailsPopup error={pushToMainError} onClose={() => setShowErrorDetails(false)} />
+      {showErrorDetails && writeAccessError && (
+        <ErrorDetailsPopup error={writeAccessError} onClose={() => setShowErrorDetails(false)} />
       )}
 
       <div className="text-sm font-medium text-text-primary">{repo.name}</div>
@@ -150,7 +150,7 @@ export function RepoSettingsEditor({
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={allowPushToMain}
+            checked={allowApproveAndMerge}
             onChange={async (e) => {
               const checked = e.target.checked
               if (checked) {
@@ -177,7 +177,7 @@ export function RepoSettingsEditor({
             }}
             className="rounded border-border"
           />
-          <span className="text-xs text-text-secondary">Allow "Push to main" button</span>
+          <span className="text-xs text-text-secondary">Allow "Approve and merge" button</span>
         </label>
       </div>
 
