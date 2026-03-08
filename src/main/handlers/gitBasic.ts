@@ -19,7 +19,7 @@ function withNonInteractive(git: ReturnType<typeof simpleGit>) {
 }
 
 async function handleGetBranch(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     const scenario = getScenarioData(ctx.e2eScenario)
     return scenario.branches[repoPath] || 'main'
   }
@@ -34,7 +34,7 @@ async function handleGetBranch(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleIsGitRepo(ctx: HandlerContext, dirPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return true
   }
 
@@ -47,7 +47,7 @@ async function handleIsGitRepo(ctx: HandlerContext, dirPath: string) {
 }
 
 async function handleStatus(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     const scenario = getScenarioData(ctx.e2eScenario)
     const mockMerge = process.env.E2E_MOCK_MERGE
     return {
@@ -112,7 +112,7 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleStage(ctx: HandlerContext, repoPath: string, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -126,7 +126,7 @@ async function handleStage(ctx: HandlerContext, repoPath: string, filePath: stri
 }
 
 async function handleStageAll(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -140,7 +140,7 @@ async function handleStageAll(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleUnstage(ctx: HandlerContext, repoPath: string, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -154,7 +154,7 @@ async function handleUnstage(ctx: HandlerContext, repoPath: string, filePath: st
 }
 
 async function handleCheckoutFile(ctx: HandlerContext, repoPath: string, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -168,7 +168,7 @@ async function handleCheckoutFile(ctx: HandlerContext, repoPath: string, filePat
 }
 
 async function handleCommit(ctx: HandlerContext, repoPath: string, message: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -186,7 +186,7 @@ async function handleCommit(ctx: HandlerContext, repoPath: string, message: stri
 }
 
 async function handleCommitMerge(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -222,7 +222,7 @@ async function appendAuthHint(repoPath: string, errorStr: string): Promise<strin
 }
 
 async function handlePush(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -236,7 +236,7 @@ async function handlePush(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handlePull(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -250,7 +250,7 @@ async function handlePull(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleDiff(ctx: HandlerContext, repoPath: string, filePath?: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return getScenarioData(ctx.e2eScenario).diff
   }
 
@@ -266,7 +266,7 @@ async function handleDiff(ctx: HandlerContext, repoPath: string, filePath?: stri
 }
 
 async function handleShow(ctx: HandlerContext, repoPath: string, filePath: string, ref = 'HEAD') {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return getScenarioData(ctx.e2eScenario).show(filePath)
   }
 
@@ -281,7 +281,7 @@ async function handleShow(ctx: HandlerContext, repoPath: string, filePath: strin
 }
 
 async function handleShowBase64(ctx: HandlerContext, repoPath: string, filePath: string, ref = 'HEAD') {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return ''
   }
 

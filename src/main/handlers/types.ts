@@ -31,6 +31,8 @@ export type DockerContainerState = {
 export interface HandlerContext {
   isE2ETest: boolean
   e2eScenario: E2EScenario
+  /** When true, E2E handlers fall through to real fs/git for session directories. */
+  e2eRealRepos: boolean
   isDev: boolean
   isWindows: boolean
   ptyProcesses: Map<string, IPty>

@@ -36,7 +36,7 @@ describe('app handler register', () => {
     mockCtx = {
       isDev: true,
       isE2ETest: false,
-      e2eScenario: E2EScenario.Default,
+      e2eScenario: E2EScenario.Default, e2eRealRepos: false,
       isWindows: false,
       ptyProcesses: new Map(),
       ptyOwnerWindows: new Map(),

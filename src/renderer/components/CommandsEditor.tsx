@@ -20,6 +20,7 @@ import { ShowWhenPicker } from './ShowWhenPicker'
 import { PromptVariants } from './PromptVariants'
 import { useAgentStore } from '../store/agents'
 
+const SURFACE_OPTIONS = ['source-control', 'review'] as const
 const STYLE_OPTIONS = ['primary', 'secondary', 'accent', 'danger'] as const
 const SWITCH_TAB_OPTIONS = [
   { value: '', label: 'None' },
@@ -349,6 +350,19 @@ function ActionCard({
               showWhen={action.showWhen}
               onChange={(showWhen) => onUpdate({ showWhen })}
             />
+          </Field>
+
+          <Field label="Where this button appears">
+            <select
+              value={action.surface ? (Array.isArray(action.surface) ? action.surface[0] : action.surface) : 'source-control'}
+              onChange={(e) => onUpdate({ surface: e.target.value === 'source-control' ? undefined : e.target.value })}
+              className="w-full px-2 py-1.5 text-sm rounded border border-border bg-bg-secondary text-text-primary focus:outline-none focus:border-accent"
+              data-testid={`action-surface-${action.id}`}
+            >
+              {SURFACE_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </Field>
 
           <Field label="Style">

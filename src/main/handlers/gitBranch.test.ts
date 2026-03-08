@@ -45,7 +45,7 @@ import { E2EScenario, type HandlerContext } from './types'
 function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
   return {
     isE2ETest: false,
-    e2eScenario: E2EScenario.Default,
+    e2eScenario: E2EScenario.Default, e2eRealRepos: false,
     isDev: false,
     isWindows: false,
     ptyProcesses: new Map(),
@@ -167,6 +167,18 @@ describe('gitBranch handlers', () => {
       const handlers = setupHandlers()
       const result = await handlers['git:worktreeAdd'](null, '/repo', '/wt', 'branch', 'main')
       expect(result).toEqual({ success: false, error: expect.stringContaining('worktree error') })
+    })
+
+    it('returns friendly error on ref path conflict', async () => {
+      mockGitInstance.raw.mockRejectedValueOnce(
+        new Error("fatal: 'refs/heads/release' exists; cannot create 'refs/heads/release/linux'")
+      )
+      const handlers = setupHandlers()
+      const result = await handlers['git:worktreeAdd'](null, '/repo', '/wt', 'release/linux', 'main')
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('"release/linux"')
+      expect(result.error).toContain('"release"')
+      expect(result.error).not.toContain('refs/heads')
     })
   })
 

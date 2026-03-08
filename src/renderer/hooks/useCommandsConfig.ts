@@ -25,6 +25,17 @@ export function useCommandsConfig(directory: string | undefined): {
 
     let cancelled = false
 
+    const watcherId = `commands-config-${directory}`
+    const broomyDir = `${directory}/.broomy`
+    let watching = false
+
+    function startWatching() {
+      if (watching) return
+      void window.fs.watch(watcherId, broomyDir).then((result: { success: boolean }) => {
+        watching = result.success
+      })
+    }
+
     async function load() {
       setLoading(true)
       const loaded = await loadCommandsConfig(directory!)
@@ -32,15 +43,15 @@ export function useCommandsConfig(directory: string | undefined): {
         setConfig(loaded)
         setExists(loaded !== null)
         setLoading(false)
+        // If config exists, the .broomy dir exists — start watching if not already
+        if (loaded) startWatching()
       }
     }
 
     void load()
 
     // Watch for changes to commands.json
-    const watcherId = `commands-config-${directory}`
-    const broomyDir = `${directory}/.broomy`
-    void window.fs.watch(watcherId, broomyDir)
+    startWatching()
     const removeListener = window.fs.onChange(watcherId, (event: { eventType: string; filename: string | null }) => {
       if (event.filename && event.filename !== 'commands.json') return
       void load()

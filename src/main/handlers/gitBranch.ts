@@ -18,7 +18,7 @@ function withNonInteractive(git: ReturnType<typeof simpleGit>) {
 }
 
 async function handleClone(ctx: HandlerContext, url: string, targetDir: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -39,7 +39,7 @@ async function handleClone(ctx: HandlerContext, url: string, targetDir: string) 
 }
 
 async function handleWorktreeAdd(ctx: HandlerContext, repoPath: string, worktreePath: string, branchName: string, baseBranch: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -52,7 +52,21 @@ async function handleWorktreeAdd(ctx: HandlerContext, repoPath: string, worktree
     // truly new branches.
     try {
       await git.raw(['worktree', 'add', expandedPath, branchName])
-    } catch {
+    } catch (firstErr) {
+      const firstErrStr = String(firstErr)
+      // Ref path conflict: git stores branches as files on disk, so e.g. a
+      // local "release" branch (a file) prevents creating "release/linux"
+      // (which needs "release/" as a directory). Surface a clear message.
+      if (firstErrStr.includes('cannot create') || firstErrStr.includes('cannot lock ref')) {
+        // Extract the conflicting ref name from the error if possible
+        const conflictMatch = /'refs\/heads\/([^']+)'.*exists/.exec(firstErrStr)
+        const conflicting = conflictMatch ? `"${conflictMatch[1]}"` : 'another branch'
+        throw new Error(
+          `Can't check out "${branchName}" because the local branch ${conflicting} conflicts with it.\n\n` +
+          `Git stores branches as file paths, so you can't have both "${branchName}" and ${conflicting} checked out locally at the same time.\n\n` +
+          `To fix this, delete the ${conflicting} local branch (if you're not using it) or remove its worktree, then try again.`
+        )
+      }
       await git.raw(['worktree', 'add', '-b', branchName, expandedPath, baseBranch])
     }
     return { success: true }
@@ -62,7 +76,7 @@ async function handleWorktreeAdd(ctx: HandlerContext, repoPath: string, worktree
 }
 
 async function handleWorktreeList(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return [
       { path: repoPath, branch: 'main', head: 'abc1234' },
     ]
@@ -96,7 +110,7 @@ async function handleWorktreeList(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -140,7 +154,7 @@ async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branch
 }
 
 async function handleDefaultBranch(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'main'
   }
 
@@ -153,7 +167,7 @@ async function handleDefaultBranch(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleRemoteUrl(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'git@github.com:user/demo-project.git'
   }
 
@@ -168,7 +182,7 @@ async function handleRemoteUrl(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleHeadCommit(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'abc1234567890'
   }
 
@@ -182,7 +196,7 @@ async function handleHeadCommit(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleListBranches(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return [
       { name: 'main', isRemote: false, current: true },
       { name: 'feature/auth', isRemote: false, current: false },
@@ -217,7 +231,7 @@ async function handleListBranches(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleFetchBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -231,7 +245,7 @@ async function handleFetchBranch(ctx: HandlerContext, repoPath: string, branchNa
 }
 
 async function handleFetchReviewPrHead(ctx: HandlerContext, repoPath: string, prNumber: number, targetBranch?: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -254,7 +268,7 @@ async function handleFetchReviewPrHead(ctx: HandlerContext, repoPath: string, pr
 // Tries fetching by branch name first (same-repo PRs), falls back to PR ref (fork PRs).
 // Uses reset --hard instead of merge so force-pushed PRs update cleanly.
 async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, branchName: string, prNumber: number) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -279,7 +293,7 @@ async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, bra
 }
 
 async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return false
   }
 
@@ -311,7 +325,7 @@ async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: st
 }
 
 async function handleHasBranchCommits(ctx: HandlerContext, repoPath: string, ref: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return false
   }
 
@@ -326,7 +340,7 @@ async function handleHasBranchCommits(ctx: HandlerContext, repoPath: string, ref
 }
 
 async function handleWorktreeRemove(ctx: HandlerContext, repoPath: string, worktreePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -340,7 +354,7 @@ async function handleWorktreeRemove(ctx: HandlerContext, repoPath: string, workt
 }
 
 async function handleDeleteBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 

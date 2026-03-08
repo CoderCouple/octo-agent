@@ -13,7 +13,7 @@ import { HandlerContext } from './types'
 import { getScenarioData, SHARED_README } from './scenarios'
 
 async function handleReadDir(ctx: HandlerContext, dirPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     const scenario = getScenarioData(ctx.e2eScenario)
     const entries = scenario.fileTree.readDir(dirPath)
     if (entries) {
@@ -46,7 +46,7 @@ async function handleReadDir(ctx: HandlerContext, dirPath: string) {
 }
 
 async function handleReadFile(ctx: HandlerContext, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     const scenario = getScenarioData(ctx.e2eScenario)
     const scenarioContent = scenario.readFile(filePath)
     if (scenarioContent !== null) return scenarioContent
@@ -70,7 +70,7 @@ async function handleReadFile(ctx: HandlerContext, filePath: string) {
 }
 
 async function handleWriteFile(ctx: HandlerContext, filePath: string, content: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -83,7 +83,7 @@ async function handleWriteFile(ctx: HandlerContext, filePath: string, content: s
 }
 
 async function handleAppendFile(ctx: HandlerContext, filePath: string, content: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -119,7 +119,7 @@ async function handleExists(ctx: HandlerContext, filePath: string) {
 }
 
 async function handleMkdir(ctx: HandlerContext, dirPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -138,7 +138,7 @@ async function handleMkdir(ctx: HandlerContext, dirPath: string) {
 }
 
 async function handleRm(ctx: HandlerContext, targetPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -156,7 +156,7 @@ async function handleRm(ctx: HandlerContext, targetPath: string) {
 }
 
 async function handleRename(ctx: HandlerContext, oldPath: string, newPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -169,7 +169,7 @@ async function handleRename(ctx: HandlerContext, oldPath: string, newPath: strin
 }
 
 async function handleCreateFile(ctx: HandlerContext, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -188,7 +188,7 @@ async function handleCreateFile(ctx: HandlerContext, filePath: string) {
 }
 
 async function handleReadFileBase64(ctx: HandlerContext, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
   }
 
@@ -210,8 +210,8 @@ async function handleReadFileBase64(ctx: HandlerContext, filePath: string) {
 
 const MAX_WATCHERS = 128
 
-function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string, dirPath: string) {
-  if (ctx.isE2ETest) {
+async function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string, dirPath: string) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -227,6 +227,13 @@ function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string
 
   if (senderWindow) {
     ctx.watcherOwnerWindows.set(id, senderWindow)
+  }
+
+  try {
+    await access(dirPath)
+  } catch {
+    // Directory doesn't exist yet — not an error, just nothing to watch
+    return { success: false, error: 'Directory does not exist' }
   }
 
   try {
