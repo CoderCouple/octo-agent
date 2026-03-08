@@ -67,6 +67,13 @@ export function NewBranchView({
           // Best-effort cleanup
         }
 
+        // Check if this is a permission denied error
+        if (pushResult.error?.startsWith('NO_WRITE_ACCESS:')) {
+          setError(pushResult.error.slice('NO_WRITE_ACCESS:'.length))
+          setLoading(false)
+          return
+        }
+
         // Check if this is a "branch already exists on remote" error
         if (pushResult.error?.startsWith('BRANCH_EXISTS:')) {
           const existingSession = sessions.find(

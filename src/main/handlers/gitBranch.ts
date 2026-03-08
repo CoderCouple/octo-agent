@@ -129,6 +129,16 @@ async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branch
       }
     }
 
+    // Detect permission denied — user doesn't have write access to the repo
+    if ((errorStr.includes('Permission to') && errorStr.includes('denied to'))
+      || errorStr.includes('The requested URL returned error: 403')
+      || errorStr.includes('remote: Permission')) {
+      return {
+        success: false,
+        error: 'NO_WRITE_ACCESS:You don\'t have write access to this repository. Fork it on GitHub and clone your fork instead.',
+      }
+    }
+
     // Detect non-fast-forward rejection — remote branch with same name has different history
     if (errorStr.includes('non-fast-forward') || errorStr.includes('rejected')) {
       return {

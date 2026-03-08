@@ -381,7 +381,7 @@ export default function ReviewPanel({ session, repo, onSelectFile, gitStatus, sy
           <h3 className="text-sm font-medium text-text-primary truncate flex-1">
             {session.prTitle || 'Review'}
           </h3>
-          {session.prUrl && (
+          {session.prUrl && session.prNumber && (
             <button onClick={handleOpenPrUrl} className="text-xs text-accent hover:text-accent/80 flex-shrink-0 transition-colors" title="Open PR on GitHub">
               #{session.prNumber}
             </button>

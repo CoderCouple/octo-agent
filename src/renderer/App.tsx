@@ -34,6 +34,7 @@ import { focusSearchInput } from './utils/focusHelpers'
 import { useMenuButton } from './hooks/useMenuButton'
 import CrashRecoveryBanner from './components/CrashRecoveryBanner'
 import { DialogErrorBanner } from './components/ErrorBanner'
+import ExperimentalPlatformModal from './components/ExperimentalPlatformModal'
 
 // Re-export types for backwards compatibility
 export type { Session, SessionStatus }
@@ -347,6 +348,9 @@ function AppContent() {
       {duplicateSessionInfo && (
         <DuplicateSessionModal info={duplicateSessionInfo} onDismiss={() => setDuplicateSessionInfo(null)} />
       )}
+
+      {/* Experimental Platform Modal (Windows/Linux) */}
+      <ExperimentalPlatformModal />
     </>
   )
 }
