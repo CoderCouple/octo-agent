@@ -9,6 +9,26 @@ import { AuthSetupSection } from '../AuthSetupSection'
 import { IsolationSettings } from '../IsolationSettings'
 import type { DevcontainerStatus } from '../../../preload/index'
 
+function NoWriteAccessBanner({ onContinue }: { onContinue?: () => void }) {
+  return (
+    <div className="rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-text-primary">
+      <div className="font-medium text-yellow-400">No write access</div>
+      <p className="text-xs text-text-secondary mt-1">
+        You don't have push access to this repository. You won't be able to create branches or push changes.
+        Consider forking the repo on GitHub and cloning your fork instead.
+      </p>
+      {onContinue && (
+        <button
+          onClick={onContinue}
+          className="mt-2 px-3 py-1.5 text-xs rounded border border-yellow-500/30 bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 transition-colors"
+        >
+          Continue anyway (read-only)
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function CloneView({
   onBack,
   onComplete,
@@ -217,21 +237,9 @@ export function CloneView({
         )}
 
         {noWriteAccess && (
-          <div className="rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-text-primary">
-            <div className="font-medium text-yellow-400">No write access</div>
-            <p className="text-xs text-text-secondary mt-1">
-              You don't have push access to this repository. You won't be able to create branches or push changes.
-              Consider forking the repo on GitHub and cloning your fork instead.
-            </p>
-            {pendingComplete && (
-              <button
-                onClick={() => onComplete(pendingComplete.dir, pendingComplete.agentId, pendingComplete.extra)}
-                className="mt-2 px-3 py-1.5 text-xs rounded border border-yellow-500/30 bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 transition-colors"
-              >
-                Continue anyway (read-only)
-              </button>
-            )}
-          </div>
+          <NoWriteAccessBanner
+            onContinue={pendingComplete ? () => onComplete(pendingComplete.dir, pendingComplete.agentId, pendingComplete.extra) : undefined}
+          />
         )}
 
         <AuthSetupSection error={error} ghAvailable={ghAvailable} onRetry={handleClone} retryLabel="Retry Clone" />
