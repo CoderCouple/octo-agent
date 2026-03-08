@@ -23,9 +23,10 @@ export function NewBranchView({
   onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string }) => void
   onUseExisting?: (branchName: string) => void
 }) {
-  const { agents } = useAgentStore()
-  const { ghAvailable } = useRepoStore()
-  const { sessions, setActiveSession } = useSessionStore()
+  const agents = useAgentStore(s => s.agents)
+  const ghAvailable = useRepoStore(s => s.ghAvailable)
+  const sessions = useSessionStore(s => s.sessions)
+  const setActiveSession = useSessionStore(s => s.setActiveSession)
 
   const [branchName, setBranchName] = useState(issue ? issueToBranchName(issue) : '')
   // Use repo's default agent, or fall back to first agent

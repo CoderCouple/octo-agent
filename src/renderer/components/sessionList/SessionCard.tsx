@@ -82,9 +82,9 @@ export default memo(function SessionCard({
   onArchive,
 }: {
   session: Session
-  onSelect: () => void
-  onDelete: (e: React.MouseEvent) => void
-  onArchive?: (e: React.MouseEvent) => void
+  onSelect: (sessionId: string) => void
+  onDelete: (e: React.MouseEvent | React.KeyboardEvent, sessionId: string) => void
+  onArchive?: (e: React.MouseEvent, sessionId: string) => void
 }) {
   const isActive = useSessionStore((s) => s.activeSessionId === session.id)
   const isUnread = session.isUnread
@@ -92,10 +92,10 @@ export default memo(function SessionCard({
   return (
     <div
       tabIndex={0}
-      onClick={onSelect}
+      onClick={() => onSelect(session.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
-          onSelect()
+          onSelect(session.id)
         } else if (e.key === 'ArrowDown') {
           e.preventDefault()
           const next = (e.currentTarget as HTMLElement).nextElementSibling as HTMLElement | null
@@ -105,7 +105,7 @@ export default memo(function SessionCard({
           const prev = (e.currentTarget as HTMLElement).previousElementSibling as HTMLElement | null
           if (prev && prev.tabIndex >= 0) prev.focus()
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
-          onDelete(e as unknown as React.MouseEvent)
+          onDelete(e, session.id)
         }
       }}
       className={`group relative w-full text-left p-3 rounded mb-1 transition-all cursor-pointer outline-none focus:ring-1 focus:ring-accent/50 ${
@@ -122,7 +122,7 @@ export default memo(function SessionCard({
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
           {onArchive && (
             <button
-              onClick={onArchive}
+              onClick={(e) => onArchive(e, session.id)}
               className="text-text-secondary hover:text-text-primary p-1"
               title={session.isArchived ? 'Unarchive session' : 'Archive session'}
             >
@@ -144,7 +144,7 @@ export default memo(function SessionCard({
             </button>
           )}
           <button
-            onClick={onDelete}
+            onClick={(e) => onDelete(e, session.id)}
             className="text-text-secondary hover:text-status-error p-1"
             title="Delete session"
           >

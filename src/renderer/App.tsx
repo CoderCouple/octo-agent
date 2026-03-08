@@ -7,7 +7,7 @@
  * manages file navigation with unsaved-changes guards and global keyboard shortcuts.
  * The outer App component wraps AppContent in the PanelProvider context.
  */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Layout from './components/Layout'
 import NewSessionDialog from './components/NewSessionDialog'
 import PanelPicker from './components/PanelPicker'
@@ -138,7 +138,7 @@ function AppContent() {
   const sidebarWidth = useSessionStore(s => s.sidebarWidth)
   const toolbarPanels = useSessionStore(s => s.toolbarPanels)
   const globalPanelVisibility = useSessionStore(s => s.globalPanelVisibility)
-  // Actions are referentially stable — destructure together
+  // Actions are referentially stable in Zustand — get them once without subscribing to state changes
   const {
     loadSessions, addSession, removeSession, setActiveSession,
     togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
@@ -146,7 +146,7 @@ function AppContent() {
     markSessionRead, recordPushToMain, clearPushToMain, markHasHadCommits,
     updateBranchStatus, updatePrState, updateReviewStatus, archiveSession, unarchiveSession, setPanelVisibility, updateSessionBranch,
     closeCommandsEditor,
-  } = useSessionStore()
+  } = useMemo(() => useSessionStore.getState(), [])
 
   useGitBranchWatcher({ sessions, activeSessionId, updateSessionBranch })
 
@@ -352,7 +352,8 @@ function AppContent() {
 }
 
 function App() {
-  const { toolbarPanels, setToolbarPanels } = useSessionStore()
+  const toolbarPanels = useSessionStore(s => s.toolbarPanels)
+  const setToolbarPanels = useSessionStore(s => s.setToolbarPanels)
 
   // Expose stores for Playwright screenshot manipulation
   useEffect(() => {

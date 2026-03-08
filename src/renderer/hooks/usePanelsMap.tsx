@@ -97,6 +97,27 @@ function useExplorerPanel(config: PanelsMapConfig) {
 
   const issuePlanExists = useIssuePlanDetection(activeSessionId, activeSession?.directory)
 
+  const activeRepo = useMemo(() =>
+    repos.find(r => r.id === activeSession?.repoId),
+    [repos, activeSession?.repoId]
+  )
+
+  const handleFilterChange = useCallback((filter: ExplorerFilter) => {
+    if (activeSessionId) setExplorerFilter(activeSessionId, filter)
+  }, [activeSessionId, setExplorerFilter])
+
+  const handleRecordPushToMain = useCallback((commitHash: string) => {
+    if (activeSessionId) recordPushToMain(activeSessionId, commitHash)
+  }, [activeSessionId, recordPushToMain])
+
+  const handleClearPushToMain = useCallback(() => {
+    if (activeSessionId) clearPushToMain(activeSessionId)
+  }, [activeSessionId, clearPushToMain])
+
+  const handleUpdatePrState = useCallback((prState: PrState, prNumber?: number, prUrl?: string) => {
+    if (activeSessionId) updatePrState(activeSessionId, prState, prNumber, prUrl)
+  }, [activeSessionId, updatePrState])
+
   return useMemo(() => {
     if (!activeSession?.showExplorer) return null
     return (
@@ -107,30 +128,28 @@ function useExplorerPanel(config: PanelsMapConfig) {
         gitStatus={activeSessionGitStatus}
         syncStatus={activeSessionGitStatusResult}
         filter={activeSession.explorerFilter}
-        onFilterChange={(filter) => {
-          if (activeSessionId) setExplorerFilter(activeSessionId, filter)
-        }}
+        onFilterChange={handleFilterChange}
         onGitStatusRefresh={fetchGitStatus}
         recentFiles={activeSession.recentFiles}
         sessionId={activeSessionId ?? undefined}
         pushedToMainAt={activeSession.pushedToMainAt}
         pushedToMainCommit={activeSession.pushedToMainCommit}
-        onRecordPushToMain={(commitHash) => activeSessionId && recordPushToMain(activeSessionId, commitHash)}
-        onClearPushToMain={() => activeSessionId && clearPushToMain(activeSessionId)}
+        onRecordPushToMain={handleRecordPushToMain}
+        onClearPushToMain={handleClearPushToMain}
         planFilePath={activeSession.planFilePath}
         branchStatus={activeSession.branchStatus}
-        onUpdatePrState={(prState, prNumber, prUrl) => activeSessionId && updatePrState(activeSessionId, prState, prNumber, prUrl)}
+        onUpdatePrState={handleUpdatePrState}
         repoId={activeSession.repoId}
         agentPtyId={activeSession.agentPtyId}
         session={activeSession}
-        repo={repos.find(r => r.id === activeSession.repoId)}
+        repo={activeRepo}
         issueNumber={activeSession.issueNumber}
         issueTitle={activeSession.issueTitle}
         issueUrl={activeSession.issueUrl}
         issuePlanExists={issuePlanExists}
       />
     )
-  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, repos, issuePlanExists])
+  }, [activeSessionId, activeSession, activeSessionGitStatus, activeSessionGitStatusResult, navigateToFile, fetchGitStatus, activeRepo, issuePlanExists, handleFilterChange, handleRecordPushToMain, handleClearPushToMain, handleUpdatePrState])
 }
 
 function useFileViewerPanel(config: PanelsMapConfig) {
