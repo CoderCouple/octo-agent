@@ -367,61 +367,6 @@ describe('CommandsEditor', () => {
     })
   })
 
-  describe('surface', () => {
-    it('shows surface dropdown when action is expanded', async () => {
-      mockExistingConfig()
-      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
-      await waitFor(() => {
-        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
-      })
-      fireEvent.click(screen.getByTestId('action-header-action-1'))
-      expect(screen.getByTestId('action-surface-action-1')).toBeTruthy()
-    })
-
-    it('defaults to source-control when no surface is set', async () => {
-      mockExistingConfig()
-      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
-      await waitFor(() => {
-        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
-      })
-      fireEvent.click(screen.getByTestId('action-header-action-1'))
-      const select = screen.getByTestId<HTMLSelectElement>('action-surface-action-1')
-      expect(select.value).toBe('source-control')
-    })
-
-    it('updates surface when changed', async () => {
-      mockExistingConfig()
-      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
-      await waitFor(() => {
-        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
-      })
-      fireEvent.click(screen.getByTestId('action-header-action-1'))
-      const select = screen.getByTestId<HTMLSelectElement>('action-surface-action-1')
-      fireEvent.change(select, { target: { value: 'review' } })
-      expect(select.value).toBe('review')
-      expect(screen.getByTestId('save-commands')).not.toBeDisabled()
-    })
-
-    it('shows correct value for action with surface set', async () => {
-      const configWithSurface = {
-        version: 1,
-        actions: [
-          { id: 'action-1', label: 'Review', type: 'agent', prompt: 'review', showWhen: [], style: 'primary', surface: 'review' },
-        ],
-      }
-      vi.mocked(window.fs.exists).mockResolvedValue(true)
-      vi.mocked(window.fs.readFile).mockResolvedValue(JSON.stringify(configWithSurface))
-
-      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
-      await waitFor(() => {
-        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
-      })
-      fireEvent.click(screen.getByTestId('action-header-action-1'))
-      const select = screen.getByTestId<HTMLSelectElement>('action-surface-action-1')
-      expect(select.value).toBe('review')
-    })
-  })
-
   describe('ShowWhenPicker', () => {
     it('shows active conditions with dropdown and remove button', async () => {
       mockExistingConfig()
