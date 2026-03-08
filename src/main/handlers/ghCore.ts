@@ -167,12 +167,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
         headRefName: pr.headRefName,
         baseRefName: pr.baseRefName,
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      // No PR for current branch is expected — only log unexpected errors
-      if (!message.includes('no pull requests found') && !message.includes('Could not resolve')) {
-        return { error: message }
-      }
+    } catch {
+      // No PR for current branch — return null regardless of error message.
+      // Previously we only matched specific error strings, which missed
+      // platform-specific variations (e.g. Windows gh CLI messages).
       return null
     }
   })
