@@ -69,11 +69,6 @@ if [ -d dist ]; then
   fi
 fi
 
-# --- Clean previous build artifacts ---
-echo ""
-echo "Cleaning dist/..."
-rm -rf dist
-
 # --- Build ---
 echo ""
 echo "Building app..."
@@ -107,5 +102,8 @@ else
 fi
 
 echo ""
-echo "Done! Signed artifacts are in dist/"
-echo "To publish a GitHub release, run: pnpm release"
+echo "Done! Signed macOS artifacts are in dist/"
+echo "Next steps:"
+echo "  Build Windows:  pnpm dist:win"
+echo "  Build Linux:    pnpm dist:linux"
+echo "  Publish:        pnpm release"

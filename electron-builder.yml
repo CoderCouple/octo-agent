@@ -38,7 +38,7 @@ linux:
   target:
     - AppImage
     - deb
-  maintainer: electronjs.org
+  maintainer: Rob Ennals <rob.ennals@gmail.com>
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}

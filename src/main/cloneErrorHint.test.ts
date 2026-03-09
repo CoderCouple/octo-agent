@@ -138,12 +138,47 @@ describe('getCloneErrorHint', () => {
   describe('gh available hints unchanged', () => {
     it('keeps gh auth suggestion when ghAvailable is true', () => {
       const hint = getCloneErrorHint('fatal: could not read Username', 'https://github.com/user/repo', { ghAvailable: true })
-      expect(hint).toContain('gh auth setup-git')
+      expect(hint).toContain('gh auth')
     })
 
     it('keeps gh auth suggestion when ghAvailable is undefined', () => {
       const hint = getCloneErrorHint('fatal: could not read Username', 'https://github.com/user/repo')
+      expect(hint).toContain('gh auth')
+    })
+  })
+
+  describe('HTTPS auth with diagnostics', () => {
+    const httpsUrl = 'https://github.com/user/repo'
+
+    it('tells user to login when gh is installed but not authenticated', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: true, ghAuthenticated: false })
+      expect(hint).toContain('installed but not logged in')
+      expect(hint).toContain('gh auth login')
       expect(hint).toContain('gh auth setup-git')
+    })
+
+    it('tells user to run setup-git when gh is authenticated but no credential helper', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: true, ghAuthenticated: true, credentialHelper: '' })
+      expect(hint).toContain('logged in, but git is not configured')
+      expect(hint).toContain('gh auth setup-git')
+    })
+
+    it('tells user to run setup-git when credential helper is something else', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: true, ghAuthenticated: true, credentialHelper: 'osxkeychain' })
+      expect(hint).toContain('logged in, but git is not configured')
+      expect(hint).toContain('gh auth setup-git')
+    })
+
+    it('suggests restart when gh is authenticated and credential helper is configured', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: true, ghAuthenticated: true, credentialHelper: '!/usr/bin/gh auth git-credential' })
+      expect(hint).toContain('logged in and configured')
+      expect(hint).toContain('Restart Broomy')
+      expect(hint).toContain('gh auth status')
+    })
+
+    it('suggests SSH URL when gh is authenticated and credential helper is configured', () => {
+      const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: true, ghAuthenticated: true, credentialHelper: '!/usr/bin/gh auth git-credential' })
+      expect(hint).toContain('git@github.com:user/repo.git')
     })
   })
 
@@ -217,7 +252,6 @@ describe('getCloneErrorHint', () => {
     it('suggests installing gh CLI when ghAvailable is false', () => {
       const hint = getGitAuthHint('fatal: could not read Username', { ghAvailable: false })
       expect(hint).toContain('Install GitHub CLI')
-      expect(hint).not.toContain('gh auth login')
     })
 
     it('suggests gh auth login when ghAvailable is true', () => {
@@ -234,6 +268,25 @@ describe('getCloneErrorHint', () => {
       const hint = getGitAuthHint('fatal: could not read Username', { url: 'https://github.com/user/repo' })
       expect(hint).toContain('could not authenticate over HTTPS')
       expect(hint).toContain('git@github.com:user/repo.git')
+    })
+
+    it('shows specific message when gh is authenticated but no credential helper', () => {
+      const hint = getGitAuthHint('fatal: could not read Username', { ghAvailable: true, ghAuthenticated: true, credentialHelper: '' })
+      expect(hint).toContain('logged in, but git is not configured')
+      expect(hint).toContain('gh auth setup-git')
+    })
+
+    it('shows specific message when gh is authenticated but not logged in', () => {
+      const hint = getGitAuthHint('fatal: could not read Username', { ghAvailable: true, ghAuthenticated: false })
+      expect(hint).toContain('installed but not logged in')
+      expect(hint).toContain('gh auth login')
+      expect(hint).toContain('gh auth setup-git')
+    })
+
+    it('shows restart hint when gh is authenticated and credential helper configured', () => {
+      const hint = getGitAuthHint('fatal: could not read Username', { ghAvailable: true, ghAuthenticated: true, credentialHelper: '!/usr/bin/gh auth git-credential' })
+      expect(hint).toContain('logged in and configured')
+      expect(hint).toContain('restarting Broomy')
     })
   })
 

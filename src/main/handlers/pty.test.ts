@@ -334,7 +334,7 @@ describe('pty handlers', () => {
       expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith('pty:data:data-1', 'hello world')
     })
 
-    it('cleans up on exit event', async () => {
+    it('cleans up on exit event and disposes listeners', async () => {
       const { register } = await import('./pty')
       const ctx = createCtx()
       register(mockIpcMain as never, ctx)

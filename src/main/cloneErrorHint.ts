@@ -9,6 +9,12 @@
  * setup commands (e.g. `gh auth setup-git`, `ssh -T git@github.com`).
  */
 
+export interface AuthDiagnostics {
+  ghAvailable?: boolean
+  ghAuthenticated?: boolean
+  credentialHelper?: string
+}
+
 function sshToHttpsUrl(url: string): string | null {
   const ghMatch = /git@github\.com:([^/]+\/[^/.]+?)(?:\.git)?$/.exec(url)
   return ghMatch ? `https://github.com/${ghMatch[1]}.git` : null
@@ -19,9 +25,42 @@ function httpsToSshUrl(url: string): string | null {
   return ghMatch ? `git@github.com:${ghMatch[1]}.git` : null
 }
 
-function getHttpsAuthHint(url: string, options?: { ghAvailable?: boolean }): string {
+function getHttpsAuthHint(url: string, options?: AuthDiagnostics): string {
   const sshUrl = httpsToSshUrl(url)
   let hint = '\n\nGit could not authenticate over HTTPS.'
+
+  // Give specific diagnosis when we have diagnostic info
+  if (options?.ghAvailable !== false) {
+    const hasGhCredHelper = options?.credentialHelper?.includes('gh auth')
+    if (options?.ghAuthenticated === false) {
+      hint += '\n\nGitHub CLI is installed but not logged in.'
+      hint += '\n\nRun in a terminal:'
+      hint += '\n  1. gh auth login'
+      hint += '\n  2. gh auth setup-git'
+      hint += '\n  3. Retry in Broomy'
+      return hint
+    }
+    if (options?.ghAuthenticated && !hasGhCredHelper) {
+      hint += '\n\nGitHub CLI is logged in, but git is not configured to use it.'
+      hint += '\n\nRun in a terminal:'
+      hint += '\n  gh auth setup-git'
+      hint += '\nThen retry in Broomy.'
+      return hint
+    }
+    if (options?.ghAuthenticated && hasGhCredHelper) {
+      hint += '\n\nGitHub CLI is logged in and configured as git\'s credential helper, but authentication still failed.'
+      hint += ' This can happen if the gh credential helper is not on PATH when launched from Broomy.'
+      hint += '\n\nTry one of:'
+      if (sshUrl) {
+        hint += `\n• Switch to SSH: ${sshUrl}`
+      }
+      hint += '\n• Restart Broomy after running "gh auth setup-git" (ensures the credential helper path is refreshed)'
+      hint += '\n• Check "gh auth status" in a Broomy terminal to verify credentials are accessible'
+      return hint
+    }
+  }
+
+  // Fallback: no diagnostic info or gh not available
   hint += '\n\nTry one of:'
   if (sshUrl) {
     hint += `\n• Use the SSH URL instead: ${sshUrl}`
@@ -29,12 +68,12 @@ function getHttpsAuthHint(url: string, options?: { ghAvailable?: boolean }): str
   if (options?.ghAvailable === false) {
     hint += '\n• Install GitHub CLI (cli.github.com) to set up credentials automatically'
   } else {
-    hint += '\n• Run "gh auth setup-git" in your terminal to set up HTTPS credentials'
+    hint += '\n• Run "gh auth login" then "gh auth setup-git" in your terminal'
   }
   return hint
 }
 
-function getHostKeyHint(url: string, options?: { ghAvailable?: boolean }): string {
+function getHostKeyHint(url: string, options?: AuthDiagnostics): string {
   const httpsUrl = sshToHttpsUrl(url)
   let hint = '\n\nGitHub\'s SSH host key is not yet trusted on this machine.'
   hint += '\n\nTry one of:'
@@ -50,7 +89,7 @@ function getHostKeyHint(url: string, options?: { ghAvailable?: boolean }): strin
   return hint
 }
 
-function getSshAuthHint(url: string, options?: { ghAvailable?: boolean }): string {
+function getSshAuthHint(url: string, options?: AuthDiagnostics): string {
   const httpsUrl = sshToHttpsUrl(url)
   let hint = '\n\nGit could not authenticate over SSH.'
   hint += '\n\nTry one of:'
@@ -66,31 +105,65 @@ function getSshAuthHint(url: string, options?: { ghAvailable?: boolean }): strin
   return hint
 }
 
+function getIdentityHint(errorStr: string): string | null {
+  const isIdentityError = errorStr.includes('Please tell me who you are')
+    || errorStr.includes('Author identity unknown')
+    || errorStr.includes('empty ident name')
+    || errorStr.includes('user.useConfigOnly')
+  if (!isIdentityError) return null
+  return '\n\nGit identity not configured.\n\nRun:\n  git config --global user.name "Your Name"\n  git config --global user.email "you@example.com"'
+}
+
+function getMergeModeHint(errorStr: string): string | null {
+  const isMergeModeError = errorStr.includes('Need to specify how to reconcile divergent branches')
+    || (errorStr.includes('pull.rebase') && errorStr.includes('pull.ff'))
+  if (!isMergeModeError) return null
+  return '\n\nGit default merge mode not configured.\n\nRun:\n  git config --global pull.rebase false'
+}
+
+function getGenericAuthHint(options?: AuthDiagnostics): string {
+  const hasGhCredHelper = options?.credentialHelper?.includes('gh auth')
+
+  let hint = '\n\nGit authentication failed.'
+  if (options?.ghAvailable === false) {
+    hint += '\n\nTry one of:'
+    hint += '\n• Install GitHub CLI (cli.github.com) to set up credentials automatically'
+  } else if (options?.ghAuthenticated === false) {
+    hint += '\n\nGitHub CLI is installed but not logged in.'
+    hint += '\n\nRun in a terminal:'
+    hint += '\n  1. gh auth login'
+    hint += '\n  2. gh auth setup-git'
+  } else if (options?.ghAuthenticated && !hasGhCredHelper) {
+    hint += '\n\nGitHub CLI is logged in, but git is not configured to use it.'
+    hint += '\n\nRun in a terminal:'
+    hint += '\n  gh auth setup-git'
+  } else if (options?.ghAuthenticated && hasGhCredHelper) {
+    hint += '\n\nGitHub CLI is logged in and configured, but credentials are not being picked up.'
+    hint += ' Try restarting Broomy, or check "gh auth status" in a Broomy terminal.'
+  } else {
+    hint += '\n\nRun in a terminal:'
+    hint += '\n  1. gh auth login'
+    hint += '\n  2. gh auth setup-git'
+  }
+  hint += '\n• Check your SSH keys or HTTPS credentials'
+  return hint
+}
+
 /**
  * Detects common git authentication errors (push, pull, fetch) and returns actionable hints.
  * When a URL is provided, delegates to getCloneErrorHint for protocol-specific advice.
  * When no URL is available, gives generic advice.
  */
-export function getGitAuthHint(errorStr: string, options?: { url?: string; ghAvailable?: boolean; ghAuthenticated?: boolean }): string | null {
+export function getGitAuthHint(errorStr: string, options?: { url?: string } & AuthDiagnostics): string | null {
   if (options?.url) {
-    return getCloneErrorHint(errorStr, options.url, { ghAvailable: options.ghAvailable })
+    return getCloneErrorHint(errorStr, options.url, options)
   }
 
-  // Identity error detection
-  const isIdentityError = errorStr.includes('Please tell me who you are')
-    || errorStr.includes('Author identity unknown')
-    || errorStr.includes('empty ident name')
-    || errorStr.includes('user.useConfigOnly')
-  if (isIdentityError) {
-    return '\n\nGit identity not configured.\n\nRun:\n  git config --global user.name "Your Name"\n  git config --global user.email "you@example.com"'
-  }
+  const identityHint = getIdentityHint(errorStr)
+  if (identityHint) return identityHint
 
-  // Merge mode error detection
-  const isMergeModeError = errorStr.includes('Need to specify how to reconcile divergent branches')
-    || (errorStr.includes('pull.rebase') && errorStr.includes('pull.ff'))
-  if (isMergeModeError) {
-    return '\n\nGit default merge mode not configured.\n\nRun:\n  git config --global pull.rebase false'
-  }
+  const mergeModeHint = getMergeModeHint(errorStr)
+  if (mergeModeHint) return mergeModeHint
 
   // Generic auth error detection (no URL available)
   const isAuthError = errorStr.includes('could not read Username')
@@ -101,24 +174,14 @@ export function getGitAuthHint(errorStr: string, options?: { url?: string; ghAva
 
   if (!isAuthError) return null
 
-  let hint = '\n\nGit authentication failed.'
-  hint += '\n\nTry one of:'
-  if (options?.ghAvailable === false) {
-    hint += '\n• Install GitHub CLI (cli.github.com) to set up credentials automatically'
-  } else if (options?.ghAuthenticated === false) {
-    hint += '\n• Run "gh auth login" in your terminal — gh is installed but not authenticated'
-  } else {
-    hint += '\n• Run "gh auth login" in your terminal to set up credentials'
-  }
-  hint += '\n• Check your SSH keys or HTTPS credentials'
-  return hint
+  return getGenericAuthHint(options)
 }
 
 /**
  * Detects common git clone authentication errors and returns actionable hints.
  * Covers both HTTPS-when-SSH-is-needed and SSH-when-HTTPS-is-needed cases.
  */
-export function getCloneErrorHint(errorStr: string, url: string, options?: { ghAvailable?: boolean }): string | null {
+export function getCloneErrorHint(errorStr: string, url: string, options?: AuthDiagnostics): string | null {
   const isHttpsUrl = url.startsWith('https://') || url.startsWith('http://')
   const isSshUrl = url.startsWith('git@') || !!(/^ssh:\/\//.exec(url))
 

@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react'
 import type { GitFileStatus, GitStatusResult, GitHubPrStatus, GitCommitInfo } from '../../../preload/index'
 import type { BranchStatus, PrState } from '../../store/sessions'
 import { useRepoStore } from '../../store/repos'
+import { usePrResultWatcher } from './usePrResultWatcher'
 
 export interface SourceControlDataProps {
   directory?: string
@@ -81,6 +82,9 @@ function usePrEffects(config: PrEffectsConfig) {
       onUpdatePrState(null)
     }
   }, [prStatus, isPrLoading])
+
+  // Watch for agent-created pr-result.json to detect PR creation immediately
+  usePrResultWatcher({ directory, onUpdatePrState, setPrStatus })
 
   // Reset on directory change
   const resetPr = () => {

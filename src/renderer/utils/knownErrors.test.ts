@@ -26,22 +26,22 @@ describe('humanizeError', () => {
 
   it('matches authentication errors', () => {
     expect(humanizeError('fatal: Authentication failed for repo')).toBe(
-      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
+      'Git authentication failed. Run "gh auth login" then "gh auth setup-git" in a terminal.'
     )
     expect(humanizeError('Permission denied (publickey)')).toBe(
-      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
+      'Git authentication failed. Run "gh auth login" then "gh auth setup-git" in a terminal.'
     )
   })
 
   it('matches "could not read Username" auth error', () => {
     expect(humanizeError("fatal: could not read Username for 'https://github.com': terminal prompts disabled")).toBe(
-      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
+      'Git authentication failed. Run "gh auth login" then "gh auth setup-git" in a terminal.'
     )
   })
 
   it('matches "terminal prompts disabled" auth error', () => {
     expect(humanizeError('fatal: terminal prompts disabled')).toBe(
-      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
+      'Git authentication failed. Run "gh auth login" then "gh auth setup-git" in a terminal.'
     )
   })
 
@@ -136,7 +136,7 @@ describe('humanizeError', () => {
     // "permission denied" could match both auth and file permission rules
     // but auth rule comes first
     expect(humanizeError('Permission denied (publickey)')).toBe(
-      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
+      'Git authentication failed. Run "gh auth login" then "gh auth setup-git" in a terminal.'
     )
   })
 })

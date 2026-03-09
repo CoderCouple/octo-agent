@@ -5,7 +5,6 @@ import {
   statusBadgeLetter,
   statusBadgeColor,
   truncateError,
-  shouldShowApproveAndMerge,
   splitStagedFiles,
   isPrOpen,
   prStateBadgeClass,
@@ -131,28 +130,6 @@ describe('truncateError', () => {
 
   it('handles empty string', () => {
     expect(truncateError('')).toBe('')
-  })
-})
-
-describe('shouldShowApproveAndMerge', () => {
-  it('returns true when both hasWriteAccess and allowApproveAndMerge are true', () => {
-    expect(shouldShowApproveAndMerge(true, true)).toBe(true)
-  })
-
-  it('returns false when hasWriteAccess is false', () => {
-    expect(shouldShowApproveAndMerge(false, true)).toBe(false)
-  })
-
-  it('returns false when allowApproveAndMerge is false', () => {
-    expect(shouldShowApproveAndMerge(true, false)).toBe(false)
-  })
-
-  it('returns false when allowApproveAndMerge is undefined', () => {
-    expect(shouldShowApproveAndMerge(true, undefined)).toBe(false)
-  })
-
-  it('returns false when both are false', () => {
-    expect(shouldShowApproveAndMerge(false, false)).toBe(false)
   })
 })
 

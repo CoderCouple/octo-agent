@@ -91,6 +91,7 @@ describe('AuthSetupSection', () => {
   })
 
   it('shows retry button with custom label after auth completes', async () => {
+    vi.useFakeTimers()
     vi.mocked(window.app.homedir).mockResolvedValue('/home/user')
     vi.mocked(window.pty.create).mockResolvedValue({ id: 'auth-setup-123' })
 
@@ -100,19 +101,28 @@ describe('AuthSetupSection', () => {
     )
 
     fireEvent.click(screen.getByText('Set up Git Authentication'))
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(screen.getByTestId('auth-terminal')).toBeTruthy()
     })
 
     fireEvent.click(screen.getByText('Done'))
+
+    // handleAuthDone writes gh auth setup-git then waits 1500ms
+    await vi.advanceTimersByTimeAsync(2000)
+
     expect(screen.getByText('Authentication setup complete.')).toBeTruthy()
     expect(screen.getByText('Retry Clone')).toBeTruthy()
 
+    // Verify gh auth setup-git was run
+    expect(window.pty.write).toHaveBeenCalledWith(expect.stringContaining('auth-setup-'), 'gh auth setup-git\r')
+
     fireEvent.click(screen.getByText('Retry Clone'))
     expect(onRetry).toHaveBeenCalled()
+    vi.useRealTimers()
   })
 
   it('uses default "Retry" label when retryLabel not provided', async () => {
+    vi.useFakeTimers()
     vi.mocked(window.app.homedir).mockResolvedValue('/home/user')
     vi.mocked(window.pty.create).mockResolvedValue({ id: 'auth-setup-123' })
 
@@ -121,12 +131,14 @@ describe('AuthSetupSection', () => {
     )
 
     fireEvent.click(screen.getByText('Set up Git Authentication'))
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(screen.getByTestId('auth-terminal')).toBeTruthy()
     })
 
     fireEvent.click(screen.getByText('Done'))
+    await vi.advanceTimersByTimeAsync(2000)
     expect(screen.getByText('Retry')).toBeTruthy()
+    vi.useRealTimers()
   })
 
   it('shows identity setup form for identity errors', () => {

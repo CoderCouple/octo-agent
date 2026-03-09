@@ -41,7 +41,7 @@ export type ManagedRepo = {
   defaultBranch: string
   defaultAgentId?: string  // Default agent for sessions in this repo
   reviewInstructions?: string  // Custom instructions for AI review generation
-  allowApproveAndMerge?: boolean  // Whether "Approve and merge" button is shown for this repo
+  allowApproveAndMerge?: boolean  // Whether "Merge PR" button is shown for this repo
   isolated?: boolean         // Run sessions in this repo inside a dev container
   skipApproval?: boolean     // Auto-approve agent commands when isolated
 }

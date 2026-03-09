@@ -169,6 +169,34 @@ async function main() {
     }
   }
 
+  // 4. On Linux, check chrome-sandbox permissions (SUID sandbox)
+  if (process.platform === 'linux') {
+    const sandboxOk = check('Linux sandbox permissions', () => {
+      const sandboxPath = path.join(ROOT, 'node_modules', 'electron', 'dist', 'chrome-sandbox')
+      if (!fs.existsSync(sandboxPath)) return true // No sandbox binary, Electron will cope
+
+      try {
+        const stat = fs.statSync(sandboxPath)
+        // Check if owned by root (uid 0) and has SUID bit (mode & 0o4000)
+        if (stat.uid === 0 && (stat.mode & 0o4755) === 0o4755) return true
+      } catch {
+        // Can't stat — fall through
+      }
+
+      return 'chrome-sandbox not SUID root'
+    })
+
+    if (sandboxOk !== true) {
+      console.log(`\n  ${yellow('>')} chrome-sandbox lacks SUID root permissions.`)
+      console.log(`  ${yellow('>')} Passing --no-sandbox to Electron for dev mode.`)
+      console.log(`  ${yellow('>')} (To fix permanently: sudo chown root:root node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 node_modules/electron/dist/chrome-sandbox)\n`)
+      process.env.ELECTRON_EXTRA_LAUNCH_ARGS = [
+        process.env.ELECTRON_EXTRA_LAUNCH_ARGS,
+        '--no-sandbox'
+      ].filter(Boolean).join(' ')
+    }
+  }
+
   console.log(green('\n  All checks passed. Starting dev server...\n'))
 }
 

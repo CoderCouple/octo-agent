@@ -34,6 +34,22 @@ function resolveInitialCommand(command: string, isE2ETest: boolean): string {
 /** Disposables for each PTY's onData/onExit listeners, keyed by PTY id. */
 const ptyDisposables = new Map<string, { dispose: () => void }[]>()
 
+/** Dispose all PTY listeners for PTYs owned by the given window. */
+export function disposePtyListenersForWindow(ownerWindows: Map<string, BrowserWindow>, window: BrowserWindow) {
+  for (const [id, owner] of ownerWindows) {
+    if (owner === window) {
+      disposePtyListeners(id)
+    }
+  }
+}
+
+/** Dispose all PTY listeners. */
+export function disposeAllPtyListeners() {
+  for (const [id] of ptyDisposables) {
+    disposePtyListeners(id)
+  }
+}
+
 /** Dispose all event listeners for a PTY and remove from the disposables map. */
 function disposePtyListeners(id: string) {
   const disposables = ptyDisposables.get(id)
@@ -49,16 +65,24 @@ function wirePtyEvents(ctx: HandlerContext, ptyProcess: IPty, id: string, sender
   if (senderWindow) ctx.ptyOwnerWindows.set(id, senderWindow)
 
   const dataDisposable = ptyProcess.onData((data) => {
-    const ownerWindow = ctx.ptyOwnerWindows.get(id) || ctx.mainWindow
-    if (ownerWindow && !ownerWindow.isDestroyed()) {
-      ownerWindow.webContents.send(`pty:data:${id}`, data)
+    try {
+      const ownerWindow = ctx.ptyOwnerWindows.get(id) || ctx.mainWindow
+      if (ownerWindow && !ownerWindow.isDestroyed()) {
+        ownerWindow.webContents.send(`pty:data:${id}`, data)
+      }
+    } catch {
+      // Swallow errors to prevent native crash from NAPI callback propagation
     }
   })
 
   const exitDisposable = ptyProcess.onExit(({ exitCode }) => {
-    const ownerWindow = ctx.ptyOwnerWindows.get(id) || ctx.mainWindow
-    if (ownerWindow && !ownerWindow.isDestroyed()) {
-      ownerWindow.webContents.send(`pty:exit:${id}`, exitCode)
+    try {
+      const ownerWindow = ctx.ptyOwnerWindows.get(id) || ctx.mainWindow
+      if (ownerWindow && !ownerWindow.isDestroyed()) {
+        ownerWindow.webContents.send(`pty:exit:${id}`, exitCode)
+      }
+    } catch {
+      // Swallow errors to prevent native crash from NAPI callback propagation
     }
     disposePtyListeners(id)
     ctx.ptyProcesses.delete(id)
@@ -371,6 +395,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     }
 
     wirePtyEvents(ctx, ptyProcess, options.id, senderWindow)
+
 
     if (initialCommand) {
       initialCommand = resolveInitialCommand(initialCommand, ctx.isE2ETest)

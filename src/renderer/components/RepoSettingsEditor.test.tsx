@@ -60,10 +60,10 @@ describe('RepoSettingsEditor', () => {
     })
   })
 
-  it('renders allow approve and merge checkbox', async () => {
+  it('renders allow merge PR checkbox', async () => {
     renderEditor()
     await waitFor(() => {
-      expect(screen.getByText('Allow "Approve and merge" button')).toBeTruthy()
+      expect(screen.getByText('Allow "Merge PR" button')).toBeTruthy()
     })
   })
 
@@ -133,7 +133,7 @@ describe('RepoSettingsEditor', () => {
     })
   })
 
-  it('shows error when write access check fails for approve and merge', async () => {
+  it('shows error when write access check fails for merge', async () => {
     vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(false)
     renderEditor()
     await waitFor(() => {
@@ -144,7 +144,7 @@ describe('RepoSettingsEditor', () => {
     fireEvent.click(checkboxes[0])
     fireEvent.click(checkboxes[0])
     await waitFor(() => {
-      expect(screen.getByText('Write access check failed')).toBeTruthy()
+      expect(screen.getByText(/Write access check failed/)).toBeTruthy()
     })
   })
 
@@ -158,11 +158,11 @@ describe('RepoSettingsEditor', () => {
     fireEvent.click(checkboxes[0])
     fireEvent.click(checkboxes[0])
     await waitFor(() => {
-      expect(screen.getByText('Failed to check write access')).toBeTruthy()
+      expect(screen.getByText(/Could not check write access/)).toBeTruthy()
     })
   })
 
-  it('enables approve and merge when write access is confirmed', async () => {
+  it('enables merge when write access is confirmed', async () => {
     vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(true)
     // Start with allowApproveAndMerge explicitly false so clicking checks it
     renderEditor({ repo: { ...mockRepo, allowApproveAndMerge: false } })
@@ -174,40 +174,6 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(checkboxes[0]).toBeChecked()
     })
-  })
-
-  it('dismisses error when x button is clicked', async () => {
-    vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(false)
-    renderEditor()
-    await waitFor(() => {
-      expect(screen.queryByText('Loading...')).toBeNull()
-    })
-    const checkboxes = screen.getAllByRole('checkbox')
-    fireEvent.click(checkboxes[0])
-    fireEvent.click(checkboxes[0])
-    await waitFor(() => {
-      expect(screen.getByText('Write access check failed')).toBeTruthy()
-    })
-    // Click the dismiss button
-    fireEvent.click(screen.getByTitle('Dismiss'))
-    expect(screen.queryByText('Write access check failed')).toBeNull()
-  })
-
-  it('shows error details popup when error banner is clicked', async () => {
-    vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(false)
-    renderEditor()
-    await waitFor(() => {
-      expect(screen.queryByText('Loading...')).toBeNull()
-    })
-    const checkboxes = screen.getAllByRole('checkbox')
-    fireEvent.click(checkboxes[0])
-    fireEvent.click(checkboxes[0])
-    await waitFor(() => {
-      expect(screen.getByText('Write access check failed')).toBeTruthy()
-    })
-    // Click the error banner (not the dismiss button)
-    fireEvent.click(screen.getByTitle('Click to view full error'))
-    expect(screen.getByText('Error Details')).toBeTruthy()
   })
 
   it('sets default agent from repo prop', async () => {

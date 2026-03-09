@@ -19,7 +19,8 @@ done
 
 if [ ${#FILES[@]} -eq 0 ]; then
   echo "Error: No release artifacts found in dist/"
-  echo "Run 'pnpm dist:signed' first."
+  echo "Build first with: pnpm dist:signed (macOS), pnpm dist:win (Windows), pnpm dist:linux (Linux)"
+  echo "Or use 'pnpm release:all <patch|minor|major>' for the full pipeline."
   exit 1
 fi
 
@@ -28,4 +29,14 @@ for f in "${FILES[@]}"; do
   echo "  $(basename "$f")"
 done
 
-gh release create "$TAG" "${FILES[@]}" --title "Broomy $TAG" --generate-notes
+NOTES_ARGS=()
+if [ -f release-notes.md ]; then
+  echo "Using release notes from release-notes.md"
+  NOTES_ARGS=(--notes-file release-notes.md)
+else
+  echo "Warning: release-notes.md not found. Run '/release-notes' first for better release notes."
+  echo "Falling back to auto-generated notes."
+  NOTES_ARGS=(--generate-notes)
+fi
+
+gh release create "$TAG" "${FILES[@]}" --title "Broomy $TAG" "${NOTES_ARGS[@]}"

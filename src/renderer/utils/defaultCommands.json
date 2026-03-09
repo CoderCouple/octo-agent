@@ -50,11 +50,11 @@
       "style": "primary"
     },
     {
-      "id": "approve-and-merge",
-      "label": "Approve and Merge",
+      "id": "merge-pr",
+      "label": "Merge PR to main",
       "type": "agent",
-      "prompt": "Approve and merge the open PR for this branch.\n\nRepeat the following steps until the PR is merged:\n\n1. Pull the latest from {main} and merge it into this branch. If there are merge conflicts, resolve them.\n2. Run the project's validation checks (lint, typecheck, tests). Fix any failures, including pre-existing ones — all checks must pass with zero errors.\n3. Push this branch to its remote tracking branch.\n4. Approve the PR: `gh pr review --approve`\n5. Merge the PR: `gh pr merge --merge --delete-branch`\n6. If the merge fails because the branch is not up to date, go back to step 1.\n\nDo NOT ask for permission before running any of these commands.",
-      "showWhen": ["clean", "open", "checks-passed", "has-write-access", "allow-approve-and-merge"],
+      "prompt": "Merge the open PR for this branch.\n\nRepeat the following steps until the PR is merged:\n\n1. Pull the latest from {main} and merge it into this branch. If there are merge conflicts, resolve them.\n2. If step 1 actually pulled in new changes, run the project's validation checks (lint, typecheck, tests). Fix any failures, including pre-existing ones — all checks must pass with zero errors. If {main} was already up to date, skip this step since checks already passed before the PR was created.\n3. Push this branch to its remote tracking branch.\n4. Merge the PR: `gh pr merge --merge`\n5. If the merge fails because the branch is not up to date, go back to step 1.\n\nDo NOT ask for permission before running any of these commands. Do NOT delete the local branch.",
+      "showWhen": ["clean", "open", "checks-passed", "has-write-access", "allow-approve-and-merge", "!review"],
       "style": "secondary"
     },
     {

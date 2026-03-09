@@ -59,7 +59,17 @@ export function AuthSetupSection({
     }
   }
 
-  const handleAuthDone = () => {
+  const handleAuthDone = async () => {
+    // Also run gh auth setup-git to configure git's credential helper.
+    // gh auth login only authenticates the CLI; setup-git is needed so git
+    // can use those credentials for HTTPS push/pull/clone.
+    if (authPtyId) {
+      try {
+        await window.pty.write(authPtyId, 'gh auth setup-git\r')
+        // Give it a moment to complete before tearing down the terminal
+        await new Promise(resolve => setTimeout(resolve, 1500))
+      } catch { /* best-effort */ }
+    }
     setAuthPtyId(null)
     setAuthCompleted(true)
   }

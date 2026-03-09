@@ -113,6 +113,15 @@ export function RepoSettingsView({
               </div>
             </div>
 
+            {repo.remoteUrl && (
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">Remote URL</label>
+                <div className="text-sm font-mono text-text-primary bg-bg-tertiary rounded px-3 py-2 truncate">
+                  {repo.remoteUrl}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Default Agent</label>
               <select

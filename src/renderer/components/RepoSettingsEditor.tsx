@@ -6,49 +6,6 @@ import type { AgentConfig } from '../store/agents'
 import type { ManagedRepo, DevcontainerStatus } from '../../preload/index'
 import { IsolationSettings } from './IsolationSettings'
 
-function ErrorBanner({ error, onDismiss, onShowDetails }: {
-  error: { summary: string; details: string }
-  onDismiss: () => void
-  onShowDetails: () => void
-}) {
-  return (
-    <div
-      className="px-3 py-2 rounded border border-red-500/30 bg-red-500/10 flex items-center gap-2 cursor-pointer hover:bg-red-500/20 transition-colors"
-      onClick={onShowDetails}
-      title="Click to view full error"
-    >
-      <div className="flex-1 text-xs text-red-400 truncate">{error.summary}</div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onDismiss() }}
-        className="text-red-400 hover:text-red-300 text-xs shrink-0 px-1"
-        title="Dismiss"
-      >&times;</button>
-    </div>
-  )
-}
-
-function ErrorDetailsPopup({ error, onClose }: {
-  error: { summary: string; details: string }
-  onClose: () => void
-}) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div
-        className="bg-bg-primary border border-border rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <span className="text-sm font-medium text-red-400">Error Details</span>
-          <button onClick={onClose} className="text-text-secondary hover:text-text-primary text-lg">&times;</button>
-        </div>
-        <div className="px-4 py-3 overflow-auto">
-          <pre className="text-xs text-text-primary whitespace-pre-wrap font-mono">{error.details}</pre>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export function RepoSettingsEditor({
   repo,
   agents,
@@ -61,7 +18,7 @@ export function RepoSettingsEditor({
   onClose: () => void
 }) {
   const [defaultAgentId, setDefaultAgentId] = useState(repo.defaultAgentId || '')
-  const [allowApproveAndMerge, setAllowApproveAndMerge] = useState(repo.allowApproveAndMerge ?? true)
+  const [allowMerge, setAllowMerge] = useState(repo.allowApproveAndMerge ?? true)
   const [isolated, setIsolated] = useState(repo.isolated ?? false)
   const [skipApproval, setSkipApproval] = useState(repo.skipApproval ?? false)
   const [devcontainerStatus, setDevcontainerStatus] = useState<DevcontainerStatus | null>(null)
@@ -69,8 +26,7 @@ export function RepoSettingsEditor({
   const [initScript, setInitScript] = useState('')
   const [loadingScript, setLoadingScript] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [writeAccessError, setWriteAccessError] = useState<{ summary: string; details: string } | null>(null)
-  const [showErrorDetails, setShowErrorDetails] = useState(false)
+  const [writeAccessError, setWriteAccessError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isolated) {
@@ -106,7 +62,7 @@ export function RepoSettingsEditor({
     try {
       onUpdate({
         defaultAgentId: defaultAgentId || undefined,
-        allowApproveAndMerge,
+        allowApproveAndMerge: allowMerge,
         isolated: isolated || undefined,
         skipApproval: skipApproval || undefined,
       })
@@ -120,15 +76,11 @@ export function RepoSettingsEditor({
 
   return (
     <div className="space-y-3">
-      {writeAccessError && (
-        <ErrorBanner error={writeAccessError} onDismiss={() => setWriteAccessError(null)} onShowDetails={() => setShowErrorDetails(true)} />
-      )}
-      {showErrorDetails && writeAccessError && (
-        <ErrorDetailsPopup error={writeAccessError} onClose={() => setShowErrorDetails(false)} />
-      )}
-
       <div className="text-sm font-medium text-text-primary">{repo.name}</div>
       <div className="text-xs text-text-secondary font-mono">{repo.rootDir}</div>
+      {repo.remoteUrl && (
+        <div className="text-xs text-text-secondary font-mono truncate" title={repo.remoteUrl}>{repo.remoteUrl}</div>
+      )}
 
       <div className="space-y-2">
         <label className="text-xs text-text-secondary">Default Agent</label>
@@ -150,7 +102,7 @@ export function RepoSettingsEditor({
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={allowApproveAndMerge}
+            checked={allowMerge}
             onChange={async (e) => {
               const checked = e.target.checked
               if (checked) {
@@ -158,27 +110,24 @@ export function RepoSettingsEditor({
                 try {
                   const hasAccess = await window.gh.hasWriteAccess(repo.rootDir)
                   if (!hasAccess) {
-                    setWriteAccessError({
-                      summary: 'Write access check failed',
-                      details: `The GitHub CLI reported that you do not have write access to this repository.\n\nRepository: ${repo.rootDir}\n\nTo debug, run this command in your terminal:\n  cd "${repo.rootDir}" && gh repo view --json viewerPermission\n\nExpected viewerPermission: ADMIN, MAINTAIN, or WRITE`,
-                    })
+                    setWriteAccessError('Write access check failed — you may not have permission to merge PRs in this repo.')
                     return
                   }
-                } catch (err) {
-                  setWriteAccessError({
-                    summary: 'Failed to check write access',
-                    details: `An error occurred while checking write access.\n\nRepository: ${repo.rootDir}\n\nError: ${String(err)}\n\nPossible causes:\n- gh CLI is not installed\n- gh CLI is not authenticated (run: gh auth login)\n- Network connectivity issues\n- Repository is not a GitHub repository`,
-                  })
+                } catch {
+                  setWriteAccessError('Could not check write access. Is gh CLI installed and authenticated?')
                   return
                 }
               }
-              setAllowApproveAndMerge(checked)
+              setAllowMerge(checked)
               setWriteAccessError(null)
             }}
             className="rounded border-border"
           />
-          <span className="text-xs text-text-secondary">Allow "Approve and merge" button</span>
+          <span className="text-xs text-text-secondary">Allow "Merge PR" button</span>
         </label>
+        {writeAccessError && (
+          <div className="text-xs text-red-400 pl-6">{writeAccessError}</div>
+        )}
       </div>
 
       <IsolationSettings

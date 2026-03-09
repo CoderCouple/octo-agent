@@ -13,9 +13,11 @@ import { HandlerContext } from './types'
 import { getScenarioData } from './scenarios'
 
 const execFileAsync = promisify(execFile)
-/** Set env vars to prevent SSH/HTTPS prompts that would hang in Electron. */
+/** Set env vars to prevent SSH/HTTPS prompts that would hang in Electron.
+ *  Spreads process.env so credential helpers retain access to HOME, PATH,
+ *  DBUS_SESSION_BUS_ADDRESS, etc. — required on Linux for keyring-based auth. */
 function withNonInteractive(git: ReturnType<typeof simpleGit>) {
-  return git.env('GIT_TERMINAL_PROMPT', '0').env('GIT_SSH_COMMAND', 'ssh -o BatchMode=yes')
+  return git.env({ ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_SSH_COMMAND: 'ssh -o BatchMode=yes' })
 }
 
 async function handleGetBranch(ctx: HandlerContext, repoPath: string) {
@@ -217,7 +219,13 @@ async function appendAuthHint(repoPath: string, errorStr: string): Promise<strin
   } catch {
     ghAvailable = false
   }
-  const hint = getGitAuthHint(errorStr, { url, ghAvailable, ghAuthenticated })
+  let credentialHelper: string | undefined
+  try {
+    // Use --get-regexp to find both global and URL-scoped credential helpers
+    const { stdout } = await execFileAsync('git', ['config', '--get-regexp', 'credential.*helper'], { encoding: 'utf-8', cwd: repoPath })
+    credentialHelper = stdout.trim()
+  } catch { /* no credential helper configured */ }
+  const hint = getGitAuthHint(errorStr, { url, ghAvailable, ghAuthenticated, credentialHelper })
   return hint ? errorStr + hint : errorStr
 }
 

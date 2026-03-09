@@ -12,9 +12,11 @@ import { getDefaultBranch } from './gitUtils'
 
 const execFileAsync = promisify(execFile)
 
-/** Set env vars to prevent SSH/HTTPS prompts that would hang in Electron. */
+/** Set env vars to prevent SSH/HTTPS prompts that would hang in Electron.
+ *  Spreads process.env so credential helpers retain access to HOME, PATH,
+ *  DBUS_SESSION_BUS_ADDRESS, etc. — required on Linux for keyring-based auth. */
 function withNonInteractive(git: ReturnType<typeof simpleGit>) {
-  return git.env('GIT_TERMINAL_PROMPT', '0').env('GIT_SSH_COMMAND', 'ssh -o BatchMode=yes')
+  return git.env({ ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_SSH_COMMAND: 'ssh -o BatchMode=yes' })
 }
 
 async function handleClone(ctx: HandlerContext, url: string, targetDir: string) {
@@ -28,12 +30,23 @@ async function handleClone(ctx: HandlerContext, url: string, targetDir: string) 
   } catch (error) {
     const errorStr = String(error)
     let ghAvailable = true
+    let ghAuthenticated = false
     try {
       await execFileAsync('gh', ['--version'], { encoding: 'utf-8' })
+      try {
+        await execFileAsync('gh', ['auth', 'status'], { encoding: 'utf-8', timeout: 5000 })
+        ghAuthenticated = true
+      } catch { /* not authenticated */ }
     } catch {
       ghAvailable = false
     }
-    const hint = getCloneErrorHint(errorStr, url, { ghAvailable })
+    let credentialHelper: string | undefined
+    try {
+      // Use --get-regexp to find both global and URL-scoped credential helpers
+      const { stdout } = await execFileAsync('git', ['config', '--get-regexp', 'credential.*helper'], { encoding: 'utf-8' })
+      credentialHelper = stdout.trim()
+    } catch { /* no credential helper configured */ }
+    const hint = getCloneErrorHint(errorStr, url, { ghAvailable, ghAuthenticated, credentialHelper })
     return { success: false, error: hint ? errorStr + hint : errorStr }
   }
 }
@@ -153,12 +166,23 @@ async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branch
       url = remotes.find(r => r.name === 'origin')?.refs.push
     } catch { /* ignore */ }
     let ghAvailable = true
+    let ghAuthenticated = false
     try {
       await execFileAsync('gh', ['--version'], { encoding: 'utf-8' })
+      try {
+        await execFileAsync('gh', ['auth', 'status'], { encoding: 'utf-8', timeout: 5000 })
+        ghAuthenticated = true
+      } catch { /* not authenticated */ }
     } catch {
       ghAvailable = false
     }
-    const hint = getGitAuthHint(errorStr, { url, ghAvailable })
+    let credentialHelper: string | undefined
+    try {
+      // Use --get-regexp to find both global and URL-scoped credential helpers
+      const { stdout } = await execFileAsync('git', ['config', '--get-regexp', 'credential.*helper'], { encoding: 'utf-8', cwd: expandHomePath(repoPath) })
+      credentialHelper = stdout.trim()
+    } catch { /* no credential helper configured */ }
+    const hint = getGitAuthHint(errorStr, { url, ghAvailable, ghAuthenticated, credentialHelper })
     return { success: false, error: hint ? errorStr + hint : errorStr }
   }
 }
