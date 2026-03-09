@@ -118,6 +118,7 @@ Stories are co-located as `*.stories.tsx` next to source files. Reference images
 | `/coverage-increase` | **When coverage is below 90%.** Iteratively writes tests for under-covered files using cached data. |
 | `/coverage-gaps` | **When coverage is low or before releases.** Finds untested code and suggests concrete test stubs. |
 | `/tech-debt` | **Periodically.** Audits `docs/code-improvements.md` — marks resolved items, finds new issues. |
+| `/release-notes` | **Before a release.** Generates human-readable release notes from commits since the last tag. Output used by release scripts. |
 | `/release-readiness` | **Before a release.** Analyzes screenshot comparison report and produces a readiness assessment. |
 | `/release-compare-issue` | **After release readiness review.** Creates a GitHub issue from the readiness report. |
 
