@@ -470,6 +470,13 @@ export function useTerminalSetup(
         // Without this, buffered TUI frames render at stale dimensions and
         // leave orphaned lines / blank gaps in the scrollback.
         try { s.fitAddonRef.current?.fit() } catch { /* ignore */ }
+        // Sync PTY dimensions — the ResizeObserver won't fire because the
+        // container size hasn't changed, but the terminal may have been
+        // created or last fitted at different dimensions.
+        const term = s.terminalRef.current
+        if (s.ptyIdRef.current && term && term.cols > 0 && term.rows > 0) {
+          void window.pty.resize(s.ptyIdRef.current, term.cols, term.rows)
+        }
         s.dataHandlerRef.current?.flush()
         requestAnimationFrame(() => {
           s.terminalRef.current?.focus()
