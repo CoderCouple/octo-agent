@@ -232,6 +232,34 @@ describe('Terminal', () => {
       expect(screen.getByText(/Resume your previous conversation/)).toBeTruthy()
     })
 
+    it('focuses the terminal after clicking resume', async () => {
+      const { useTerminalSetup } = await import('../hooks/useTerminalSetup')
+      const mockFocus = vi.fn()
+      vi.mocked(useTerminalSetup).mockReturnValue({
+        terminalRef: { current: { focus: mockFocus } as unknown as import('@xterm/xterm').Terminal },
+        ptyIdRef: { current: 'pty-123' },
+        isActiveRef: { current: true },
+        showScrollButton: false,
+        handleScrollToBottom: vi.fn(),
+        exitInfo: null,
+      })
+
+      const rAFs: FrameRequestCallback[] = []
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { rAFs.push(cb); return rAFs.length })
+
+      render(<Terminal sessionId="session-1" cwd="/tmp/test" isAgentTerminal isRestored />)
+      fireEvent.click(screen.getByText(/Run \/resume/))
+
+      // Banner should be dismissed
+      expect(screen.queryByText(/Resume your previous conversation/)).toBeNull()
+
+      // Trigger the double-rAF chain to flush focus
+      while (rAFs.length) rAFs.shift()!(0)
+
+      expect(mockFocus).toHaveBeenCalled()
+      vi.restoreAllMocks()
+    })
+
     it('dismisses resume banner when close button is clicked', async () => {
       const { useTerminalSetup } = await import('../hooks/useTerminalSetup')
       vi.mocked(useTerminalSetup).mockReturnValue({
