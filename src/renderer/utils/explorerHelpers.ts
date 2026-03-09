@@ -4,7 +4,7 @@
  * Provides pure functions that map git status strings (modified, added, deleted,
  * untracked, renamed) to human-readable labels, Tailwind CSS color classes, and
  * single-letter badges. Also includes helpers for splitting staged/unstaged files,
- * PR state badge styling, error message truncation, and approve-and-merge visibility logic.
+ * PR state badge styling, and error message truncation.
  */
 
 /**
@@ -62,13 +62,6 @@ export function statusBadgeColor(status: string): string {
 export function truncateError(error: string, maxLength = 80): string {
   if (error.length <= maxLength) return error
   return `${error.slice(0, maxLength)  }...`
-}
-
-/**
- * Determines whether the "Approve and merge" button should be visible.
- */
-export function shouldShowApproveAndMerge(hasWriteAccess: boolean, allowApproveAndMerge?: boolean): boolean {
-  return hasWriteAccess && (allowApproveAndMerge === true)
 }
 
 /**

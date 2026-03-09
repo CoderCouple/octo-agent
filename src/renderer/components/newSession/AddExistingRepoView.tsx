@@ -145,10 +145,10 @@ export function AddExistingRepoView({
       const defaultBranch = await window.git.defaultBranch(mainDir)
       const remoteUrl = await window.git.remoteUrl(mainDir) || ''
 
-      // Check write access to enable approve-and-merge by default
-      let allowApproveAndMerge = false
+      // Check write access to enable merge button by default
+      let allowMerge = false
       try {
-        allowApproveAndMerge = await window.gh.hasWriteAccess(mainDir)
+        allowMerge = await window.gh.hasWriteAccess(mainDir)
       } catch {
         // gh CLI not available or other error - default to false
       }
@@ -159,7 +159,7 @@ export function AddExistingRepoView({
         rootDir,
         defaultBranch,
         defaultAgentId: selectedAgentId || undefined,
-        allowApproveAndMerge,
+        allowApproveAndMerge: allowMerge,
         isolated: iso.isolated || undefined,
         skipApproval: iso.skipApproval || undefined,
       })

@@ -86,12 +86,10 @@ export function CloneView({
       const defaultBranch = await window.git.defaultBranch(mainDir)
       const remoteUrl = await window.git.remoteUrl(mainDir) || url
 
-      // Check write access to enable approve-and-merge by default
-      let allowApproveAndMerge = false
+      // Check write access to enable merge button by default
       let hasWriteAccess = false
       try {
         hasWriteAccess = await window.gh.hasWriteAccess(mainDir)
-        allowApproveAndMerge = hasWriteAccess
       } catch {
         // gh CLI not available or other error - default to false
       }
@@ -107,7 +105,7 @@ export function CloneView({
         rootDir,
         defaultBranch,
         defaultAgentId: selectedAgentId || undefined,
-        allowApproveAndMerge,
+        allowApproveAndMerge: hasWriteAccess,
         isolated: isolated || undefined,
         skipApproval: skipApproval || undefined,
       })

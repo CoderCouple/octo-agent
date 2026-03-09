@@ -34,7 +34,7 @@ export const WithDefaultAgent: Story = {
   },
 }
 
-export const WithApproveAndMerge: Story = {
+export const WithMergePR: Story = {
   args: {
     repo: { ...repo, allowApproveAndMerge: true },
     agents,
