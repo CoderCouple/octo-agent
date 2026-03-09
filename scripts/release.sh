@@ -19,7 +19,8 @@ done
 
 if [ ${#FILES[@]} -eq 0 ]; then
   echo "Error: No release artifacts found in dist/"
-  echo "Run 'pnpm dist:signed' first."
+  echo "Build first with: pnpm dist:signed (macOS), pnpm dist:win (Windows), pnpm dist:linux (Linux)"
+  echo "Or use 'pnpm release:all <patch|minor|major>' for the full pipeline."
   exit 1
 fi
 

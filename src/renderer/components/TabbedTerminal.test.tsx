@@ -85,6 +85,7 @@ beforeEach(() => {
         isUnread: false,
         workingStartTime: null,
         recentFiles: [],
+        searchHistory: [],
         terminalTabs: {
           tabs: [
             { id: tab1Id, name: 'Terminal 1' },
@@ -317,6 +318,7 @@ describe('TabbedTerminal', () => {
           isUnread: false,
           workingStartTime: null,
           recentFiles: [],
+          searchHistory: [],
           terminalTabs: {
             tabs: [{ id: tab1Id, name: 'Terminal 1' }],
             activeTabId: null,

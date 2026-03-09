@@ -41,6 +41,7 @@ export function makeSession(overrides: Partial<Session> = {}): Session {
     isUnread: false,
     workingStartTime: null,
     recentFiles: [],
+    searchHistory: [],
     terminalTabs: { ...DEFAULT_TERMINAL_TABS },
     branchStatus: 'in-progress' as BranchStatus,
     isArchived: false,

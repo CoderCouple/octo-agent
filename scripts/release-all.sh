@@ -3,16 +3,54 @@ set -euo pipefail
 
 # release-all.sh - Full release pipeline: check, bump, build, sign, publish
 #
-# Usage: pnpm release:all <patch|minor|major>
+# Builds signed releases for macOS, Windows, and Linux. Requires macOS
+# (for code signing/notarization) and signing credentials in .env.
+#
+# Usage: pnpm release:all <patch|minor|major> [--skip-build] [--no-bump]
 
-BUMP_TYPE="${1:-}"
+BUMP_TYPE=""
+SKIP_BUILD=false
+NO_BUMP=false
 
-if [[ ! "$BUMP_TYPE" =~ ^(patch|minor|major)$ ]]; then
-  echo "Usage: pnpm release:all <patch|minor|major>"
+for arg in "$@"; do
+  case "$arg" in
+    --skip-build) SKIP_BUILD=true ;;
+    --no-bump) NO_BUMP=true ;;
+    patch|minor|major) BUMP_TYPE="$arg" ;;
+  esac
+done
+
+if [ "$NO_BUMP" = false ] && [ -z "$BUMP_TYPE" ]; then
+  echo "Usage: pnpm release:all <patch|minor|major> [--skip-build] [--no-bump]"
   exit 1
 fi
 
 cd "$(dirname "$0")/.."
+
+# --- Pre-flight: must be macOS ---
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  echo "Error: release:all must be run on macOS (required for code signing and notarization)."
+  exit 1
+fi
+
+# --- Pre-flight: required tools ---
+if ! command -v gh &>/dev/null; then
+  echo "Error: GitHub CLI (gh) is not installed. Install it from https://cli.github.com/"
+  exit 1
+fi
+
+if ! gh auth status &>/dev/null; then
+  echo "Error: GitHub CLI is not authenticated. Run: gh auth login"
+  exit 1
+fi
+
+# --- Pre-flight: Linux prebuilds ---
+if [ "$SKIP_BUILD" = false ]; then
+  if [ ! -d build/node-pty-prebuilds/linux-x64 ] || [ ! -f build/node-pty-prebuilds/linux-x64/pty.node ]; then
+    echo "Error: Linux prebuilds not found. Run: pnpm build:linux-prebuilds"
+    exit 1
+  fi
+fi
 
 # --- Pre-flight: branch and working tree ---
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -54,7 +92,7 @@ missing=()
 
 if [ ${#missing[@]} -gt 0 ]; then
   echo ""
-  echo "Error: Missing required environment variables:"
+  echo "Error: Missing required macOS signing variables:"
   for var in "${missing[@]}"; do
     echo "  - $var"
   done
@@ -71,31 +109,36 @@ pnpm lint
 pnpm typecheck
 pnpm test:unit
 
-# --- Bump version ---
-echo ""
-echo "Bumping version ($BUMP_TYPE)..."
-pnpm version:bump "$BUMP_TYPE"
-
-# Read the new version from package.json
+# Read current version (before potential bump)
 NEW_VERSION=$(node -p "require('./package.json').version")
-TAG="v$NEW_VERSION"
 
-# --- Commit and tag ---
-echo ""
-echo "Committing version bump and tagging $TAG..."
-git add package.json website/package.json
-git commit -m "Release $TAG"
-git tag "$TAG"
+if [ "$NO_BUMP" = true ]; then
+  echo ""
+  echo "Skipping version bump (--no-bump). Using current version $NEW_VERSION."
+  TAG="v$NEW_VERSION"
+else
+  # --- Bump version ---
+  echo ""
+  echo "Bumping version ($BUMP_TYPE)..."
+  pnpm version:bump "$BUMP_TYPE"
+  NEW_VERSION=$(node -p "require('./package.json').version")
+  TAG="v$NEW_VERSION"
 
-# --- Build, sign, notarize (macOS) ---
-echo ""
-echo "Building, signing, and notarizing macOS..."
-pnpm dist:signed
+  # --- Commit and tag ---
+  echo ""
+  echo "Committing version bump and tagging $TAG..."
+  git add package.json website/package.json
+  git commit -m "Release $TAG"
+  git tag "$TAG"
+fi
 
-# --- Build Linux ---
-echo ""
-echo "Building Linux packages..."
-pnpm dist:linux
+# --- Build all platforms ---
+if [ "$SKIP_BUILD" = true ]; then
+  echo ""
+  echo "Skipping build (--skip-build). Using existing artifacts in dist/."
+else
+  pnpm dist:all
+fi
 
 # --- Confirm before publishing ---
 echo ""
@@ -105,15 +148,18 @@ echo "============================================"
 echo "  Version:  $NEW_VERSION"
 echo "  Tag:      $TAG"
 echo "  Artifacts:"
-for f in dist/*.dmg dist/*.zip dist/*.AppImage dist/*.yml; do
+for f in dist/*.dmg dist/*.zip dist/*.exe dist/*.AppImage dist/*.deb dist/*.yml; do
   [ -f "$f" ] && echo "    $(basename "$f")"
 done
 echo "============================================"
 echo ""
 read -r -p "Push and create GitHub release? [y/N] " CONFIRM
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
-  echo "Aborted. The commit and tag are local-only."
-  echo "To undo: git reset --soft HEAD~1 && git tag -d $TAG"
+  echo "Aborted."
+  if [ "$NO_BUMP" = false ]; then
+    echo "The commit and tag are local-only."
+    echo "To undo: git reset --soft HEAD~1 && git tag -d $TAG"
+  fi
   exit 1
 fi
 
@@ -128,7 +174,7 @@ echo ""
 echo "Creating GitHub release..."
 
 RELEASE_FILES=()
-for f in dist/*.dmg dist/*.zip dist/*.AppImage dist/*.yml; do
+for f in dist/*.dmg dist/*.zip dist/*.exe dist/*.AppImage dist/*.deb dist/*.yml; do
   [ -f "$f" ] && RELEASE_FILES+=("$f")
 done
 

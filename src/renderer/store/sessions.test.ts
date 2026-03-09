@@ -69,6 +69,7 @@ describe('useSessionStore', () => {
       isUnread: false,
       workingStartTime: null,
       recentFiles: [],
+      searchHistory: [],
       terminalTabs: {
         tabs: [{ id: 'tab-1', name: 'Terminal' }],
         activeTabId: 'tab-1',

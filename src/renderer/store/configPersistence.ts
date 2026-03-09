@@ -122,6 +122,8 @@ async function doSave(): Promise<void> {
       lastKnownPrState: s.lastKnownPrState,
       lastKnownPrNumber: s.lastKnownPrNumber,
       lastKnownPrUrl: s.lastKnownPrUrl,
+      // Search history
+      searchHistory: s.searchHistory.length > 0 ? s.searchHistory : undefined,
       // Archive state
       isArchived: s.isArchived || undefined,
     })),

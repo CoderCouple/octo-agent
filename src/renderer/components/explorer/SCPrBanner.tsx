@@ -5,8 +5,7 @@ import type { GitFileStatus, GitStatusResult, GitHubPrStatus } from '../../../pr
 import type { BranchStatus } from '../../store/sessions'
 import type { NavigationTarget } from '../../utils/fileNavigation'
 import { prStateBadgeClass } from '../../utils/explorerHelpers'
-import { humanizeError } from '../../utils/knownErrors'
-import { useErrorStore } from '../../store/errors'
+import { DialogErrorBanner } from '../ErrorBanner'
 import { useRepoStore } from '../../store/repos'
 import { AuthSetupSection, isAuthError } from '../AuthSetupSection'
 import { isGitConfigError } from '../GitIdentitySetup'
@@ -50,7 +49,6 @@ export function SCPrBanner({
   onRetryGitOp,
   onFileSelect,
 }: SCPrBannerProps) {
-  const { showErrorDetail } = useErrorStore()
   const { ghAvailable } = useRepoStore()
   return (
     <>
@@ -127,34 +125,12 @@ export function SCPrBanner({
 
       {/* Git operation error banner */}
       {gitOpError && (
-        <div className="px-3 py-2 border-b border-red-500/30 bg-red-500/10 flex items-center gap-2">
-          <button
-            className="flex-1 text-xs text-red-400 cursor-pointer hover:text-red-300 truncate text-left"
-            title="Click to view full error"
-            onClick={() => {
-              const displayMessage = humanizeError(gitOpError.message)
-              showErrorDetail({
-                id: 'git-op-error',
-                message: gitOpError.message,
-                displayMessage: `${gitOpError.operation} failed: ${displayMessage}`,
-                detail: gitOpError.message,
-                scope: 'app',
-                dismissed: false,
-                timestamp: Date.now(),
-              })
-            }}
-          >
-            {gitOpError.operation} failed: {gitOpError.message.length > 80
-              ? `${gitOpError.message.slice(0, 80)  }...`
-              : gitOpError.message}
-          </button>
-          <button
-            onClick={onDismissError}
-            className="text-red-400 hover:text-red-300 text-xs shrink-0 px-1"
-            title="Dismiss"
-          >
-            &times;
-          </button>
+        <div className="px-3 py-2 border-b border-border">
+          <DialogErrorBanner
+            error={gitOpError.message}
+            label={`${gitOpError.operation} failed`}
+            onDismiss={onDismissError}
+          />
         </div>
       )}
 

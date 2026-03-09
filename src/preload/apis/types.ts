@@ -197,6 +197,8 @@ export type SessionData = {
   lastKnownPrUrl?: string
   // Commit tracking
   hasHadCommits?: boolean
+  // Search history
+  searchHistory?: string[]
   // Archive state
   isArchived?: boolean
 }

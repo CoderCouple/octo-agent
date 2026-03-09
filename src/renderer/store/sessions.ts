@@ -91,6 +91,8 @@ export interface Session {
   commandsEditorDirectory?: string | null
   // Recently opened files (runtime, most recent first)
   recentFiles: string[]
+  // Search history (persisted, most recent first)
+  searchHistory: string[]
   // User terminal tabs (persisted)
   terminalTabs: TerminalTabsState
   // Track whether this session has ever had commits ahead of remote (persisted)
@@ -169,6 +171,9 @@ interface SessionStore {
   updateBranchStatus: (sessionId: string, status: BranchStatus) => void
   updatePrState: (sessionId: string, prState: PrState, prNumber?: number, prUrl?: string) => void
   updateReviewStatus: (sessionId: string, reviewStatus: 'pending' | 'reviewed') => void
+  // Search history actions
+  addSearchHistory: (sessionId: string, query: string) => void
+  removeSearchHistoryItem: (sessionId: string, query: string) => void
   // Archive actions
   archiveSession: (sessionId: string) => void
   unarchiveSession: (sessionId: string) => void
@@ -311,6 +316,28 @@ export const useSessionStore = create<SessionStore>((set, get) => {
     )
     set({ sessions: updatedSessions })
     // Don't persist - runtime only
+  },
+
+  // Search history actions
+  addSearchHistory: (sessionId: string, query: string) => {
+    const { sessions } = get()
+    const updatedSessions = sessions.map((s) => {
+      if (s.id !== sessionId) return s
+      const history = [query, ...s.searchHistory.filter(q => q !== query)].slice(0, 50)
+      return { ...s, searchHistory: history }
+    })
+    set({ sessions: updatedSessions })
+    debouncedSave()
+  },
+
+  removeSearchHistoryItem: (sessionId: string, query: string) => {
+    const { sessions } = get()
+    const updatedSessions = sessions.map((s) => {
+      if (s.id !== sessionId) return s
+      return { ...s, searchHistory: s.searchHistory.filter(q => q !== query) }
+    })
+    set({ sessions: updatedSessions })
+    debouncedSave()
   },
 
   // Branch & lifecycle actions (delegated)

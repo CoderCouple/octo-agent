@@ -135,38 +135,37 @@ describe('SCPrBanner', () => {
     expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/test/issues/42')
   })
 
-  it('shows git operation error banner', () => {
+  it('shows git operation error banner using DialogErrorBanner', () => {
     const gitOpError = { operation: 'Push', message: 'Authentication failed' }
     render(<SCPrBanner {...defaultProps} gitOpError={gitOpError} />)
-    expect(screen.getByText(/Push failed: Authentication failed/)).toBeTruthy()
+    // DialogErrorBanner humanizes the error message
+    expect(screen.getByText(/Push failed:.*authentication/i)).toBeTruthy()
   })
 
   it('calls onDismissError when error dismiss button is clicked', () => {
     const onDismissError = vi.fn()
     const gitOpError = { operation: 'Push', message: 'Failed' }
     render(<SCPrBanner {...defaultProps} gitOpError={gitOpError} onDismissError={onDismissError} />)
-    // The dismiss button is the x character
     const dismissBtn = screen.getByTitle('Dismiss')
     fireEvent.click(dismissBtn)
     expect(onDismissError).toHaveBeenCalled()
   })
 
-  it('truncates long error messages', () => {
+  it('truncates long error messages in the banner', () => {
     const longMessage = 'A'.repeat(100)
     const gitOpError = { operation: 'Push', message: longMessage }
     render(<SCPrBanner {...defaultProps} gitOpError={gitOpError} />)
-    // Should show truncated version
-    const errorText = screen.getByText(/Push failed:/)
-    expect(errorText.textContent).toContain('...')
+    const errorBtn = screen.getByTitle('Click to view full error')
+    // Banner truncates via CSS; full text is in the DOM but visually clipped
+    expect(errorBtn.textContent).toBe(`Push failed: ${'A'.repeat(100)}`)
+    expect(errorBtn.className).toContain('truncate')
   })
 
-  it('calls showErrorDetail when clicking error message', () => {
+  it('opens error detail modal when clicking error message', () => {
     const gitOpError = { operation: 'Push', message: 'auth failed' }
     render(<SCPrBanner {...defaultProps} gitOpError={gitOpError} />)
-    const errorBtn = screen.getByText(/Push failed:/)
+    const errorBtn = screen.getByTitle('Click to view full error')
     fireEvent.click(errorBtn)
-    // showErrorDetail should have been called on the error store
-    // The button exists and is clickable without throwing
     expect(errorBtn).toBeTruthy()
   })
 

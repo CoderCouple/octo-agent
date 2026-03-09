@@ -47,4 +47,13 @@ describe('DialogErrorBanner', () => {
     const state = useErrorStore.getState()
     expect(state.detailError!.detail).toBeUndefined()
   })
+
+  it('prepends label to display message when label prop is provided', () => {
+    render(<DialogErrorBanner error="auth failed" label="Push failed" onDismiss={vi.fn()} />)
+    expect(screen.getByText('Push failed: auth failed')).toBeTruthy()
+    fireEvent.click(screen.getByTitle('Click to view full error'))
+    const state = useErrorStore.getState()
+    expect(state.detailError!.displayMessage).toBe('Push failed: auth failed')
+    expect(state.detailError!.detail).toBe('auth failed')
+  })
 })

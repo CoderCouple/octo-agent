@@ -40,5 +40,6 @@ for arch in x64 arm64; do
   fi
 done
 
-# Build and package — skip npmRebuild since we're providing our own native modules
-pnpm build && electron-builder --linux -c.npmRebuild=false
+# Build and package for both x64 and arm64
+# Skip npmRebuild since we're providing our own native modules
+pnpm build && electron-builder --linux --x64 --arm64 -c.npmRebuild=false

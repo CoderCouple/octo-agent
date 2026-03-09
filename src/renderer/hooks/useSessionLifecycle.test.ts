@@ -49,6 +49,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     isUnread: false,
     workingStartTime: null,
     recentFiles: [],
+    searchHistory: [],
     terminalTabs: { tabs: [{ id: 'tab-1', name: 'Terminal' }], activeTabId: 'tab-1' },
     branchStatus: 'in-progress' as const,
     isArchived: false,

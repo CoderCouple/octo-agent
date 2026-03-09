@@ -32,6 +32,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     isUnread: false,
     workingStartTime: null,
     recentFiles: [],
+    searchHistory: [],
     terminalTabs: { tabs: [], activeTabId: null },
     branchStatus: 'in-progress',
     isArchived: false,

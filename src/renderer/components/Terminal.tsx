@@ -93,6 +93,13 @@ export default function Terminal({ sessionId, cwd, command, env, isAgentTerminal
       void sendAgentPrompt(ptyIdRef.current, '/resume')
     }
     setResumeDismissed(true)
+    // Focus the xterm instance after React removes the banner so keyboard
+    // input reaches the terminal immediately (e.g. to pick a chat to resume).
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        terminalRef.current?.focus()
+      })
+    })
   }, [])
 
   const config: TerminalConfig = {
