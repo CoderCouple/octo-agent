@@ -276,7 +276,6 @@ export function usePanelsMap(config: PanelsMapConfig) {
 
   const sidebarPanel = useMemo(() => (
     <SessionList
-      sessions={sessions}
       repos={repos}
       onSelectSession={handleSelectSession}
       onNewSession={handleNewSession}
@@ -285,7 +284,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
       onArchiveSession={archiveSession}
       onUnarchiveSession={unarchiveSession}
     />
-  ), [sessions, repos, handleSelectSession, handleNewSession, removeSession, refreshPrStatus, archiveSession, unarchiveSession])
+  ), [repos, handleSelectSession, handleNewSession, removeSession, refreshPrStatus, archiveSession, unarchiveSession])
 
   const panelsMap = useMemo(() => ({
     [PANEL_IDS.SIDEBAR]: sidebarPanel,

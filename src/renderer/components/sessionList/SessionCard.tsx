@@ -1,9 +1,14 @@
 /**
  * Individual session card with status indicator, branch name, and action buttons.
+ *
+ * Each card subscribes to its own session slice from the store via a shallow-equality
+ * selector, so it only re-renders when its own display fields change — not when
+ * unrelated sessions update their agent monitor state.
  */
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { useSessionStore } from '../../store/sessions'
-import type { Session, SessionStatus, BranchStatus } from '../../store/sessions'
+import { useShallow } from 'zustand/react/shallow'
+import type { SessionStatus, BranchStatus } from '../../store/sessions'
 
 const statusLabels: Record<SessionStatus, string> = {
   working: 'Working',
@@ -76,26 +81,64 @@ function BranchStatusChip({ status }: { status: BranchStatus }) {
 }
 
 export default memo(function SessionCard({
-  session,
+  sessionId,
   onSelect,
   onDelete,
   onArchive,
 }: {
-  session: Session
+  sessionId: string
   onSelect: (sessionId: string) => void
   onDelete: (e: React.MouseEvent | React.KeyboardEvent, sessionId: string) => void
   onArchive?: (e: React.MouseEvent, sessionId: string) => void
 }) {
-  const isActive = useSessionStore((s) => s.activeSessionId === session.id)
+  // Subscribe to only the fields this card renders, with shallow equality.
+  // This prevents re-renders when unrelated session fields (or other sessions) change.
+  const session = useSessionStore(
+    useShallow((s) => {
+      const sess = s.sessions.find(x => x.id === sessionId)
+      if (!sess) return null
+      return {
+        status: sess.status,
+        isUnread: sess.isUnread,
+        branch: sess.branch,
+        name: sess.name,
+        lastMessage: sess.lastMessage,
+        branchStatus: sess.branchStatus,
+        prNumber: sess.prNumber,
+        isArchived: sess.isArchived,
+        sessionType: sess.sessionType,
+        reviewStatus: sess.reviewStatus,
+      }
+    }),
+  )
+  const isActive = useSessionStore((s) => s.activeSessionId === sessionId)
+
+  // Debounce working status: only show spinner after 1.5s of continuous working.
+  // The activity detector sets idle after 1s of silence, so brief terminal output
+  // (prompt redraws, SIGWINCH responses) cycles working→idle in ~1.3s and never
+  // reaches this threshold. Genuine agent work produces sustained output.
+  const [showWorking, setShowWorking] = useState(false)
+  useEffect(() => {
+    if (session?.status === 'working') {
+      const timer = setTimeout(() => setShowWorking(true), 1500)
+      return () => clearTimeout(timer)
+    } else {
+      setShowWorking(false)
+    }
+  }, [session?.status])
+
+  if (!session) return null
+
+  const displayStatus: SessionStatus = showWorking ? 'working' : (session.status === 'error' ? 'error' : 'idle')
   const isUnread = session.isUnread
 
   return (
     <div
       tabIndex={0}
-      onClick={() => onSelect(session.id)}
+      onClick={() => onSelect(sessionId)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
-          onSelect(session.id)
+          onSelect(sessionId)
         } else if (e.key === 'ArrowDown') {
           e.preventDefault()
           const next = (e.currentTarget as HTMLElement).nextElementSibling as HTMLElement | null
@@ -105,7 +148,7 @@ export default memo(function SessionCard({
           const prev = (e.currentTarget as HTMLElement).previousElementSibling as HTMLElement | null
           if (prev && prev.tabIndex >= 0) prev.focus()
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
-          onDelete(e, session.id)
+          onDelete(e, sessionId)
         }
       }}
       className={`group relative w-full text-left p-3 rounded mb-1 transition-all cursor-pointer outline-none focus:ring-1 focus:ring-accent/50 ${
@@ -113,7 +156,7 @@ export default memo(function SessionCard({
       }`}
     >
       <div className="flex items-center gap-2 mb-1">
-        <StatusIndicator status={session.status} isUnread={isUnread} />
+        <StatusIndicator status={displayStatus} isUnread={isUnread} />
         <span className={`text-sm truncate flex-1 text-text-primary ${
           isUnread ? 'font-bold' : 'font-medium'
         }`}>
@@ -122,7 +165,7 @@ export default memo(function SessionCard({
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
           {onArchive && (
             <button
-              onClick={(e) => onArchive(e, session.id)}
+              onClick={(e) => onArchive(e, sessionId)}
               className="text-text-secondary hover:text-text-primary p-1"
               title={session.isArchived ? 'Unarchive session' : 'Archive session'}
             >
@@ -144,7 +187,7 @@ export default memo(function SessionCard({
             </button>
           )}
           <button
-            onClick={(e) => onDelete(e, session.id)}
+            onClick={(e) => onDelete(e, sessionId)}
             className="text-text-secondary hover:text-status-error p-1"
             title="Delete session"
           >
@@ -192,7 +235,7 @@ export default memo(function SessionCard({
         </div>
       ) : (
         <div className="text-xs text-text-secondary/60 mt-1 truncate">
-          {statusLabels[session.status]}
+          {statusLabels[displayStatus]}
         </div>
       )}
     </div>

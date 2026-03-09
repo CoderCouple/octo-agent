@@ -8,6 +8,7 @@
  * with arrow keys, Enter to select, and Delete to remove is supported.
  */
 import { useState, useMemo, useCallback } from 'react'
+import { useSessionStore } from '../../store/sessions'
 import type { Session } from '../../store/sessions'
 import type { ManagedRepo } from '../../../preload/index'
 import PanelErrorBoundary from '../PanelErrorBoundary'
@@ -16,7 +17,6 @@ import DeleteSessionDialog from './DeleteSessionDialog'
 import UpdateBanner from './UpdateBanner'
 
 interface SessionListProps {
-  sessions: Session[]
   repos: ManagedRepo[]
   onSelectSession: (id: string) => void
   onNewSession: () => void
@@ -27,7 +27,6 @@ interface SessionListProps {
 }
 
 export default function SessionList({
-  sessions,
   repos,
   onSelectSession,
   onNewSession,
@@ -36,6 +35,7 @@ export default function SessionList({
   onArchiveSession,
   onUnarchiveSession,
 }: SessionListProps) {
+  const sessions = useSessionStore((s) => s.sessions)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -165,7 +165,7 @@ export default function SessionList({
         {activeSessions.map((session) => (
           <PanelErrorBoundary key={session.id} name={`Session ${session.branch}`}>
             <SessionCard
-              session={session}
+              sessionId={session.id}
               onSelect={onSelectSession}
               onDelete={handleDelete}
               onArchive={handleArchive}
@@ -211,7 +211,7 @@ export default function SessionList({
                 {archivedSessions.map((session) => (
                   <PanelErrorBoundary key={session.id} name={`Session ${session.branch}`}>
                     <SessionCard
-                      session={session}
+                      sessionId={session.id}
                       onSelect={handleSelectArchived}
                       onDelete={handleDelete}
                       onArchive={handleUnarchive}

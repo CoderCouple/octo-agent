@@ -406,6 +406,10 @@ export function useTerminalSetup(
 
     let ptyResizeTimeout: ReturnType<typeof setTimeout> | null = null
     const resizeObserver = new ResizeObserver((entries) => {
+      // Skip background terminals — resizing them sends SIGWINCH to the shell,
+      // causing prompt redraws that false-trigger the activity detector.
+      // They'll be fitted when activated via the activation handler.
+      if (!s.isActiveRef.current) return
       const entry = entries[0] as ResizeObserverEntry | undefined
       if (!entry || entry.contentRect.width === 0 || entry.contentRect.height === 0) return
       // Debounce fit() and pty.resize() together so xterm and the child process

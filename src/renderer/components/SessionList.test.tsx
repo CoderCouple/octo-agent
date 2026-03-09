@@ -44,7 +44,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
 
 function makeProps(overrides: Record<string, unknown> = {}) {
   return {
-    sessions: [] as Session[],
     repos: [] as { id: string; name: string; remoteUrl: string; rootDir: string; defaultBranch: string }[],
     onSelectSession: vi.fn(),
     onNewSession: vi.fn(),
@@ -56,12 +55,19 @@ function makeProps(overrides: Record<string, unknown> = {}) {
   }
 }
 
+/** Set sessions in the store before rendering. */
+function setSessions(sessions: Session[]) {
+  useSessionStore.setState({ sessions })
+}
+
 afterEach(() => {
   cleanup()
+  useSessionStore.setState({ sessions: [], activeSessionId: null })
 })
 
 beforeEach(() => {
   vi.clearAllMocks()
+  useSessionStore.setState({ sessions: [], activeSessionId: null })
 })
 
 describe('SessionList', () => {
@@ -76,7 +82,8 @@ describe('SessionList', () => {
       makeSession({ id: 's1', branch: 'feature/auth' }),
       makeSession({ id: 's2', branch: 'fix/bug-42' }),
     ]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions(sessions)
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText('feature/auth')).toBeTruthy()
     expect(screen.getByText('fix/bug-42')).toBeTruthy()
   })
@@ -86,9 +93,9 @@ describe('SessionList', () => {
       makeSession({ id: 's1', branch: 'active-branch' }),
       makeSession({ id: 's2', branch: 'other-branch' }),
     ]
-    useSessionStore.setState({ activeSessionId: 's1' })
+    useSessionStore.setState({ sessions, activeSessionId: 's1' })
     const { container } = render(
-      <SessionList {...makeProps({ sessions })} />
+      <SessionList {...makeProps()} />
     )
     const sessionCards = container.querySelectorAll('[tabindex="0"]')
     expect(sessionCards[0].className).toContain('bg-accent')
@@ -96,32 +103,32 @@ describe('SessionList', () => {
   })
 
   it('shows unread indicator with bold text', () => {
-    const sessions = [makeSession({ id: 's1', branch: 'unread-branch', isUnread: true })]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions([makeSession({ id: 's1', branch: 'unread-branch', isUnread: true })])
+    render(<SessionList {...makeProps()} />)
     const branchText = screen.getByText('unread-branch')
     expect(branchText.className).toContain('font-bold')
   })
 
   it('shows status labels for sessions without messages', () => {
-    const sessions = [makeSession({ id: 's1', branch: 'b1', status: 'idle', lastMessage: null })]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions([makeSession({ id: 's1', branch: 'b1', status: 'idle', lastMessage: null })])
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText('Idle')).toBeTruthy()
   })
 
   it('shows last message when available', () => {
-    const sessions = [makeSession({ id: 's1', branch: 'b1', lastMessage: 'Reading file.ts' })]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions([makeSession({ id: 's1', branch: 'b1', lastMessage: 'Reading file.ts' })])
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText(/"Reading file.ts"/)).toBeTruthy()
   })
 
   it('shows branch status chips', () => {
-    const sessions = [
+    setSessions([
       makeSession({ id: 's1', branch: 'b1', branchStatus: 'pushed' }),
       makeSession({ id: 's2', branch: 'b2', branchStatus: 'open' }),
       makeSession({ id: 's3', branch: 'b3', branchStatus: 'merged' }),
       makeSession({ id: 's4', branch: 'b4', branchStatus: 'closed' }),
-    ]
-    render(<SessionList {...makeProps({ sessions })} />)
+    ])
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText('PUSHED')).toBeTruthy()
     expect(screen.getByText('PR OPEN')).toBeTruthy()
     expect(screen.getByText('MERGED')).toBeTruthy()
@@ -129,13 +136,14 @@ describe('SessionList', () => {
   })
 
   it('does not show chip for in-progress status', () => {
-    const sessions = [makeSession({ id: 's1', branch: 'b1', branchStatus: 'in-progress' })]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions([makeSession({ id: 's1', branch: 'b1', branchStatus: 'in-progress' })])
+    render(<SessionList {...makeProps()} />)
     expect(screen.queryByText('IN-PROGRESS')).toBeNull()
   })
 
   it('calls onSelectSession when clicking a session', () => {
-    const props = makeProps({ sessions: [makeSession({ id: 's1', branch: 'b1' })] })
+    setSessions([makeSession({ id: 's1', branch: 'b1' })])
+    const props = makeProps()
     render(<SessionList {...props} />)
     fireEvent.click(screen.getByText('b1'))
     expect(props.onSelectSession).toHaveBeenCalledWith('s1')
@@ -149,20 +157,20 @@ describe('SessionList', () => {
   })
 
   it('shows archived section when there are archived sessions', () => {
-    const sessions = [
+    setSessions([
       makeSession({ id: 's1', branch: 'active', isArchived: false }),
       makeSession({ id: 's2', branch: 'archived', isArchived: true }),
-    ]
-    render(<SessionList {...makeProps({ sessions })} />)
+    ])
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText(/Archived \(1\)/)).toBeTruthy()
   })
 
   it('toggles archived section visibility on click', () => {
-    const sessions = [
+    setSessions([
       makeSession({ id: 's1', branch: 'active', isArchived: false }),
       makeSession({ id: 's2', branch: 'archived-branch', isArchived: true }),
-    ]
-    render(<SessionList {...makeProps({ sessions })} />)
+    ])
+    render(<SessionList {...makeProps()} />)
 
     // Archived sessions not visible initially
     expect(screen.queryByText('archived-branch')).toBeNull()
@@ -173,27 +181,28 @@ describe('SessionList', () => {
   })
 
   it('shows PR number when available', () => {
-    const sessions = [makeSession({ id: 's1', branch: 'b1', prNumber: 123 })]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions([makeSession({ id: 's1', branch: 'b1', prNumber: 123 })])
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText('PR #123')).toBeTruthy()
   })
 
   it('shows Review chip for review sessions', () => {
-    const sessions = [makeSession({ id: 's1', branch: 'b1', sessionType: 'review' })]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions([makeSession({ id: 's1', branch: 'b1', sessionType: 'review' })])
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText('Review')).toBeTruthy()
   })
 
   it('shows Reviewed chip for reviewed review sessions', () => {
-    const sessions = [makeSession({ id: 's1', branch: 'b1', sessionType: 'review', reviewStatus: 'reviewed' })]
-    render(<SessionList {...makeProps({ sessions })} />)
+    setSessions([makeSession({ id: 's1', branch: 'b1', sessionType: 'review', reviewStatus: 'reviewed' })])
+    render(<SessionList {...makeProps()} />)
     expect(screen.getByText('Reviewed')).toBeTruthy()
     expect(screen.queryByText('Review')).toBeNull()
   })
 
   describe('keyboard navigation', () => {
     it('selects session on Enter key', () => {
-      const props = makeProps({ sessions: [makeSession({ id: 's1', branch: 'b1' })] })
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      const props = makeProps()
       const { container } = render(<SessionList {...props} />)
       const card = container.querySelector('[tabindex="0"]')!
       fireEvent.keyDown(card, { key: 'Enter' })
@@ -201,16 +210,16 @@ describe('SessionList', () => {
     })
 
     it('opens delete dialog on Delete key', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
-      render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      render(<SessionList {...makeProps()} />)
       const card = screen.getByText('b1').closest('[tabindex="0"]')!
       fireEvent.keyDown(card, { key: 'Delete' })
       expect(screen.getByText('Delete Session')).toBeTruthy()
     })
 
     it('opens delete dialog on Backspace key', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
-      render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      render(<SessionList {...makeProps()} />)
       const card = screen.getByText('b1').closest('[tabindex="0"]')!
       fireEvent.keyDown(card, { key: 'Backspace' })
       expect(screen.getByText('Delete Session')).toBeTruthy()
@@ -219,8 +228,8 @@ describe('SessionList', () => {
 
   describe('delete dialog', () => {
     it('shows delete confirmation dialog', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'del-branch' })]
-      const { container } = render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'del-branch' })])
+      const { container } = render(<SessionList {...makeProps()} />)
       // Click delete button (the X button)
       const deleteBtn = container.querySelector('[title="Delete session"]')!
       fireEvent.click(deleteBtn)
@@ -228,8 +237,8 @@ describe('SessionList', () => {
     })
 
     it('calls onDeleteSession on confirm', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
-      const props = makeProps({ sessions })
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      const props = makeProps()
       const { container } = render(<SessionList {...props} />)
       const deleteBtn = container.querySelector('[title="Delete session"]')!
       fireEvent.click(deleteBtn)
@@ -238,8 +247,8 @@ describe('SessionList', () => {
     })
 
     it('closes delete dialog on cancel', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
-      const { container } = render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      const { container } = render(<SessionList {...makeProps()} />)
       const deleteBtn = container.querySelector('[title="Delete session"]')!
       fireEvent.click(deleteBtn)
       expect(screen.getByText('Delete Session')).toBeTruthy()
@@ -249,8 +258,8 @@ describe('SessionList', () => {
 
     it('shows worktree checkbox for managed worktree sessions', () => {
       const repos = [{ id: 'r1', name: 'repo', remoteUrl: '', rootDir: '/repos/repo', defaultBranch: 'main' }]
-      const sessions = [makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1' })]
-      const { container } = render(<SessionList {...makeProps({ sessions, repos })} />)
+      setSessions([makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1' })])
+      const { container } = render(<SessionList {...makeProps({ repos })} />)
       const deleteBtn = container.querySelector('[title="Delete session"]')!
       fireEvent.click(deleteBtn)
       expect(screen.getByText('Delete worktree and folder')).toBeTruthy()
@@ -258,8 +267,8 @@ describe('SessionList', () => {
 
     it('deletes with worktree when checkbox is checked for managed worktree', () => {
       const repos = [{ id: 'r1', name: 'repo', remoteUrl: '', rootDir: '/repos/repo', defaultBranch: 'main' }]
-      const sessions = [makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1' })]
-      const props = makeProps({ sessions, repos })
+      setSessions([makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1' })])
+      const props = makeProps({ repos })
       const { container } = render(<SessionList {...props} />)
       const deleteBtn = container.querySelector('[title="Delete session"]')!
       fireEvent.click(deleteBtn)
@@ -270,8 +279,8 @@ describe('SessionList', () => {
 
     it('shows warning for in-progress managed worktree', () => {
       const repos = [{ id: 'r1', name: 'repo', remoteUrl: '', rootDir: '/repos/repo', defaultBranch: 'main' }]
-      const sessions = [makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1', branchStatus: 'in-progress' })]
-      const { container } = render(<SessionList {...makeProps({ sessions, repos })} />)
+      setSessions([makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1', branchStatus: 'in-progress' })])
+      const { container } = render(<SessionList {...makeProps({ repos })} />)
       const deleteBtn = container.querySelector('[title="Delete session"]')!
       fireEvent.click(deleteBtn)
       expect(screen.getByText(/work in progress/)).toBeTruthy()
@@ -279,8 +288,8 @@ describe('SessionList', () => {
 
     it('does not show warning for merged/closed sessions', () => {
       const repos = [{ id: 'r1', name: 'repo', remoteUrl: '', rootDir: '/repos/repo', defaultBranch: 'main' }]
-      const sessions = [makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1', branchStatus: 'merged' })]
-      const { container } = render(<SessionList {...makeProps({ sessions, repos })} />)
+      setSessions([makeSession({ id: 's1', branch: 'feature/x', repoId: 'r1', branchStatus: 'merged' })])
+      const { container } = render(<SessionList {...makeProps({ repos })} />)
       const deleteBtn = container.querySelector('[title="Delete session"]')!
       fireEvent.click(deleteBtn)
       expect(screen.queryByText(/work in progress/)).toBeNull()
@@ -289,8 +298,8 @@ describe('SessionList', () => {
 
   describe('archive actions', () => {
     it('calls onArchiveSession when archive button is clicked', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
-      const props = makeProps({ sessions })
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      const props = makeProps()
       const { container } = render(<SessionList {...props} />)
       const archiveBtn = container.querySelector('[title="Archive session"]')!
       fireEvent.click(archiveBtn)
@@ -298,8 +307,8 @@ describe('SessionList', () => {
     })
 
     it('calls onUnarchiveSession when unarchive button is clicked on archived session', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'archived-b', isArchived: true })]
-      const props = makeProps({ sessions })
+      setSessions([makeSession({ id: 's1', branch: 'archived-b', isArchived: true })])
+      const props = makeProps()
       render(<SessionList {...props} />)
       // Expand archived section
       fireEvent.click(screen.getByText(/Archived \(1\)/))
@@ -310,8 +319,8 @@ describe('SessionList', () => {
     })
 
     it('unarchives and selects when clicking an archived session', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'archived-b', isArchived: true })]
-      const props = makeProps({ sessions })
+      setSessions([makeSession({ id: 's1', branch: 'archived-b', isArchived: true })])
+      const props = makeProps()
       render(<SessionList {...props} />)
       fireEvent.click(screen.getByText(/Archived \(1\)/))
       fireEvent.click(screen.getByText('archived-b'))
@@ -340,21 +349,27 @@ describe('SessionList', () => {
   })
 
   describe('status indicators', () => {
-    it('shows working spinner', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1', status: 'working' })]
-      const { container } = render(<SessionList {...makeProps({ sessions })} />)
+    it('shows working spinner after debounce', async () => {
+      vi.useFakeTimers()
+      setSessions([makeSession({ id: 's1', branch: 'b1', status: 'working' })])
+      const { container } = render(<SessionList {...makeProps()} />)
+      // Spinner is debounced — not shown immediately
+      expect(container.querySelector('.animate-spin')).toBeNull()
+      // After 1.5s debounce, spinner appears
+      await vi.advanceTimersByTimeAsync(1500)
       expect(container.querySelector('.animate-spin')).toBeTruthy()
+      vi.useRealTimers()
     })
 
     it('shows error dot', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1', status: 'error' })]
-      const { container } = render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'b1', status: 'error' })])
+      const { container } = render(<SessionList {...makeProps()} />)
       expect(container.querySelector('.bg-status-error')).toBeTruthy()
     })
 
     it('shows EMPTY branch status chip', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1', branchStatus: 'empty' })]
-      render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'b1', branchStatus: 'empty' })])
+      render(<SessionList {...makeProps()} />)
       expect(screen.getByText('EMPTY')).toBeTruthy()
     })
   })
@@ -366,11 +381,11 @@ describe('SessionList', () => {
     })
 
     it('filters sessions by branch name', () => {
-      const sessions = [
+      setSessions([
         makeSession({ id: 's1', branch: 'feature/auth' }),
         makeSession({ id: 's2', branch: 'fix/bug-42' }),
-      ]
-      render(<SessionList {...makeProps({ sessions })} />)
+      ])
+      render(<SessionList {...makeProps()} />)
       const input = screen.getByPlaceholderText('Search sessions...')
       fireEvent.change(input, { target: { value: 'auth' } })
       expect(screen.getByText('feature/auth')).toBeTruthy()
@@ -378,11 +393,11 @@ describe('SessionList', () => {
     })
 
     it('filters sessions by repo name', () => {
-      const sessions = [
+      setSessions([
         makeSession({ id: 's1', branch: 'b1', name: 'my-app' }),
         makeSession({ id: 's2', branch: 'b2', name: 'other-project' }),
-      ]
-      render(<SessionList {...makeProps({ sessions })} />)
+      ])
+      render(<SessionList {...makeProps()} />)
       const input = screen.getByPlaceholderText('Search sessions...')
       fireEvent.change(input, { target: { value: 'my-app' } })
       expect(screen.getByText('b1')).toBeTruthy()
@@ -390,11 +405,11 @@ describe('SessionList', () => {
     })
 
     it('filters sessions by last message', () => {
-      const sessions = [
+      setSessions([
         makeSession({ id: 's1', branch: 'b1', lastMessage: 'Implementing auth' }),
         makeSession({ id: 's2', branch: 'b2', lastMessage: 'Running tests' }),
-      ]
-      render(<SessionList {...makeProps({ sessions })} />)
+      ])
+      render(<SessionList {...makeProps()} />)
       const input = screen.getByPlaceholderText('Search sessions...')
       fireEvent.change(input, { target: { value: 'tests' } })
       expect(screen.queryByText('b1')).toBeNull()
@@ -402,16 +417,16 @@ describe('SessionList', () => {
     })
 
     it('shows no matching sessions message when search has no results', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
-      render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      render(<SessionList {...makeProps()} />)
       const input = screen.getByPlaceholderText('Search sessions...')
       fireEvent.change(input, { target: { value: 'nonexistent' } })
       expect(screen.getByText('No matching sessions.')).toBeTruthy()
     })
 
     it('Escape in search clears query and blurs', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'b1' })]
-      render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'b1' })])
+      render(<SessionList {...makeProps()} />)
       const input = screen.getByPlaceholderText('Search sessions...')
       fireEvent.change(input, { target: { value: 'test' } })
       fireEvent.keyDown(input, { key: 'Escape' })
@@ -419,20 +434,20 @@ describe('SessionList', () => {
     })
 
     it('search is case-insensitive', () => {
-      const sessions = [makeSession({ id: 's1', branch: 'Feature/Auth' })]
-      render(<SessionList {...makeProps({ sessions })} />)
+      setSessions([makeSession({ id: 's1', branch: 'Feature/Auth' })])
+      render(<SessionList {...makeProps()} />)
       const input = screen.getByPlaceholderText('Search sessions...')
       fireEvent.change(input, { target: { value: 'feature' } })
       expect(screen.getByText('Feature/Auth')).toBeTruthy()
     })
 
     it('also filters archived sessions', () => {
-      const sessions = [
+      setSessions([
         makeSession({ id: 's1', branch: 'active-match', isArchived: false }),
         makeSession({ id: 's2', branch: 'archived-match', isArchived: true }),
         makeSession({ id: 's3', branch: 'archived-other', isArchived: true }),
-      ]
-      render(<SessionList {...makeProps({ sessions })} />)
+      ])
+      render(<SessionList {...makeProps()} />)
       const input = screen.getByPlaceholderText('Search sessions...')
       fireEvent.change(input, { target: { value: 'match' } })
 
