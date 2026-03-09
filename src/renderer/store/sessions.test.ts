@@ -75,6 +75,7 @@ describe('useSessionStore', () => {
       },
       branchStatus: 'in-progress' as const,
       isArchived: false,
+      isRestored: false,
     }
     return session
   }
@@ -107,7 +108,7 @@ describe('useSessionStore', () => {
       })
 
       await useSessionStore.getState().loadSessions()
-      expect(useSessionStore.getState().sessions[0].explorerFilter).toBe('files')
+      expect(useSessionStore.getState().sessions[0].explorerFilter).toBe('source-control')
     })
 
     it('migrates legacy explorerFilter "changed" to "source-control"', async () => {
@@ -705,28 +706,6 @@ describe('useSessionStore', () => {
 
       useSessionStore.getState().closeTerminalTabsToRight('s1', 't1')
       expect(useSessionStore.getState().sessions[0].terminalTabs.activeTabId).toBe('t1')
-    })
-  })
-
-  describe('push tracking', () => {
-    it('recordPushToMain sets timestamp and commit', () => {
-      const s1 = createTestSession({ id: 's1' })
-      useSessionStore.setState({ sessions: [s1], isLoading: false })
-
-      useSessionStore.getState().recordPushToMain('s1', 'abc123')
-      const session = useSessionStore.getState().sessions[0]
-      expect(session.pushedToMainAt).toBeGreaterThan(0)
-      expect(session.pushedToMainCommit).toBe('abc123')
-    })
-
-    it('clearPushToMain clears push tracking', () => {
-      const s1 = { ...createTestSession({ id: 's1' }), pushedToMainAt: 123, pushedToMainCommit: 'abc' }
-      useSessionStore.setState({ sessions: [s1], isLoading: false })
-
-      useSessionStore.getState().clearPushToMain('s1')
-      const session = useSessionStore.getState().sessions[0]
-      expect(session.pushedToMainAt).toBeUndefined()
-      expect(session.pushedToMainCommit).toBeUndefined()
     })
   })
 

@@ -56,7 +56,7 @@ import { E2EScenario, type HandlerContext } from './types'
 function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
   return {
     isE2ETest: false,
-    e2eScenario: E2EScenario.Default,
+    e2eScenario: E2EScenario.Default, e2eRealRepos: false,
     isDev: false,
     isWindows: false,
     ptyProcesses: new Map(),
@@ -67,6 +67,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   }
 }
@@ -225,7 +226,8 @@ describe('gitBasic handlers', () => {
         tracking: null,
         current: 'feature',
       })
-      mockGitInstance.raw.mockImplementation((args: string[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      mockGitInstance.raw.mockImplementation((args: string[]): Promise<string> => {
         if (args[0] === 'rev-parse' && args[2] === 'MERGE_HEAD') {
           return Promise.resolve('abc123')
         }
@@ -244,7 +246,8 @@ describe('gitBasic handlers', () => {
         tracking: null,
         current: 'feature',
       })
-      mockGitInstance.raw.mockImplementation((args: string[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      mockGitInstance.raw.mockImplementation((args: string[]): Promise<string> => {
         if (args[0] === 'rev-parse' && args[2] === 'MERGE_HEAD') {
           return Promise.reject(new Error('not a merge'))
         }

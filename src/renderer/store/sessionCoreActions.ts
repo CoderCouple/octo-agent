@@ -2,9 +2,8 @@
  * Core session store actions for creating, selecting, removing, and updating sessions.
  */
 import { basename } from 'path-browserify'
-import { useErrorStore } from './errors'
 import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/types'
-import type { Session, PanelVisibility, TerminalTabsState } from './sessions'
+import type { Session, PanelVisibility, TerminalTabsState, PrState } from './sessions'
 import {
   debouncedSave,
   createPanelVisibilityFromLegacy,
@@ -12,6 +11,12 @@ import {
   getCurrentProfileId,
   setLoadedSessionCount,
 } from './sessionPersistence'
+import {
+  SIDEBAR_MIN, SIDEBAR_MAX,
+  EXPLORER_MIN, EXPLORER_MAX,
+  FILE_VIEWER_MIN_HEIGHT,
+  TUTORIAL_MIN, TUTORIAL_MAX,
+} from '../hooks/useDividerResize'
 
 export const DEFAULT_SIDEBAR_WIDTH = 224 // 14rem = 224px
 
@@ -22,6 +27,24 @@ const DEFAULT_LAYOUT_SIZES = {
   userTerminalHeight: 192, // 12rem = 192px
   diffPanelWidth: 320, // 20rem = 320px
   tutorialPanelWidth: 320,
+}
+
+// Clamp a value between min and max
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max))
+
+// Clamp layout sizes to respect minimums on load
+function clampLayoutSizes(sizes: typeof DEFAULT_LAYOUT_SIZES): typeof DEFAULT_LAYOUT_SIZES {
+  return {
+    ...sizes,
+    explorerWidth: clamp(sizes.explorerWidth, EXPLORER_MIN, EXPLORER_MAX),
+    fileViewerSize: Math.max(sizes.fileViewerSize, FILE_VIEWER_MIN_HEIGHT),
+    tutorialPanelWidth: clamp(sizes.tutorialPanelWidth, TUTORIAL_MIN, TUTORIAL_MAX),
+  }
+}
+
+// Clamp sidebar width on load
+function clampSidebarWidth(width: number): number {
+  return clamp(width, SIDEBAR_MIN, SIDEBAR_MAX)
 }
 
 // Default panel visibility for new sessions
@@ -81,6 +104,7 @@ type StoreSet = (partial: Partial<{
   sessions: Session[]
   activeSessionId: string | null
   isLoading: boolean
+  configLoadError: string | null
   showSidebar: boolean
   sidebarWidth: number
   toolbarPanels: string[]
@@ -154,6 +178,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             issueTitle: sessionData.issueTitle,
             issueUrl: sessionData.issueUrl,
             sessionType: sessionData.sessionType,
+            reviewStatus: sessionData.reviewStatus,
             prNumber: sessionData.prNumber,
             prTitle: sessionData.prTitle,
             prUrl: sessionData.prUrl,
@@ -165,24 +190,23 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             selectedFilePath: null,
             planFilePath: null,
             fileViewerPosition: sessionData.fileViewerPosition ?? 'top',
-            layoutSizes: { ...DEFAULT_LAYOUT_SIZES, ...(sessionData.layoutSizes ?? {}) },
-            explorerFilter: sessionData.explorerFilter === 'all' ? 'files'
+            layoutSizes: clampLayoutSizes({ ...DEFAULT_LAYOUT_SIZES, ...(sessionData.layoutSizes ?? {}) }),
+            explorerFilter: sessionData.explorerFilter === 'all' ? 'source-control'
               : sessionData.explorerFilter === 'changed' ? 'source-control'
-              : sessionData.explorerFilter ?? 'files',
+              : sessionData.explorerFilter ?? 'source-control',
             lastMessage: null,
             lastMessageTime: null,
             isUnread: false,
             workingStartTime: null,
             recentFiles: [],
             terminalTabs: (sessionData.terminalTabs as TerminalTabsState | undefined) ?? createDefaultTerminalTabs(),
-            pushedToMainAt: sessionData.pushedToMainAt,
-            pushedToMainCommit: sessionData.pushedToMainCommit,
             hasHadCommits: sessionData.hasHadCommits,
             branchStatus: 'in-progress',
             lastKnownPrState: sessionData.lastKnownPrState,
             lastKnownPrNumber: sessionData.lastKnownPrNumber,
             lastKnownPrUrl: sessionData.lastKnownPrUrl,
             isArchived: sessionData.isArchived ?? false,
+            isRestored: true,
           }
           sessions.push(session)
         }
@@ -199,18 +223,17 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
           activeSessionId: (sessions.find((s) => !s.isArchived) ?? (sessions[0] as Session | undefined))?.id ?? null,
           isLoading: false,
           showSidebar: config.showSidebar ?? true,
-          sidebarWidth: config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
+          sidebarWidth: clampSidebarWidth(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH),
           toolbarPanels: migrateToolbarPanels(config.toolbarPanels),
           globalPanelVisibility,
         })
       } catch (err) {
         console.warn('[sessions] Failed to load sessions config:', err)
-        useErrorStore.getState().addError('Failed to load session config')
-        set({ sessions: [], activeSessionId: null, isLoading: false })
+        set({ sessions: [], activeSessionId: null, isLoading: false, configLoadError: 'Failed to load session config' })
       }
     },
 
-    addSession: async (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }): Promise<DuplicateSessionResult | undefined> => {
+    addSession: async (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string; lastKnownPrState?: PrState }): Promise<DuplicateSessionResult | undefined> => {
       const isGitRepo = await window.git.isGitRepo(directory)
       if (!isGitRepo) {
         throw new Error('Selected directory is not a git repository')
@@ -260,15 +283,17 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         planFilePath: null,
         fileViewerPosition: 'top',
         layoutSizes: { ...DEFAULT_LAYOUT_SIZES },
-        explorerFilter: isReview ? 'review' : 'files',
+        reviewStatus: isReview ? 'pending' : undefined,
+        explorerFilter: isReview ? 'review' : 'source-control',
         lastMessage: null,
         lastMessageTime: null,
         isUnread: false,
         workingStartTime: null,
         recentFiles: [],
         terminalTabs: createDefaultTerminalTabs(),
-        branchStatus: 'in-progress',
+        branchStatus: extra?.lastKnownPrState === 'OPEN' ? 'open' : 'in-progress',
         isArchived: false,
+        isRestored: false,
       }
 
       const { sessions } = get()
@@ -284,11 +309,21 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
 
     removeSession: (id: string) => {
       const { sessions, activeSessionId } = get()
+      const removedIndex = sessions.findIndex((s) => s.id === id)
       const updatedSessions = sessions.filter((s) => s.id !== id)
 
       let newActiveId = activeSessionId
-      if (activeSessionId === id) {
-        newActiveId = updatedSessions.length > 0 ? updatedSessions[0].id : null
+      if (activeSessionId === id && updatedSessions.length > 0) {
+        // Prefer the next non-archived session, then previous, then any
+        const nextIndex = Math.min(removedIndex, updatedSessions.length - 1)
+        const candidates = [
+          ...updatedSessions.slice(nextIndex),
+          ...updatedSessions.slice(0, nextIndex),
+        ]
+        const nonArchived = candidates.find((s) => !s.isArchived)
+        newActiveId = nonArchived?.id ?? candidates[0].id
+      } else if (updatedSessions.length === 0) {
+        newActiveId = null
       }
 
       set({

@@ -15,11 +15,12 @@ import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 import { join, dirname } from 'path'
 import { existsSync, readFileSync, FSWatcher } from 'fs'
+import { execFileSync } from 'child_process'
 import * as pty from 'node-pty'
-import { isWindows, isMac, isLinux, resolveWindowsCommand } from './platform'
+import { isWindows, isMac, isLinux, resolveCommand, enhancedPath } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
 import { resolveShellEnv } from './shellEnv'
-import { writeCrashLog, checkForUncleanShutdown, markRunning, markCleanExit } from './crashLog'
+import { writeCrashLog, appendErrorLog, checkForUncleanShutdown, markRunning, markCleanExit } from './crashLog'
 import { disposePtyListenersForWindow, disposeAllPtyListeners } from './handlers/pty'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
@@ -34,17 +35,21 @@ const isE2ETest = process.env.E2E_TEST === 'true'
 // Check if we should hide the window (headless mode)
 const isHeadless = process.env.E2E_HEADLESS !== 'false'
 
-// On Windows, ensure git and gh are on PATH even if installed in non-standard locations
+// Extend PATH with common bin directories (e.g. ~/.local/bin, /opt/homebrew/bin)
+// so tools like claude, git, gh are found even before resolveShellEnv() runs.
+process.env.PATH = enhancedPath(process.env.PATH)
+
+// On Windows, also resolve git/gh from well-known install locations
 if (isWindows) {
   const dirsToAdd = new Set<string>()
   for (const cmd of ['git', 'gh'] as const) {
-    const resolved = resolveWindowsCommand(cmd)
+    const resolved = resolveCommand(cmd)
     if (resolved) {
       dirsToAdd.add(dirname(resolved))
     }
   }
   if (dirsToAdd.size > 0) {
-    const current = process.env.PATH ?? ''
+    const current = process.env.PATH || ''
     process.env.PATH = `${[...dirsToAdd].join(';')};${current}`
   }
 }
@@ -61,6 +66,7 @@ if (!isE2ETest) {
   process.on('uncaughtException', (error) => {
     console.error('Uncaught exception:', error)
     try {
+      appendErrorLog('main', error instanceof Error ? (error.stack ?? error.message) : String(error))
       writeCrashLog(error, 'main')
       dialog.showErrorBox('Broomy crashed', error.message || String(error))
     } catch {
@@ -72,6 +78,7 @@ if (!isE2ETest) {
   process.on('unhandledRejection', (reason) => {
     console.error('Unhandled rejection:', reason)
     try {
+      appendErrorLog('main', reason instanceof Error ? (reason.stack ?? reason.message) : String(reason))
       writeCrashLog(reason, 'main')
       dialog.showErrorBox('Broomy crashed', reason instanceof Error ? reason.message : String(reason))
     } catch {
@@ -91,6 +98,8 @@ const profileWindows = new Map<string, BrowserWindow>()
 const ptyOwnerWindows = new Map<string, BrowserWindow>()
 // Track which window owns each file watcher
 const watcherOwnerWindows = new Map<string, BrowserWindow>()
+// Track Docker containers for isolation
+const dockerContainers = new Map<string, import('./handlers/types').DockerContainerState>()
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(profileId?: string): BrowserWindow {
@@ -122,8 +131,22 @@ function createWindow(profileId?: string): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: true,
     },
     acceptFirstMouse: true,
+  })
+
+  // Security: restrict webview tags to HTTPS URLs only
+  window.webContents.on('will-attach-webview', (_event, webPreferences, params) => {
+    // Strip away preload scripts
+    delete webPreferences.preload
+    webPreferences.nodeIntegration = false
+    webPreferences.contextIsolation = true
+
+    // Only allow HTTPS URLs
+    if (params.src && !params.src.startsWith('https://')) {
+      _event.preventDefault()
+    }
   })
 
   // Track the first window as mainWindow for backwards compat
@@ -157,6 +180,14 @@ function createWindow(profileId?: string): BrowserWindow {
   // Log renderer errors
   window.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
     console.error('Failed to load:', errorCode, errorDescription)
+    appendErrorLog('did-fail-load', `${errorCode}: ${errorDescription}`)
+  })
+
+  window.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
+    // level 3 = error (0=verbose, 1=info, 2=warning, 3=error)
+    if (level >= 3) {
+      appendErrorLog('renderer', message)
+    }
   })
 
   window.webContents.on('render-process-gone', (_event, details) => {
@@ -257,6 +288,7 @@ function createWindow(profileId?: string): BrowserWindow {
 const context: HandlerContext & { createWindow: (profileId?: string) => BrowserWindow } = {
   isE2ETest,
   get e2eScenario() { return (process.env.E2E_SCENARIO || 'default') as import('./handlers/types').E2EScenario },
+  e2eRealRepos: process.env.E2E_REAL_REPOS === 'true',
   isDev,
   isWindows,
   ptyProcesses,
@@ -267,6 +299,7 @@ const context: HandlerContext & { createWindow: (profileId?: string) => BrowserW
   get mainWindow() { return mainWindow },
   E2E_MOCK_SHELL: process.env.E2E_MOCK_SHELL,
   FAKE_CLAUDE_SCRIPT: process.env.FAKE_CLAUDE_SCRIPT,
+  dockerContainers,
   createWindow,
 }
 
@@ -345,15 +378,31 @@ function buildAppMenu() {
     {
       label: 'View',
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
+        ...(isDev
+          ? [
+              { role: 'reload' as const },
+              { role: 'forceReload' as const },
+              { role: 'toggleDevTools' as const },
+              { type: 'separator' as const },
+            ]
+          : []),
         { role: 'resetZoom' },
         { role: 'zoomIn' },
         { role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Agent',
+      submenu: [
+        {
+          label: 'Restart Agent',
+          accelerator: 'CmdOrCtrl+Shift+R',
+          click: (_, browserWindow) => {
+            browserWindow?.webContents.send('agent:restart')
+          },
+        },
       ],
     },
     {
@@ -470,7 +519,34 @@ app.on('window-all-closed', () => {
     watcher.close()
     fileWatchers.delete(id)
   }
+  stopDockerContainers()
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
+
+// Also stop containers on Cmd+Q / Quit (macOS doesn't always fire window-all-closed)
+app.on('will-quit', () => {
+  stopDockerContainers()
+})
+
+function stopDockerContainers() {
+  // Stop legacy broomy-managed containers (backward compat — can be removed in a future release)
+  try {
+    const ids = execFileSync('docker', ['ps', '-q', '--filter', 'name=broomy-'], { encoding: 'utf-8' }).trim()
+    if (ids) {
+      execFileSync('docker', ['stop', ...ids.split('\n').filter(Boolean)], { timeout: 10000 })
+    }
+  } catch {
+    // Docker not available or already stopped — ignore
+  }
+  // Stop any tracked devcontainers
+  for (const [, state] of context.dockerContainers) {
+    try {
+      execFileSync('docker', ['stop', state.containerId], { timeout: 10000 })
+    } catch {
+      // Already stopped or gone — ignore
+    }
+  }
+  context.dockerContainers.clear()
+}

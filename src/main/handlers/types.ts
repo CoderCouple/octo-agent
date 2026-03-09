@@ -22,9 +22,17 @@ export enum E2EScenario {
   Marketing = 'marketing',
 }
 
+export type DockerContainerState = {
+  containerId: string
+  repoDir: string
+  image: string
+}
+
 export interface HandlerContext {
   isE2ETest: boolean
   e2eScenario: E2EScenario
+  /** When true, E2E handlers fall through to real fs/git for session directories. */
+  e2eRealRepos: boolean
   isDev: boolean
   isWindows: boolean
   ptyProcesses: Map<string, IPty>
@@ -35,6 +43,7 @@ export interface HandlerContext {
   mainWindow: BrowserWindow | null
   E2E_MOCK_SHELL: string | undefined
   FAKE_CLAUDE_SCRIPT: string | undefined
+  dockerContainers: Map<string, DockerContainerState>
 }
 
 // Config directory and file constants
@@ -65,8 +74,8 @@ export function getProfileInitScriptsDir(profileId: string): string {
 
 // Default agents
 export const DEFAULT_AGENTS = [
-  { id: 'claude', name: 'Claude Code', command: 'claude', color: '#D97757' },
-  { id: 'codex', name: 'Codex', command: 'codex', color: '#10A37F' },
+  { id: 'claude', name: 'Claude Code', command: 'claude', color: '#D97757', skipApprovalFlag: '--dangerously-skip-permissions' },
+  { id: 'codex', name: 'Codex', command: 'codex', color: '#10A37F', skipApprovalFlag: '--approval-mode full-auto' },
   { id: 'gemini', name: 'Gemini CLI', command: 'gemini', color: '#4285F4' },
   { id: 'copilot', name: 'GitHub Copilot', command: 'copilot', color: '#6E40C9' },
 ]

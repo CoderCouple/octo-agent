@@ -6,12 +6,42 @@ describe('humanizeError', () => {
     expect(humanizeError('some random error')).toBe('some random error')
   })
 
+  it('matches git identity errors', () => {
+    expect(humanizeError('fatal: Please tell me who you are')).toBe(
+      'Git identity not configured. Set your name and email to use git.'
+    )
+    expect(humanizeError('Author identity unknown')).toBe(
+      'Git identity not configured. Set your name and email to use git.'
+    )
+    expect(humanizeError('fatal: empty ident name not allowed')).toBe(
+      'Git identity not configured. Set your name and email to use git.'
+    )
+  })
+
+  it('matches git merge mode errors', () => {
+    expect(humanizeError('fatal: Need to specify how to reconcile divergent branches.')).toBe(
+      'Git default merge mode not configured.'
+    )
+  })
+
   it('matches authentication errors', () => {
     expect(humanizeError('fatal: Authentication failed for repo')).toBe(
-      'Git authentication failed. Check your SSH keys or HTTPS credentials.'
+      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
     )
     expect(humanizeError('Permission denied (publickey)')).toBe(
-      'Git authentication failed. Check your SSH keys or HTTPS credentials.'
+      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
+    )
+  })
+
+  it('matches "could not read Username" auth error', () => {
+    expect(humanizeError("fatal: could not read Username for 'https://github.com': terminal prompts disabled")).toBe(
+      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
+    )
+  })
+
+  it('matches "terminal prompts disabled" auth error', () => {
+    expect(humanizeError('fatal: terminal prompts disabled')).toBe(
+      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
     )
   })
 
@@ -106,7 +136,7 @@ describe('humanizeError', () => {
     // "permission denied" could match both auth and file permission rules
     // but auth rule comes first
     expect(humanizeError('Permission denied (publickey)')).toBe(
-      'Git authentication failed. Check your SSH keys or HTTPS credentials.'
+      'Git authentication failed. Run "gh auth login" in a terminal to set up credentials.'
     )
   })
 })

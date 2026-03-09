@@ -120,7 +120,7 @@ test.describe.serial('Feature: Fast Explorer File Tree', () => {
     if (await sourceControlTab.isVisible()) {
       await sourceControlTab.click()
       // Wait for the source control view to render
-      await page.waitForTimeout(500)
+      await explorerPanel.locator('[data-testid="source-control"], .source-control-view, text=/Staged|Changes|Up to date/i').first().waitFor({ timeout: 5000 }).catch(() => {})
     }
 
     await screenshotElement(
@@ -146,7 +146,7 @@ test.describe.serial('Feature: Fast Explorer File Tree', () => {
     const filesTab = explorerPanel.locator('button:has-text("Files")')
     if (await filesTab.isVisible()) {
       await filesTab.click()
-      await page.waitForTimeout(300)
+      await explorerPanel.locator('[data-tree-item]').first().waitFor({ timeout: 5000 }).catch(() => {})
     }
 
     // The tree should still be expanded from step 2

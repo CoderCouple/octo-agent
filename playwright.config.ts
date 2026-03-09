@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: './tests',
   testIgnore: process.env.GENERATE_SCREENSHOTS
     ? []
-    : ['**/screenshots.spec.ts', '**/features/**'],
+    : ['**/screenshots.spec.ts', '**/features/**', '**/docker-isolation.spec.ts'],
   timeout: 30000,
   expect: {
     timeout: 5000,

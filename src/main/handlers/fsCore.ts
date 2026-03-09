@@ -13,7 +13,7 @@ import { HandlerContext } from './types'
 import { getScenarioData, SHARED_README } from './scenarios'
 
 async function handleReadDir(ctx: HandlerContext, dirPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     const scenario = getScenarioData(ctx.e2eScenario)
     const entries = scenario.fileTree.readDir(dirPath)
     if (entries) {
@@ -46,7 +46,7 @@ async function handleReadDir(ctx: HandlerContext, dirPath: string) {
 }
 
 async function handleReadFile(ctx: HandlerContext, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     const scenario = getScenarioData(ctx.e2eScenario)
     const scenarioContent = scenario.readFile(filePath)
     if (scenarioContent !== null) return scenarioContent
@@ -70,7 +70,7 @@ async function handleReadFile(ctx: HandlerContext, filePath: string) {
 }
 
 async function handleWriteFile(ctx: HandlerContext, filePath: string, content: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -83,7 +83,7 @@ async function handleWriteFile(ctx: HandlerContext, filePath: string, content: s
 }
 
 async function handleAppendFile(ctx: HandlerContext, filePath: string, content: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -102,9 +102,13 @@ async function handleExists(ctx: HandlerContext, filePath: string) {
       return true
     }
     // Review/comments files always exist for mock data in any scenario
-    if (/\.broomy[/\\](review|comments)\.json$/.exec(filePath)) {
+    if (/\.broomy[/\\]output[/\\](review|comments)\.json$/.exec(filePath)) {
       return true
     }
+    if (/\.broomy[/\\](output[/\\])?review\.md$/.exec(filePath)) {
+      return true
+    }
+    // Fall through to real fs for other paths (e.g. .git directory checks)
   }
   try {
     await access(filePath)
@@ -115,7 +119,7 @@ async function handleExists(ctx: HandlerContext, filePath: string) {
 }
 
 async function handleMkdir(ctx: HandlerContext, dirPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -134,7 +138,7 @@ async function handleMkdir(ctx: HandlerContext, dirPath: string) {
 }
 
 async function handleRm(ctx: HandlerContext, targetPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -152,7 +156,7 @@ async function handleRm(ctx: HandlerContext, targetPath: string) {
 }
 
 async function handleRename(ctx: HandlerContext, oldPath: string, newPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -165,7 +169,7 @@ async function handleRename(ctx: HandlerContext, oldPath: string, newPath: strin
 }
 
 async function handleCreateFile(ctx: HandlerContext, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -184,7 +188,7 @@ async function handleCreateFile(ctx: HandlerContext, filePath: string) {
 }
 
 async function handleReadFileBase64(ctx: HandlerContext, filePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
   }
 
@@ -204,10 +208,10 @@ async function handleReadFileBase64(ctx: HandlerContext, filePath: string) {
   return buffer.toString('base64')
 }
 
-const MAX_WATCHERS = 128
+const MAX_WATCHERS = 8
 
-function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string, dirPath: string) {
-  if (ctx.isE2ETest) {
+async function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string, watchPath: string) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -226,9 +230,14 @@ function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string
   }
 
   try {
-    const watcher = watch(dirPath, { recursive: true }, (eventType, filename) => {
-      if (filename?.startsWith('.git')) return
+    await access(watchPath)
+  } catch {
+    // Path doesn't exist yet — not an error, just nothing to watch
+    return { success: false, error: 'Path does not exist' }
+  }
 
+  try {
+    const watcher = watch(watchPath, (eventType, filename) => {
       const ownerWindow = ctx.watcherOwnerWindows.get(id) || ctx.mainWindow
       if (ownerWindow && !ownerWindow.isDestroyed()) {
         ownerWindow.webContents.send(`fs:change:${id}`, { eventType, filename })
@@ -238,7 +247,11 @@ function handleWatch(ctx: HandlerContext, _event: IpcMainInvokeEvent, id: string
     ctx.fileWatchers.set(id, watcher)
 
     watcher.on('error', (error) => {
-      console.error('File watcher error:', error)
+      console.error(`[fs:watch] Watcher error for ${id}:`, error)
+      const ownerWindow = ctx.watcherOwnerWindows.get(id) || ctx.mainWindow
+      if (ownerWindow && !ownerWindow.isDestroyed()) {
+        ownerWindow.webContents.send(`fs:watchError:${id}`, String(error))
+      }
       watcher.close()
       ctx.fileWatchers.delete(id)
       ctx.watcherOwnerWindows.delete(id)
@@ -256,6 +269,7 @@ function handleUnwatch(ctx: HandlerContext, id: string) {
   if (watcher) {
     watcher.close()
     ctx.fileWatchers.delete(id)
+    ctx.watcherOwnerWindows.delete(id)
   }
   return { success: true }
 }
@@ -271,6 +285,6 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('fs:rename', (_event, oldPath: string, newPath: string) => handleRename(ctx, oldPath, newPath))
   ipcMain.handle('fs:createFile', (_event, filePath: string) => handleCreateFile(ctx, filePath))
   ipcMain.handle('fs:readFileBase64', (_event, filePath: string) => handleReadFileBase64(ctx, filePath))
-  ipcMain.handle('fs:watch', (_event, id: string, dirPath: string) => handleWatch(ctx, _event, id, dirPath))
+  ipcMain.handle('fs:watch', (_event, id: string, watchPath: string) => handleWatch(ctx, _event, id, watchPath))
   ipcMain.handle('fs:unwatch', (_event, id: string) => handleUnwatch(ctx, id))
 }

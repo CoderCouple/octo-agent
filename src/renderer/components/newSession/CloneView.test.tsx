@@ -110,8 +110,13 @@ describe('CloneView', () => {
 
     await waitFor(() => {
       expect(window.git.clone).toHaveBeenCalled()
-      expect(onComplete).toHaveBeenCalled()
+      // No write access — shows warning with "Continue anyway" button
+      expect(screen.getByText('No write access')).toBeTruthy()
     })
+
+    // Click "Continue anyway" to proceed
+    fireEvent.click(screen.getByText('Continue anyway (read-only)'))
+    expect(onComplete).toHaveBeenCalled()
   })
 
   it('updates location when Browse returns a folder', async () => {
@@ -154,6 +159,40 @@ describe('CloneView', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Auth failed/)).toBeTruthy()
+    })
+  })
+
+  it('renders isolation settings', () => {
+    render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+    expect(screen.getByText('Run agent in isolated container')).toBeTruthy()
+    expect(screen.getByText('Auto-approve agent commands')).toBeTruthy()
+  })
+
+  it('passes isolation fields to addRepo', async () => {
+    vi.mocked(window.git.clone).mockResolvedValue({ success: true })
+    vi.mocked(window.git.defaultBranch).mockResolvedValue('main')
+    vi.mocked(window.git.remoteUrl).mockResolvedValue('https://github.com/user/test.git')
+    vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(false)
+    vi.mocked(window.config.load).mockResolvedValue({ agents: [], sessions: [], repos: [{ id: 'repo-1', name: 'test', remoteUrl: 'https://github.com/user/test.git', rootDir: '~/repos/test', defaultBranch: 'main' }] })
+    const addRepo = vi.fn()
+    useRepoStore.setState({ addRepo })
+
+    render(<CloneView onBack={vi.fn()} onComplete={vi.fn()} />)
+
+    // Enable isolation
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0]) // isolated
+    fireEvent.click(checkboxes[1]) // skipApproval
+
+    const urlInput = screen.getByPlaceholderText(/https:\/\/github\.com/)
+    fireEvent.change(urlInput, { target: { value: 'https://github.com/user/test.git' } })
+    fireEvent.click(screen.getByText('Clone'))
+
+    await waitFor(() => {
+      expect(addRepo).toHaveBeenCalledWith(expect.objectContaining({
+        isolated: true,
+        skipApproval: true,
+      }))
     })
   })
 

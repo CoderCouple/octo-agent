@@ -1,7 +1,7 @@
 /**
  * Agent configuration tab for creating, editing, and deleting agent definitions.
  */
-import type { RefObject } from 'react'
+import { type RefObject } from 'react'
 import type { AgentConfig } from '../store/agents'
 import { EnvVarEditor, type EnvVarEditorRef } from './EnvVarEditor'
 
@@ -13,11 +13,13 @@ interface AgentSettingsAgentTabProps {
   command: string
   color: string
   env: Record<string, string>
+  skipApprovalFlag: string
   envEditorRef: RefObject<EnvVarEditorRef>
   onNameChange: (v: string) => void
   onCommandChange: (v: string) => void
   onColorChange: (v: string) => void
   onEnvChange: (v: Record<string, string>) => void
+  onSkipApprovalFlagChange: (v: string) => void
   onEdit: (agent: AgentConfig) => void
   onUpdate: () => void
   onDelete: (id: string) => void
@@ -34,11 +36,13 @@ export function AgentSettingsAgentTab({
   command,
   color,
   env,
+  skipApprovalFlag,
   envEditorRef,
   onNameChange,
   onCommandChange,
   onColorChange,
   onEnvChange,
+  onSkipApprovalFlagChange,
   onEdit,
   onUpdate,
   onDelete,
@@ -68,11 +72,13 @@ export function AgentSettingsAgentTab({
                 command={command}
                 color={color}
                 env={env}
+                skipApprovalFlag={skipApprovalFlag}
                 envEditorRef={envEditorRef}
                 onNameChange={onNameChange}
                 onCommandChange={onCommandChange}
                 onColorChange={onColorChange}
                 onEnvChange={onEnvChange}
+                onSkipApprovalFlagChange={onSkipApprovalFlagChange}
                 onSave={onUpdate}
                 onCancel={onCancel}
               />
@@ -117,6 +123,19 @@ export function AgentSettingsAgentTab({
             className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent"
           />
           <EnvVarEditor ref={envEditorRef} env={env} onChange={onEnvChange} command={command} />
+          <div className="space-y-1">
+            <label className="text-xs text-text-secondary">Auto-approve flag</label>
+            <input
+              type="text"
+              value={skipApprovalFlag}
+              onChange={(e) => onSkipApprovalFlagChange(e.target.value)}
+              placeholder="e.g., --dangerously-skip-permissions"
+              className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary font-mono placeholder-text-secondary focus:outline-none focus:border-accent"
+            />
+            <p className="text-xs text-text-tertiary">
+              Appended to the command when the repo has auto-approve enabled.
+            </p>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={onAdd}
@@ -155,11 +174,13 @@ function AgentEditForm({
   command,
   color,
   env,
+  skipApprovalFlag,
   envEditorRef,
   onNameChange,
   onCommandChange,
   onColorChange,
   onEnvChange,
+  onSkipApprovalFlagChange,
   onSave,
   onCancel,
 }: {
@@ -167,11 +188,13 @@ function AgentEditForm({
   command: string
   color: string
   env: Record<string, string>
+  skipApprovalFlag: string
   envEditorRef: RefObject<EnvVarEditorRef>
   onNameChange: (v: string) => void
   onCommandChange: (v: string) => void
   onColorChange: (v: string) => void
   onEnvChange: (v: Record<string, string>) => void
+  onSkipApprovalFlagChange: (v: string) => void
   onSave: () => void
   onCancel: () => void
 }) {
@@ -199,6 +222,19 @@ function AgentEditForm({
         className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent"
       />
       <EnvVarEditor ref={envEditorRef} env={env} onChange={onEnvChange} command={command} />
+      <div className="space-y-1">
+        <label className="text-xs text-text-secondary">Auto-approve flag</label>
+        <input
+          type="text"
+          value={skipApprovalFlag}
+          onChange={(e) => onSkipApprovalFlagChange(e.target.value)}
+          placeholder="e.g., --dangerously-skip-permissions"
+          className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary font-mono placeholder-text-secondary focus:outline-none focus:border-accent"
+        />
+        <p className="text-xs text-text-tertiary">
+          Appended to the command when the repo has auto-approve enabled.
+        </p>
+      </div>
       <div className="flex gap-2">
         <button
           onClick={onSave}
@@ -237,8 +273,11 @@ function AgentRow({
           />
         )}
         <div>
-          <div className="font-medium text-sm text-text-primary">
+          <div className="font-medium text-sm text-text-primary flex items-center gap-2">
             {agent.name}
+            {agent.skipApprovalFlag && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-normal">auto</span>
+            )}
           </div>
           <div className="text-xs text-text-secondary font-mono">
             {agent.command}

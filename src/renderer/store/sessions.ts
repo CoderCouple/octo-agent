@@ -30,6 +30,7 @@ export type FileViewerPosition = 'top' | 'left'
 export interface TerminalTab {
   id: string
   name: string
+  isolated?: boolean
 }
 
 export interface TerminalTabsState {
@@ -63,6 +64,7 @@ export interface Session {
   issueUrl?: string
   // Review session fields
   sessionType?: 'default' | 'review'
+  reviewStatus?: 'pending' | 'reviewed'
   prNumber?: number
   prTitle?: string
   prUrl?: string
@@ -85,13 +87,12 @@ export interface Session {
   workingStartTime: number | null // When the current working period began
   // Agent PTY ID (runtime only, set by Terminal.tsx)
   agentPtyId?: string
+  // Commands editor: when set, file viewer area shows the commands editor for this directory
+  commandsEditorDirectory?: string | null
   // Recently opened files (runtime, most recent first)
   recentFiles: string[]
   // User terminal tabs (persisted)
   terminalTabs: TerminalTabsState
-  // Direct push to main tracking (persisted)
-  pushedToMainAt?: number  // Timestamp when branch was pushed to main
-  pushedToMainCommit?: string  // The HEAD commit when pushed (to detect new changes)
   // Track whether this session has ever had commits ahead of remote (persisted)
   hasHadCommits?: boolean
   // Branch status (runtime, derived)
@@ -102,6 +103,8 @@ export interface Session {
   lastKnownPrUrl?: string
   // Archive state (persisted)
   isArchived: boolean
+  // Whether this session was loaded from config (runtime only, not persisted)
+  isRestored: boolean
 }
 
 // Global panel visibility (sidebar, settings, tutorial)
@@ -115,6 +118,7 @@ interface SessionStore {
   sessions: Session[]
   activeSessionId: string | null
   isLoading: boolean
+  configLoadError: string | null
   // Global panel state
   showSidebar: boolean
   showSettings: boolean
@@ -124,7 +128,7 @@ interface SessionStore {
 
   // Actions
   loadSessions: (profileId?: string) => Promise<void>
-  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<import('./sessionCoreActions').DuplicateSessionResult | undefined>
+  addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string; lastKnownPrState?: PrState }) => Promise<import('./sessionCoreActions').DuplicateSessionResult | undefined>
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
   updateSessionBranch: (id: string, branch: string) => void
@@ -148,22 +152,23 @@ interface SessionStore {
   updateAgentMonitor: (id: string, update: { status?: SessionStatus; lastMessage?: string }) => void
   markSessionRead: (id: string) => void
   // Terminal tab actions
-  addTerminalTab: (sessionId: string, name?: string) => string
+  addTerminalTab: (sessionId: string, name?: string, isolated?: boolean) => string
   removeTerminalTab: (sessionId: string, tabId: string) => void
   renameTerminalTab: (sessionId: string, tabId: string, name: string) => void
   reorderTerminalTabs: (sessionId: string, tabs: TerminalTab[]) => void
   setActiveTerminalTab: (sessionId: string, tabId: string) => void
   closeOtherTerminalTabs: (sessionId: string, tabId: string) => void
   closeTerminalTabsToRight: (sessionId: string, tabId: string) => void
+  // Commands editor actions
+  openCommandsEditor: (sessionId: string, directory: string) => void
+  closeCommandsEditor: (sessionId: string) => void
   // Agent PTY tracking (runtime only)
   setAgentPtyId: (sessionId: string, ptyId: string) => void
-  // Direct push to main tracking
-  recordPushToMain: (sessionId: string, commitHash: string) => void
-  clearPushToMain: (sessionId: string) => void
   // Branch status actions
   markHasHadCommits: (sessionId: string) => void
   updateBranchStatus: (sessionId: string, status: BranchStatus) => void
   updatePrState: (sessionId: string, prState: PrState, prNumber?: number, prUrl?: string) => void
+  updateReviewStatus: (sessionId: string, reviewStatus: 'pending' | 'reviewed') => void
   // Archive actions
   archiveSession: (sessionId: string) => void
   unarchiveSession: (sessionId: string) => void
@@ -179,6 +184,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
   sessions: [],
   activeSessionId: null,
   isLoading: true,
+  configLoadError: null,
   showSidebar: true,
   showSettings: false,
   sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
@@ -213,6 +219,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
       return syncLegacyFields({
         ...s,
         selectedFilePath: filePath,
+        commandsEditorDirectory: null,
         panelVisibility: newVisibility,
         recentFiles,
       })
@@ -250,6 +257,10 @@ export const useSessionStore = create<SessionStore>((set, get) => {
 
   updateAgentMonitor: (id: string, update: { status?: SessionStatus; lastMessage?: string }) => {
     const { sessions } = get()
+    const session = sessions.find(s => s.id === id)
+    if (!session) return
+    // Bail out if nothing would change (e.g. setting status to 'working' when already 'working')
+    if (update.status !== undefined && update.status === session.status && update.lastMessage === undefined) return
     const updatedSessions = sessions.map((s) => {
       if (s.id !== id) return s
       const changes: Partial<Session> = {}

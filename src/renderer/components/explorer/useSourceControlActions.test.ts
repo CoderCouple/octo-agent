@@ -48,13 +48,12 @@ function makeData(overrides: Partial<SourceControlData> = {}): SourceControlData
     prStatus: null,
     isPrLoading: false,
     hasWriteAccess: false,
-    isPushingToMain: false,
-    setIsPushingToMain: vi.fn(),
-    currentHeadCommit: null,
-    hasChangesSincePush: true,
+    checksStatus: 'none' as const,
+    hasPrLoadedOnce: true,
     resetPr: vi.fn(),
     currentRepo: undefined,
     gitStatus: [],
+    isInitialLoading: false,
     behindMainCount: 0,
     isFetchingBehindMain: false,
     agentMergeMessage: null,
@@ -149,13 +148,10 @@ describe('useSourceControlActions', () => {
   })
 
   describe('handleCommit', () => {
-    it('commits when there are staged files', async () => {
+    it('calls git.commit with the message', async () => {
       vi.mocked(window.git.commit).mockResolvedValue({ success: true })
       const onGitStatusRefresh = vi.fn()
-      const data = makeData({
-        stagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: true, indexStatus: 'M', workingDirStatus: ' ' }],
-        commitMessage: 'fix: stuff',
-      })
+      const data = makeData()
 
       const { result } = renderHook(() =>
         useSourceControlActions({
@@ -166,43 +162,126 @@ describe('useSourceControlActions', () => {
       )
 
       await act(async () => {
-        await result.current.handleCommit()
+        await result.current.handleCommit('fix: resolve issue')
       })
 
-      expect(window.git.commit).toHaveBeenCalledWith('/repos/project', 'fix: stuff')
-      expect(data.setCommitMessage).toHaveBeenCalledWith('')
+      expect(window.git.commit).toHaveBeenCalledWith('/repos/project', 'fix: resolve issue')
       expect(onGitStatusRefresh).toHaveBeenCalled()
     })
 
-    it('does nothing with empty commit message', async () => {
-      const data = makeData({ commitMessage: '' })
+    it('does nothing when no directory', async () => {
+      const data = makeData()
       const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
+        useSourceControlActions({ data })
       )
 
       await act(async () => {
-        await result.current.handleCommit()
+        await result.current.handleCommit('test')
       })
 
       expect(window.git.commit).not.toHaveBeenCalled()
     })
 
-    it('shows error on commit failure', async () => {
-      vi.mocked(window.git.commit).mockResolvedValue({ success: false, error: 'hook failed' })
-      const data = makeData({
-        stagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: true, indexStatus: 'M', workingDirStatus: ' ' }],
-        commitMessage: 'fix: stuff',
-      })
+    it('sets error on commit failure', async () => {
+      vi.mocked(window.git.commit).mockResolvedValue({ success: false, error: 'nothing to commit' })
+      const data = makeData()
 
       const { result } = renderHook(() =>
         useSourceControlActions({ directory: '/repos/project', data })
       )
 
       await act(async () => {
-        await result.current.handleCommit()
+        await result.current.handleCommit('test')
       })
 
-      expect(data.setCommitError).toHaveBeenCalledWith('hook failed')
+      expect(data.setGitOpError).toHaveBeenCalledWith({ operation: 'Commit', message: 'nothing to commit' })
+    })
+
+    it('handles commit exception', async () => {
+      vi.mocked(window.git.commit).mockRejectedValue(new Error('network'))
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test')
+      })
+
+      expect(data.setGitOpError).toHaveBeenCalledWith({ operation: 'Commit', message: 'Error: network' })
+    })
+
+    it('stages all then commits when stageAll is true', async () => {
+      vi.mocked(window.git.stageAll).mockResolvedValue({ success: true })
+      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
+      const onGitStatusRefresh = vi.fn()
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({
+          directory: '/repos/project',
+          onGitStatusRefresh,
+          data,
+        })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('fix: resolve issue', true)
+      })
+
+      expect(window.git.stageAll).toHaveBeenCalledWith('/repos/project')
+      expect(window.git.commit).toHaveBeenCalledWith('/repos/project', 'fix: resolve issue')
+      expect(onGitStatusRefresh).toHaveBeenCalled()
+    })
+
+    it('does not commit when stageAll fails', async () => {
+      vi.mocked(window.git.stageAll).mockResolvedValue({ success: false, error: 'stage failed' })
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test', true)
+      })
+
+      expect(window.git.stageAll).toHaveBeenCalled()
+      expect(window.git.commit).not.toHaveBeenCalled()
+      expect(data.setGitOpError).toHaveBeenCalledWith({ operation: 'Stage All', message: 'stage failed' })
+    })
+
+    it('does not stage when stageAll is false', async () => {
+      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test', false)
+      })
+
+      expect(window.git.stageAll).not.toHaveBeenCalled()
+      expect(window.git.commit).toHaveBeenCalled()
+    })
+
+    it('sets and clears isCommitting state', async () => {
+      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
+      const data = makeData()
+
+      const { result } = renderHook(() =>
+        useSourceControlActions({ directory: '/repos/project', data })
+      )
+
+      await act(async () => {
+        await result.current.handleCommit('test')
+      })
+
+      expect(data.setIsCommitting).toHaveBeenCalledWith(true)
+      expect(data.setIsCommitting).toHaveBeenCalledWith(false)
     })
   })
 
@@ -296,53 +375,6 @@ describe('useSourceControlActions', () => {
       expect(window.git.commitFiles).not.toHaveBeenCalled()
       // Should still call setExpandedCommits to remove it
       expect(data.setExpandedCommits).toHaveBeenCalled()
-    })
-  })
-
-  describe('handlePushNewBranch', () => {
-    it('calls git.pushNewBranch', async () => {
-      vi.mocked(window.git.pushNewBranch).mockResolvedValue({ success: true })
-      const onGitStatusRefresh = vi.fn()
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({
-          directory: '/repos/project',
-          onGitStatusRefresh,
-          data,
-        })
-      )
-
-      await act(async () => {
-        await result.current.handlePushNewBranch('feature/test')
-      })
-
-      expect(window.git.pushNewBranch).toHaveBeenCalledWith('/repos/project', 'feature/test')
-      expect(onGitStatusRefresh).toHaveBeenCalled()
-    })
-  })
-
-  describe('handleCreatePr', () => {
-    it('writes prompt and sends instruction to agent', async () => {
-      const data = makeData({ branchBaseName: 'main' })
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-1', data })
-      )
-
-      await act(async () => {
-        await result.current.handleCreatePr()
-      })
-
-      expect(window.fs.mkdir).toHaveBeenCalledWith('/repos/project/.broomy')
-      expect(window.fs.writeFile).toHaveBeenCalledWith(
-        '/repos/project/.broomy/create-pr-prompt.md',
-        expect.stringContaining('# Create Pull Request')
-      )
-      expect(window.pty.write).toHaveBeenCalledWith(
-        'pty-1',
-        'Please read and follow the instructions in .broomy/create-pr-prompt.md'
-      )
     })
   })
 
@@ -474,77 +506,6 @@ describe('useSourceControlActions', () => {
     })
   })
 
-  describe('handleResolveConflicts', () => {
-    it('writes prompt file and sends instruction to agent PTY', async () => {
-      const data = makeData()
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-123', data })
-      )
-
-      await act(async () => {
-        await result.current.handleResolveConflicts()
-      })
-
-      expect(window.fs.mkdir).toHaveBeenCalledWith('/repos/project/.broomy')
-      expect(window.fs.writeFile).toHaveBeenCalledWith(
-        '/repos/project/.broomy/merge-prompt.md',
-        expect.stringContaining('# Resolve Merge Conflicts')
-      )
-      expect(window.pty.write).toHaveBeenCalledWith(
-        'pty-123',
-        'Please read and follow the instructions in .broomy/merge-prompt.md'
-      )
-      expect(data.setAskedAgentToResolve).toHaveBeenCalledWith(true)
-      expect(data.setAgentMergeMessage).toHaveBeenCalledWith(
-        'Asked agent to resolve merge conflicts. Wait for the agent to finish.'
-      )
-    })
-
-    it('uses branchBaseName in prompt', async () => {
-      const data = makeData({ branchBaseName: 'develop' })
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-123', data })
-      )
-
-      await act(async () => {
-        await result.current.handleResolveConflicts()
-      })
-
-      expect(window.fs.writeFile).toHaveBeenCalledWith(
-        '/repos/project/.broomy/merge-prompt.md',
-        expect.stringContaining('develop')
-      )
-    })
-
-    it('does nothing when no agentPtyId', async () => {
-      const data = makeData()
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleResolveConflicts()
-      })
-
-      expect(window.pty.write).not.toHaveBeenCalled()
-      expect(data.setAskedAgentToResolve).not.toHaveBeenCalled()
-    })
-
-    it('does nothing when no directory', async () => {
-      const data = makeData()
-      const { result } = renderHook(() =>
-        useSourceControlActions({ agentPtyId: 'pty-123', data })
-      )
-
-      await act(async () => {
-        await result.current.handleResolveConflicts()
-      })
-
-      expect(window.fs.mkdir).not.toHaveBeenCalled()
-      expect(window.pty.write).not.toHaveBeenCalled()
-    })
-  })
-
   describe('handleSyncWithMain', () => {
     it('does nothing when no directory', async () => {
       const data = makeData()
@@ -657,249 +618,6 @@ describe('useSourceControlActions', () => {
         operation: 'Sync with main',
         message: 'Error: network',
       })
-    })
-  })
-
-  describe('handlePushToMain', () => {
-    it('does nothing when no directory', async () => {
-      const data = makeData()
-      const { result } = renderHook(() =>
-        useSourceControlActions({ data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushToMain()
-      })
-
-      expect(window.git.isBehindMain).not.toHaveBeenCalled()
-    })
-
-    it('pushes to main successfully', async () => {
-      vi.mocked(window.git.isBehindMain).mockResolvedValue({ behind: 0, defaultBranch: 'main' })
-      vi.mocked(window.gh.mergeBranchToMain).mockResolvedValue({ success: true })
-      vi.mocked(window.git.headCommit).mockResolvedValue('abc123')
-      const onRecordPushToMain = vi.fn()
-      const onGitStatusRefresh = vi.fn()
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({
-          directory: '/repos/project',
-          onRecordPushToMain,
-          onGitStatusRefresh,
-          data,
-        })
-      )
-
-      await act(async () => {
-        await result.current.handlePushToMain()
-      })
-
-      expect(window.gh.mergeBranchToMain).toHaveBeenCalledWith('/repos/project')
-      expect(onRecordPushToMain).toHaveBeenCalledWith('abc123')
-      expect(onGitStatusRefresh).toHaveBeenCalled()
-    })
-
-    it('prompts to sync when behind main', async () => {
-      vi.mocked(window.git.isBehindMain).mockResolvedValue({ behind: 3, defaultBranch: 'main' })
-      vi.mocked(window.git.pullOriginMain).mockResolvedValue({ success: true })
-      vi.mocked(window.confirm).mockReturnValue(true)
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushToMain()
-      })
-
-      expect(window.confirm).toHaveBeenCalled()
-      expect(window.git.pullOriginMain).toHaveBeenCalled()
-    })
-
-    it('continues push when user declines sync', async () => {
-      vi.mocked(window.git.isBehindMain).mockResolvedValue({ behind: 3, defaultBranch: 'main' })
-      vi.mocked(window.confirm).mockReturnValue(false)
-      vi.mocked(window.gh.mergeBranchToMain).mockResolvedValue({ success: true })
-      vi.mocked(window.git.headCommit).mockResolvedValue('abc123')
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushToMain()
-      })
-
-      expect(window.gh.mergeBranchToMain).toHaveBeenCalled()
-    })
-
-    it('handles merge failure', async () => {
-      vi.mocked(window.git.isBehindMain).mockResolvedValue({ behind: 0, defaultBranch: 'main' })
-      vi.mocked(window.gh.mergeBranchToMain).mockResolvedValue({ success: false, error: 'merge conflict' })
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushToMain()
-      })
-
-      expect(data.setGitOpError).toHaveBeenCalledWith({
-        operation: 'Push to main',
-        message: 'merge conflict',
-      })
-    })
-
-    it('handles push to main exception', async () => {
-      vi.mocked(window.git.isBehindMain).mockRejectedValue(new Error('network'))
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushToMain()
-      })
-
-      expect(data.setGitOpError).toHaveBeenCalledWith({
-        operation: 'Push to main',
-        message: 'Error: network',
-      })
-    })
-  })
-
-  describe('handleRevertFile', () => {
-    it('reverts a file when confirmed', async () => {
-      vi.mocked(window.confirm).mockReturnValue(true)
-      const onGitStatusRefresh = vi.fn()
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', onGitStatusRefresh, data })
-      )
-
-      await act(async () => {
-        await result.current.handleRevertFile('src/index.ts')
-      })
-
-      expect(window.git.checkoutFile).toHaveBeenCalledWith('/repos/project', 'src/index.ts')
-      expect(onGitStatusRefresh).toHaveBeenCalled()
-    })
-
-    it('does nothing when user cancels confirmation', async () => {
-      vi.mocked(window.confirm).mockReturnValue(false)
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleRevertFile('src/index.ts')
-      })
-
-      expect(window.git.checkoutFile).not.toHaveBeenCalled()
-    })
-
-    it('does nothing when no directory', async () => {
-      const data = makeData()
-      const { result } = renderHook(() =>
-        useSourceControlActions({ data })
-      )
-
-      await act(async () => {
-        await result.current.handleRevertFile('src/index.ts')
-      })
-
-      expect(window.git.checkoutFile).not.toHaveBeenCalled()
-    })
-
-    it('handles revert error', async () => {
-      vi.mocked(window.confirm).mockReturnValue(true)
-      vi.mocked(window.git.checkoutFile).mockRejectedValue(new Error('checkout failed'))
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleRevertFile('src/index.ts')
-      })
-
-      expect(data.setGitOpError).toHaveBeenCalledWith({
-        operation: 'Revert',
-        message: 'Error: checkout failed',
-      })
-    })
-  })
-
-  describe('handleCommit - stage all and commit flow', () => {
-    it('offers to stage all when no staged files but unstaged exist', async () => {
-      vi.mocked(window.menu.popup).mockResolvedValue('stage-all-commit')
-      vi.mocked(window.git.stageAll).mockResolvedValue({ success: true })
-      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
-      const onGitStatusRefresh = vi.fn()
-      const data = makeData({
-        stagedFiles: [],
-        unstagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: false, indexStatus: ' ', workingDirStatus: 'M' }],
-        commitMessage: 'fix: stuff',
-      })
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', onGitStatusRefresh, data })
-      )
-
-      await act(async () => {
-        await result.current.handleCommit()
-      })
-
-      expect(window.menu.popup).toHaveBeenCalled()
-      expect(window.git.stageAll).toHaveBeenCalledWith('/repos/project')
-      expect(window.git.commit).toHaveBeenCalled()
-    })
-
-    it('does nothing when user cancels stage all', async () => {
-      vi.mocked(window.menu.popup).mockResolvedValue(null)
-      const data = makeData({
-        stagedFiles: [],
-        unstagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: false, indexStatus: ' ', workingDirStatus: 'M' }],
-        commitMessage: 'fix: stuff',
-      })
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleCommit()
-      })
-
-      expect(window.git.commit).not.toHaveBeenCalled()
-    })
-
-    it('handles commit exception', async () => {
-      vi.mocked(window.git.commit).mockRejectedValue(new Error('commit error'))
-      const data = makeData({
-        stagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: true, indexStatus: 'M', workingDirStatus: ' ' }],
-        commitMessage: 'fix: stuff',
-      })
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleCommit()
-      })
-
-      expect(data.setCommitError).toHaveBeenCalledWith('Error: commit error')
     })
   })
 
@@ -1022,103 +740,6 @@ describe('useSourceControlActions', () => {
     })
   })
 
-  describe('handlePushNewBranch - edge cases', () => {
-    it('does nothing when no directory', async () => {
-      const data = makeData()
-      const { result } = renderHook(() =>
-        useSourceControlActions({ data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushNewBranch('feature/test')
-      })
-
-      expect(window.git.pushNewBranch).not.toHaveBeenCalled()
-    })
-
-    it('handles push branch failure', async () => {
-      vi.mocked(window.git.pushNewBranch).mockResolvedValue({ success: false, error: 'permission denied' })
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushNewBranch('feature/test')
-      })
-
-      expect(data.setGitOpError).toHaveBeenCalledWith({
-        operation: 'Push branch',
-        message: 'permission denied',
-      })
-    })
-
-    it('handles push branch exception', async () => {
-      vi.mocked(window.git.pushNewBranch).mockRejectedValue(new Error('network'))
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushNewBranch('feature/test')
-      })
-
-      expect(data.setGitOpError).toHaveBeenCalledWith({
-        operation: 'Push branch',
-        message: 'Error: network',
-      })
-    })
-  })
-
-  describe('handleCreatePr - edge cases', () => {
-    it('does nothing when no directory', async () => {
-      const data = makeData()
-      const { result } = renderHook(() =>
-        useSourceControlActions({ agentPtyId: 'pty-1', data })
-      )
-
-      await act(async () => {
-        await result.current.handleCreatePr()
-      })
-
-      expect(window.fs.mkdir).not.toHaveBeenCalled()
-    })
-
-    it('does nothing when no agentPtyId', async () => {
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleCreatePr()
-      })
-
-      expect(window.fs.mkdir).not.toHaveBeenCalled()
-    })
-
-    it('uses branchBaseName in prompt', async () => {
-      const data = makeData({ branchBaseName: 'develop' })
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', agentPtyId: 'pty-1', data })
-      )
-
-      await act(async () => {
-        await result.current.handleCreatePr()
-      })
-
-      expect(window.fs.writeFile).toHaveBeenCalledWith(
-        '/repos/project/.broomy/create-pr-prompt.md',
-        expect.stringContaining('origin/develop')
-      )
-    })
-  })
-
   describe('withGitProgress integration', () => {
     it('wraps handleSync with progress tracking', async () => {
       const { withGitProgress } = await import('../../utils/gitOperationProgress')
@@ -1132,25 +753,6 @@ describe('useSourceControlActions', () => {
 
       await act(async () => {
         await result.current.handleSync()
-      })
-
-      expect(withGitProgress).toHaveBeenCalledWith('test-session-1', expect.any(Function))
-    })
-
-    it('wraps handleCommit with progress tracking', async () => {
-      const { withGitProgress } = await import('../../utils/gitOperationProgress')
-      vi.mocked(window.git.commit).mockResolvedValue({ success: true })
-      const data = makeData({
-        stagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: true, indexStatus: 'M', workingDirStatus: ' ' }],
-        commitMessage: 'fix: stuff',
-      })
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handleCommit()
       })
 
       expect(withGitProgress).toHaveBeenCalledWith('test-session-1', expect.any(Function))
@@ -1183,40 +785,6 @@ describe('useSourceControlActions', () => {
 
       await act(async () => {
         await result.current.handleSyncWithMain()
-      })
-
-      expect(withGitProgress).toHaveBeenCalledWith('test-session-1', expect.any(Function))
-    })
-
-    it('wraps handlePushNewBranch with progress tracking', async () => {
-      const { withGitProgress } = await import('../../utils/gitOperationProgress')
-      vi.mocked(window.git.pushNewBranch).mockResolvedValue({ success: true })
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushNewBranch('feature/test')
-      })
-
-      expect(withGitProgress).toHaveBeenCalledWith('test-session-1', expect.any(Function))
-    })
-
-    it('wraps handlePushToMain with progress tracking', async () => {
-      const { withGitProgress } = await import('../../utils/gitOperationProgress')
-      vi.mocked(window.git.isBehindMain).mockResolvedValue({ behind: 0, defaultBranch: 'main' })
-      vi.mocked(window.gh.mergeBranchToMain).mockResolvedValue({ success: true })
-      vi.mocked(window.git.headCommit).mockResolvedValue('abc123')
-      const data = makeData()
-
-      const { result } = renderHook(() =>
-        useSourceControlActions({ directory: '/repos/project', data })
-      )
-
-      await act(async () => {
-        await result.current.handlePushToMain()
       })
 
       expect(withGitProgress).toHaveBeenCalledWith('test-session-1', expect.any(Function))

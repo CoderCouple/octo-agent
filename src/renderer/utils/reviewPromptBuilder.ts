@@ -1,7 +1,6 @@
 /**
  * Builds the agent prompt for generating structured code reviews with requested changes.
  */
-import type { Session } from '../store/sessions'
 import type { RequestedChange } from '../types/review'
 
 export interface PrComment {
@@ -15,32 +14,30 @@ export interface ReviewPromptOptions {
   previousHeadCommit?: string
   prComments?: PrComment[]
   prDescription?: string
+  currentUser?: string
 }
 
-// Build the review generation prompt
-export function buildReviewPrompt(
-  session: Session,
-  reviewInstructions: string,
-  previousRequestedChanges: RequestedChange[],
-  options?: ReviewPromptOptions,
-): string {
-  const { previousHeadCommit, prComments, prDescription } = options || {}
-  const hasPreviousReview = previousRequestedChanges.length > 0 || !!previousHeadCommit
-
+function buildSchema(session: ReviewSessionInfo, hasPreviousReview: boolean): string {
   const changesSinceLastReviewSchema = `  "changesSinceLastReview": {
     "summary": "<1-3 sentence overview of what changed since the last review>",
     "responsesToComments": [
       {
         "comment": "<summary of the reviewer's comment>",
-        "response": "<what was done to address it, or 'Not addressed'>"
+        "response": "<what was done to address it, or 'Not addressed'>",
+        "status": "addressed|not-addressed|partially-addressed"
       }
     ],
-    "otherNotableChanges": [
-      "<description of other significant changes not related to review comments>"
+    "changePatterns": [
+      {
+        "id": "<unique id>",
+        "title": "<pattern name>",
+        "description": "<what this group of changes does>",
+        "locations": [{ "file": "<relative path>", "startLine": <number>, "endLine": <number> }]
+      }
     ]
   }`
 
-  const schema = `{
+  return `{
   "version": 1,
   "generatedAt": "<ISO 8601 timestamp>",
   "prNumber": ${session.prNumber || 'null'},
@@ -85,22 +82,33 @@ export function buildReviewPrompt(
     }
   ]${hasPreviousReview ? `,\n${changesSinceLastReviewSchema}` : ''}
 }`
+}
 
-  const comparisonSchema = `{
-  "newCommitsSince": ["<commit SHA 1>", "<commit SHA 2>"],
-  "newFileChanges": [
-    { "file": "<path>", "changeType": "added|modified|deleted" }
-  ],
-  "requestedChangeStatus": [
-    {
-      "change": { "id": "<id from previous review>", "description": "<the requested change>" },
-      "status": "addressed|not-addressed|partially-addressed",
-      "notes": "<optional explanation>"
-    }
-  ]
-}`
+function buildGuidelines(): string {
+  return `## Guidelines
 
+- **Change Patterns**: Group related changes together. Don't just list every file - identify logical groups.
+- **Potential Issues**: Only flag real concerns. Use severity levels:
+  - \`info\`: Observations, suggestions, style preferences
+  - \`warning\`: Potential bugs, edge cases, missing error handling
+  - \`concern\`: Likely bugs, security issues, data loss risks
+- **Design Decisions**: Note significant architectural choices, not trivial ones.
+- **Requested Changes**: List specific changes you'd like to see addressed. Be concrete and actionable.
+- Keep descriptions concise but informative.
+- Use relative file paths from the repo root.
+- Include specific line numbers where relevant.
+`
+}
+
+// Build a first-time review prompt
+function buildFirstReviewPrompt(
+  session: ReviewSessionInfo,
+  reviewInstructions: string,
+  options?: ReviewPromptOptions,
+): string {
+  const { prDescription } = options || {}
   const baseBranch = session.prBaseBranch || 'main'
+  const schema = buildSchema(session, false)
 
   let prompt = `# PR Review Analysis
 
@@ -121,74 +129,17 @@ ${prDescription}
 1. Run \`git diff origin/${baseBranch}...HEAD\` to see the full diff
 2. Run \`git rev-parse HEAD\` to get the current commit SHA (for the headCommit field)
 3. Examine the changed files to understand the context
-4. Produce a structured JSON review and write it to \`.broomy/review.json\`
+4. Produce a structured JSON review and write it to \`.broomy/output/review.json\`
 
 ## Output Format
 
-Write the following JSON to \`.broomy/review.json\`:
+Write the following JSON to \`.broomy/output/review.json\`:
 
 \`\`\`json
 ${schema}
 \`\`\`
 
-## Guidelines
-
-- **Change Patterns**: Group related changes together. Don't just list every file - identify logical groups.
-- **Potential Issues**: Only flag real concerns. Use severity levels:
-  - \`info\`: Observations, suggestions, style preferences
-  - \`warning\`: Potential bugs, edge cases, missing error handling
-  - \`concern\`: Likely bugs, security issues, data loss risks
-- **Design Decisions**: Note significant architectural choices, not trivial ones.
-- **Requested Changes**: List specific changes you'd like to see addressed. Be concrete and actionable.
-- Keep descriptions concise but informative.
-- Use relative file paths from the repo root.
-- Include specific line numbers where relevant.
-`
-
-  // Add previous review comparison instructions if there are previous changes
-  if (previousRequestedChanges.length > 0) {
-    prompt += `
-## Previous Review Changes
-
-In a previous review, the following changes were requested. Please evaluate whether each has been addressed:
-
-${previousRequestedChanges.map((c, i) => `${i + 1}. ${c.description}${c.file ? ` (${c.file}${c.line ? `:${c.line}` : ''})` : ''}`).join('\n')}
-
-After writing \`.broomy/review.json\`, also write a comparison to \`.broomy/comparison.json\`:
-
-\`\`\`json
-${comparisonSchema}
-\`\`\`
-
-To find commits since the last review, check \`.broomy/review-history.json\` for the previous headCommit and run:
-\`git log <previous-commit>..HEAD --format="%H"\`
-`
-  }
-
-  // Add changes-since-last-review section when we have a previous review
-  if (hasPreviousReview) {
-    prompt += `
-## Changes Since Last Review
-
-This is a re-review. The previous review was at commit \`${previousHeadCommit || 'unknown'}\`.
-
-Populate the \`changesSinceLastReview\` field in your review JSON. To do this:
-${previousHeadCommit ? `\n1. Run \`git log ${previousHeadCommit}..HEAD --oneline\` to see what commits were added since the last review` : ''}
-${previousHeadCommit ? `2. Run \`git diff ${previousHeadCommit}..HEAD --stat\` to see what files changed` : ''}
-${previousHeadCommit ? '3. ' : '1. '}Pay particular attention to what was done in response to the reviewer's comments below
-${previousHeadCommit ? '4. ' : '2. '}Note any other significant changes not related to review feedback
-`
-
-    if (prComments && prComments.length > 0) {
-      prompt += `
-### Reviewer Comments on This PR
-
-The following comments were left by reviewers. Assess whether each has been addressed:
-
-${prComments.map((c, i) => `${i + 1}. ${c.author}: "${c.body}"${c.path ? ` (${c.path}${c.line ? `:${c.line}` : ''})` : ''}`).join('\n')}
-`
-    }
-  }
+${buildGuidelines()}`
 
   if (reviewInstructions) {
     prompt += `
@@ -201,8 +152,252 @@ ${reviewInstructions}
   prompt += `
 ## Action
 
-Please analyze the PR now and write the result to \`.broomy/review.json\`.
+Please analyze the PR now and write the result to \`.broomy/output/review.json\`.
 `
 
   return prompt
+}
+
+// Build a re-review prompt focused on changes since last review
+function buildReReviewPrompt(
+  session: ReviewSessionInfo,
+  reviewInstructions: string,
+  previousRequestedChanges: RequestedChange[],
+  options: ReviewPromptOptions,
+): string {
+  const { previousHeadCommit, prComments, prDescription, currentUser } = options
+  const baseBranch = session.prBaseBranch || 'main'
+  const schema = buildSchema(session, true)
+
+  let prompt = `# PR Re-Review
+
+You are re-reviewing a pull request that you previously reviewed. Focus on what has changed since the last review.
+
+The previous review was at commit \`${previousHeadCommit || 'unknown'}\`.
+`
+
+  if (prDescription) {
+    prompt += `
+## PR Description (by the author)
+
+${prDescription}
+`
+  }
+
+  prompt += `
+## Instructions
+
+1. Run \`git diff ${previousHeadCommit}..HEAD --stat\` to see what files changed since the last review
+2. Run \`git log ${previousHeadCommit}..HEAD --oneline\` to see what commits were added
+3. Run \`git diff origin/${baseBranch}...HEAD\` to see the full current diff
+4. Run \`git rev-parse HEAD\` to get the current commit SHA (for the headCommit field)
+5. Produce a structured JSON review and write it to \`.broomy/output/review.json\`
+
+## Responses to Your Comments
+
+Check whether each of the following comments/requested changes has been addressed in the new commits.
+`
+
+  // Show the reviewer's own PR comments first (filtered by currentUser)
+  const userComments = currentUser && prComments
+    ? prComments.filter(c => c.author === currentUser)
+    : []
+  const otherComments = currentUser && prComments
+    ? prComments.filter(c => c.author !== currentUser)
+    : prComments || []
+
+  if (userComments.length > 0) {
+    prompt += `
+### Your PR Comments
+
+${userComments.map((c, i) => `${i + 1}. "${c.body}"${c.path ? ` (${c.path}${c.line ? `:${c.line}` : ''})` : ''}`).join('\n')}
+`
+  }
+
+  if (previousRequestedChanges.length > 0) {
+    prompt += `
+### Your Previously Requested Changes
+
+${previousRequestedChanges.map((c, i) => `${i + 1}. ${c.description}${c.file ? ` (${c.file}${c.line ? `:${c.line}` : ''})` : ''}`).join('\n')}
+`
+  }
+
+  if (otherComments.length > 0) {
+    prompt += `
+### Other Reviewer Comments
+
+${otherComments.map((c, i) => `${i + 1}. ${c.author}: "${c.body}"${c.path ? ` (${c.path}${c.line ? `:${c.line}` : ''})` : ''}`).join('\n')}
+`
+  }
+
+  prompt += `
+For each comment or requested change, assess its status as one of: \`addressed\`, \`not-addressed\`, or \`partially-addressed\`.
+
+## Changes Since Last Review
+
+Populate the \`changesSinceLastReview\` field with:
+- A summary of what changed
+- Status of each comment/requested change (in \`responsesToComments\`)
+- Structured change patterns for the diff since the last review (in \`changePatterns\`, with file locations)
+
+## Output Format
+
+Write the following JSON to \`.broomy/output/review.json\`:
+
+\`\`\`json
+${schema}
+\`\`\`
+
+${buildGuidelines()}`
+
+  if (reviewInstructions) {
+    prompt += `
+## Additional Review Focus
+
+${reviewInstructions}
+`
+  }
+
+  prompt += `
+## Action
+
+Please analyze the changes since the last review and write the result to \`.broomy/output/review.json\`.
+`
+
+  return prompt
+}
+
+export interface ReviewSessionInfo {
+  prBaseBranch?: string
+  prNumber?: number
+  prTitle?: string
+  prUrl?: string
+}
+
+/**
+ * Build a markdown-format review prompt that instructs the agent to write `.broomy/output/review.md`.
+ */
+export function buildMarkdownReviewPrompt(
+  session: ReviewSessionInfo,
+  reviewInstructions: string,
+  options?: ReviewPromptOptions,
+): string {
+  const baseBranch = session.prBaseBranch || 'main'
+  const { prDescription, previousHeadCommit } = options || {}
+
+  let prompt = `# PR Review
+
+You are reviewing a pull request. Analyze the diff and produce a detailed review as a markdown document.
+`
+
+  if (prDescription) {
+    prompt += `
+## PR Description (by the author)
+
+${prDescription}
+`
+  }
+
+  const isReReview = !!previousHeadCommit
+
+  prompt += `
+## Instructions
+
+1. Run \`git diff origin/${baseBranch}...HEAD\` to see the full diff
+`
+
+  if (isReReview) {
+    prompt += `2. Run \`git diff ${previousHeadCommit}..HEAD --stat\` to see what changed since the last review
+3. Run \`git log ${previousHeadCommit}..HEAD --oneline\` to see new commits
+`
+  }
+
+  prompt += `
+## Output Format
+
+Write your review to \`.broomy/output/review.md\` as a markdown document. Follow these rules:
+
+- Use \`## Heading\` for each major section (the UI will auto-collapse these as collapsible sections)
+- Use \`### Sub-heading\` for individual issues, findings, or change groups within a section
+- Use \`- [ ] Check name\` for in-progress checks and \`- [x] Check name\` for completed checks (place these under the relevant \`###\` sub-heading)
+- Sections with incomplete checkboxes (\`- [ ]\`) will stay expanded in the UI
+- **IMPORTANT — Links**: Every mention of a file, function, or code location MUST be a markdown link using the repo-relative file path. The link text should be the file path with optional line range, and the URL should be the relative path with an optional line anchor. Format: \`[src/file.tsx:12-45](src/file.tsx#L12-L45)\` for a range, or \`[src/file.tsx:12](src/file.tsx#L12)\` for a single line. Never paste raw URLs or GitHub links — the UI renders these as clickable links that open an internal diff viewer. Never omit links — the reader navigates the review by clicking them.
+- You can use \`<!-- include: .broomy/review-detail-name.md -->\` to break out sub-analyses into separate files — the UI will inline them when they exist
+- Write the file incrementally — the UI polls and re-renders as you write
+
+### Suggested sections
+
+\`\`\`markdown
+## Overview
+Brief summary of what this PR does and the approach taken.
+
+## Change Analysis
+- [x] Reviewed file structure
+- [x] Identified change patterns
+
+### Theme context and provider
+Description of this change group.
+[src/theme/ThemeProvider.tsx:15-42](src/theme/ThemeProvider.tsx#L15-L42)
+
+### CSS variable updates
+Description of this change group.
+[src/styles.css:1-20](src/styles.css#L1-L20)
+
+## Potential Issues
+
+### Flash of unstyled content on load
+- [ ] Resolved
+
+Description of the issue and its impact.
+Location: [src/file.tsx:45-52](src/file.tsx#L45-L52)
+
+## Design Decisions
+
+### localStorage over cookies
+- [x] Reviewed
+
+Explanation of the decision and alternatives considered.
+${isReReview ? `
+## Changes Since Last Review
+Summarize what changed since commit \`${previousHeadCommit}\`.
+` : ''}
+\`\`\`
+`
+
+  if (reviewInstructions) {
+    prompt += `
+## Additional Review Focus
+
+${reviewInstructions}
+`
+  }
+
+  prompt += `
+## Action
+
+Please analyze the PR now and write the result to \`.broomy/output/review.md\`.
+`
+
+  return prompt
+}
+
+// Build the review generation prompt — picks first-review or re-review based on context
+export function buildReviewPrompt(
+  session: ReviewSessionInfo,
+  reviewInstructions: string,
+  previousRequestedChanges: RequestedChange[],
+  options?: ReviewPromptOptions,
+): string {
+  const { previousHeadCommit, prComments } = options || {}
+  const hasPreviousReview = previousRequestedChanges.length > 0 || !!previousHeadCommit
+
+  if (hasPreviousReview) {
+    return buildReReviewPrompt(session, reviewInstructions, previousRequestedChanges, {
+      ...options,
+      previousHeadCommit,
+      prComments,
+    })
+  }
+
+  return buildFirstReviewPrompt(session, reviewInstructions, options)
 }

@@ -121,6 +121,58 @@ describe('AddExistingRepoView', () => {
     })
   })
 
+  it('renders isolation settings after validation', async () => {
+    vi.mocked(window.dialog.openFolder).mockResolvedValue('/repos/my-project')
+    vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
+    vi.mocked(window.git.worktreeList).mockResolvedValue([
+      { path: '/repos/my-project/main', branch: 'main', head: 'abc123' },
+    ])
+    vi.mocked(window.git.remoteUrl).mockResolvedValue('https://github.com/user/my-project.git')
+
+    render(<AddExistingRepoView onBack={vi.fn()} onComplete={vi.fn()} />)
+    fireEvent.click(screen.getByText('Browse'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Run agent in isolated container')).toBeTruthy()
+      expect(screen.getByText('Auto-approve agent commands')).toBeTruthy()
+    })
+  })
+
+  it('passes isolation fields to addRepo', async () => {
+    vi.mocked(window.dialog.openFolder).mockResolvedValue('/repos/my-project')
+    vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
+    vi.mocked(window.git.worktreeList).mockResolvedValue([
+      { path: '/repos/my-project/main', branch: 'main', head: 'abc123' },
+    ])
+    vi.mocked(window.git.remoteUrl).mockResolvedValue('https://github.com/user/my-project.git')
+    vi.mocked(window.git.defaultBranch).mockResolvedValue('main')
+    vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(true)
+    vi.mocked(window.config.load).mockResolvedValue({ agents: [], sessions: [], repos: [{ id: 'new-repo', rootDir: '/repos/my-project', name: 'my-project', remoteUrl: 'https://github.com/test/repo', defaultBranch: 'main' }] })
+    const addRepo = vi.fn()
+    useRepoStore.setState({ addRepo })
+
+    render(<AddExistingRepoView onBack={vi.fn()} onComplete={vi.fn()} />)
+    fireEvent.click(screen.getByText('Browse'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Found 1 worktree/)).toBeTruthy()
+    })
+
+    // Enable isolation
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0]) // isolated
+    fireEvent.click(checkboxes[1]) // skipApproval
+
+    fireEvent.click(screen.getByText('Add Repository'))
+
+    await waitFor(() => {
+      expect(addRepo).toHaveBeenCalledWith(expect.objectContaining({
+        isolated: true,
+        skipApproval: true,
+      }))
+    })
+  })
+
   it('updates rootDir input when typing', () => {
     const onBack = vi.fn()
     const onComplete = vi.fn()

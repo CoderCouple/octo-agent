@@ -60,10 +60,10 @@ describe('RepoSettingsEditor', () => {
     })
   })
 
-  it('renders allow push to main checkbox', async () => {
+  it('renders allow approve and merge checkbox', async () => {
     renderEditor()
     await waitFor(() => {
-      expect(screen.getByText('Allow "Push to main" button')).toBeTruthy()
+      expect(screen.getByText('Allow "Approve and merge" button')).toBeTruthy()
     })
   })
 
@@ -92,7 +92,7 @@ describe('RepoSettingsEditor', () => {
     })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: undefined, allowPushToMain: false })
+      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: undefined, allowApproveAndMerge: true, isolated: undefined, skipApproval: undefined })
       expect(onClose).toHaveBeenCalled()
     })
   })
@@ -129,18 +129,20 @@ describe('RepoSettingsEditor', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'agent-1' } })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: 'agent-1', allowPushToMain: false })
+      expect(onUpdate).toHaveBeenCalledWith({ defaultAgentId: 'agent-1', allowApproveAndMerge: true, isolated: undefined, skipApproval: undefined })
     })
   })
 
-  it('shows error when write access check fails for push to main', async () => {
+  it('shows error when write access check fails for approve and merge', async () => {
     vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(false)
     renderEditor()
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    // Checkbox defaults to checked; uncheck first, then re-check to trigger write access validation
+    fireEvent.click(checkboxes[0])
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
       expect(screen.getByText('Write access check failed')).toBeTruthy()
     })
@@ -152,23 +154,25 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
       expect(screen.getByText('Failed to check write access')).toBeTruthy()
     })
   })
 
-  it('enables push to main when write access is confirmed', async () => {
+  it('enables approve and merge when write access is confirmed', async () => {
     vi.mocked(window.gh.hasWriteAccess).mockResolvedValue(true)
-    renderEditor()
+    // Start with allowApproveAndMerge explicitly false so clicking checks it
+    renderEditor({ repo: { ...mockRepo, allowApproveAndMerge: false } })
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
-      expect(checkbox).toBeChecked()
+      expect(checkboxes[0]).toBeChecked()
     })
   })
 
@@ -178,8 +182,9 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    const checkbox = screen.getByRole('checkbox')
-    fireEvent.click(checkbox)
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
       expect(screen.getByText('Write access check failed')).toBeTruthy()
     })
@@ -194,7 +199,9 @@ describe('RepoSettingsEditor', () => {
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).toBeNull()
     })
-    fireEvent.click(screen.getByRole('checkbox'))
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
+    fireEvent.click(checkboxes[0])
     await waitFor(() => {
       expect(screen.getByText('Write access check failed')).toBeTruthy()
     })
@@ -212,6 +219,52 @@ describe('RepoSettingsEditor', () => {
     })
     const select = screen.getByRole('combobox')
     expect((select as HTMLSelectElement).value).toBe('agent-2')
+  })
+
+  it('renders isolation checkboxes', async () => {
+    renderEditor()
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    expect(screen.getByText('Run agent in isolated container')).toBeTruthy()
+    expect(screen.getByText('Auto-approve agent commands')).toBeTruthy()
+  })
+
+  it('shows warning when skip-approval is on without isolation', async () => {
+    renderEditor({ repo: { ...mockRepo, skipApproval: true } })
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    expect(screen.getByText(/Auto-approving without container isolation/)).toBeTruthy()
+  })
+
+  it('saves isolation fields', async () => {
+    const onUpdate = vi.fn()
+    renderEditor({ onUpdate, repo: { ...mockRepo, isolated: true, skipApproval: true } })
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => {
+      expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        isolated: true,
+        skipApproval: true,
+      }))
+    })
+  })
+
+  it('toggles skip-approval and shows warning without isolation', async () => {
+    renderEditor()
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).toBeNull()
+    })
+    const checkboxes = screen.getAllByRole('checkbox')
+    // skip-approval checkbox is third
+    const skipApprovalCheckbox = checkboxes[2]
+    fireEvent.click(skipApprovalCheckbox)
+    await waitFor(() => {
+      expect(screen.getByText(/Auto-approving without container isolation/)).toBeTruthy()
+    })
   })
 
   it('shows Saving... text while save is in progress', async () => {

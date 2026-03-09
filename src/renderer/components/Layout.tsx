@@ -12,11 +12,10 @@ import type { LayoutSizes, FileViewerPosition } from '../store/sessions'
 import { usePanelContext, PANEL_IDS } from '../panels'
 import type { PanelDefinition } from '../panels'
 import { useDividerResize } from '../hooks/useDividerResize'
+import { useLayoutClamp } from '../hooks/useLayoutClamp'
 import { useLayoutKeyboard } from '../hooks/useLayoutKeyboard'
-import { useAppBannerError } from '../hooks/useErrorBanners'
 import LayoutToolbar from './LayoutToolbar'
 import LayoutContentArea from './LayoutContentArea'
-import { ErrorBanner } from './ErrorBanner'
 import PanelErrorBoundary from './PanelErrorBoundary'
 import { Divider } from './Divider'
 
@@ -93,19 +92,13 @@ export default function Layout({
 }: LayoutProps) {
   const [isDev, setIsDev] = useState(false)
   const { registry, toolbarPanels, getShortcutKey } = usePanelContext()
-  const appBannerError = useAppBannerError()
-  useEffect(() => {
-    void window.app.isDev().then(setIsDev)
-  }, [])
+  useEffect(() => { void window.app.isDev().then(setIsDev) }, [])
 
-  // Get visibility for a panel, considering global vs session state
   const isPanelVisible = useCallback((panelId: string): boolean => {
     const panel = registry.get(panelId)
     if (!panel) return false
-    if (panel.isGlobal) {
-      return globalPanelVisibility[panelId] ?? panel.defaultVisible
-    }
-    return panelVisibility[panelId] ?? panel.defaultVisible
+    const vis = panel.isGlobal ? globalPanelVisibility : panelVisibility
+    return vis[panelId] ?? panel.defaultVisible
   }, [registry, panelVisibility, globalPanelVisibility])
   const showSidebar = isPanelVisible(PANEL_IDS.SIDEBAR)
   const showExplorer = isPanelVisible(PANEL_IDS.EXPLORER)
@@ -116,19 +109,31 @@ export default function Layout({
   const handleToggle = useCallback((panelId: string) => {
     const panel = registry.get(panelId)
     if (!panel) return
-    if (panel.isGlobal) {
-      onToggleGlobalPanel(panelId)
-    } else {
-      onTogglePanel(panelId)
-    }
+    ;(panel.isGlobal ? onToggleGlobalPanel : onTogglePanel)(panelId)
   }, [registry, onTogglePanel, onToggleGlobalPanel])
   const { draggingDivider, containerRef, mainContentRef, handleMouseDown } = useDividerResize({
     fileViewerPosition,
     sidebarWidth,
     showSidebar,
+    showExplorer,
+    showTutorial,
+    explorerWidth: layoutSizes.explorerWidth,
+    tutorialWidth: layoutSizes.tutorialPanelWidth,
     onSidebarWidthChange,
     onLayoutSizeChange,
   })
+
+  useLayoutClamp({
+    mainContentRef,
+    showSidebar,
+    showExplorer,
+    showTutorial,
+    sidebarWidth,
+    layoutSizes,
+    onSidebarWidthChange,
+    onLayoutSizeChange,
+  })
+
   const { flashedPanel } = useLayoutKeyboard({
     toolbarPanels,
     isPanelVisible,
@@ -147,19 +152,14 @@ export default function Layout({
     onPrevTerminalTab,
     onExplorerTab,
   })
-  const toolbarPanelInfo = useMemo(() => {
-    return toolbarPanels
-      .map(id => {
-        const panel = registry.get(id)
-        if (!panel) return null
-        return {
-          ...panel,
-          shortcutKey: getShortcutKey(id),
-          isVisible: isPanelVisible(id),
-        }
-      })
-      .filter((p): p is PanelDefinition & { shortcutKey: string | null; isVisible: boolean } => p !== null)
-  }, [registry, toolbarPanels, getShortcutKey, isPanelVisible])
+  const toolbarPanelInfo = useMemo(() => toolbarPanels
+    .map(id => {
+      const panel = registry.get(id)
+      if (!panel) return null
+      return { ...panel, shortcutKey: getShortcutKey(id), isVisible: isPanelVisible(id) }
+    })
+    .filter((p): p is PanelDefinition & { shortcutKey: string | null; isVisible: boolean } => p !== null),
+  [registry, toolbarPanels, getShortcutKey, isPanelVisible])
 
   return (
     <div className="h-screen flex flex-col bg-bg-primary">
@@ -177,7 +177,6 @@ export default function Layout({
       />
 
       {topBanner}
-      {appBannerError && <ErrorBanner error={appBannerError} />}
 
       {/* Main content area */}
       <div ref={mainContentRef} className="flex-1 flex min-h-0">

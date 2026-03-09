@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
-import type { ManagedRepo } from '../../../preload/index'
+import type { ManagedRepo, DevcontainerStatus } from '../../../preload/index'
+import { IsolationSettings } from '../IsolationSettings'
 
 export function RepoSettingsView({
   repo,
@@ -17,11 +18,22 @@ export function RepoSettingsView({
   const { updateRepo, removeRepo } = useRepoStore()
 
   const [defaultAgentId, setDefaultAgentId] = useState<string | null>(repo.defaultAgentId || null)
+  const [isolated, setIsolated] = useState(repo.isolated ?? false)
+  const [skipApproval, setSkipApproval] = useState(repo.skipApproval ?? false)
+  const [devcontainerStatus, setDevcontainerStatus] = useState<DevcontainerStatus | null>(null)
+  const [hasDevcontainerConfigState, setHasDevcontainerConfig] = useState<boolean | null>(null)
   const [initScript, setInitScript] = useState('')
   const [reviewInstructions, setReviewInstructions] = useState(repo.reviewInstructions || '')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (isolated) {
+      void window.devcontainer.status().then(setDevcontainerStatus)
+      const mainWorktree = `${repo.rootDir}/${repo.defaultBranch}`
+      void window.devcontainer.hasConfig(mainWorktree).then(setHasDevcontainerConfig)
+    }
+  }, [isolated, repo.rootDir, repo.defaultBranch])
 
   // Load init script
   useEffect(() => {
@@ -40,20 +52,20 @@ export function RepoSettingsView({
 
   const handleSave = async () => {
     setSaving(true)
-    setSaved(false)
 
     try {
-      // Update repo default agent and review instructions
+      // Update repo default agent, isolation, and review instructions
       updateRepo(repo.id, {
         defaultAgentId: defaultAgentId || undefined,
+        isolated: isolated || undefined,
+        skipApproval: skipApproval || undefined,
         reviewInstructions: reviewInstructions || undefined,
       })
 
       // Save init script
       await window.repos.saveInitScript(repo.id, initScript)
 
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      onBack()
     } finally {
       setSaving(false)
     }
@@ -101,6 +113,15 @@ export function RepoSettingsView({
               </div>
             </div>
 
+            {repo.remoteUrl && (
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">Remote URL</label>
+                <div className="text-sm font-mono text-text-primary bg-bg-tertiary rounded px-3 py-2 truncate">
+                  {repo.remoteUrl}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Default Agent</label>
               <select
@@ -132,6 +153,17 @@ export function RepoSettingsView({
               </p>
             </div>
 
+            <IsolationSettings
+              isolated={isolated} skipApproval={skipApproval}
+              dockerStatus={null} devcontainerStatus={devcontainerStatus}
+              hasDevcontainerConfig={hasDevcontainerConfigState}
+              onIsolatedChange={setIsolated} onSkipApprovalChange={setSkipApproval}
+              onGenerateDevcontainerConfig={async () => {
+                await window.devcontainer.generateDefaultConfig(`${repo.rootDir}/${repo.defaultBranch}`)
+                setHasDevcontainerConfig(true)
+              }}
+            />
+
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1">Review Instructions</label>
               <textarea
@@ -161,10 +193,7 @@ export function RepoSettingsView({
         )}
       </div>
 
-      <div className="px-4 py-3 border-t border-border flex justify-between items-center">
-        <div className="text-xs text-green-400">
-          {saved && 'Saved!'}
-        </div>
+      <div className="px-4 py-3 border-t border-border flex justify-end items-center">
         <div className="flex gap-2">
           <button
             onClick={onBack}

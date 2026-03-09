@@ -13,14 +13,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 // Re-export all types so existing imports from '../../preload/index' still work
-export type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo, GitHubIssue, GitHubPrStatus, GitHubPrComment, GitHubPrForReview, GitHubReaction, GitCommitInfo, WorktreeInfo, AgentData, LayoutSizesData, PanelVisibility, SessionData, ConfigData, ProfileData, ProfilesData, MenuItemDef, TsProjectContext, ShellOption, CrashReport } from './apis/types'
-export type { PtyApi } from './apis/pty'
+export type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo, GitHubIssue, GitHubPrStatus, GitHubPrComment, GitHubPrForReview, GitHubReaction, GitCommitInfo, WorktreeInfo, AgentData, LayoutSizesData, PanelVisibility, SessionData, ConfigData, ProfileData, ProfilesData, MenuItemDef, TsProjectContext, ShellOption, CrashReport, DockerStatus, ContainerInfo, DevcontainerStatus, DevcontainerConfigStatus } from './apis/types'
+export type { PtyApi, DevcontainerReadyEvent } from './apis/pty'
 export type { FsApi } from './apis/fs'
 export type { GitApi } from './apis/git'
 export type { GhApi } from './apis/gh'
 export type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from './apis/config'
 export type { ShellApi, DialogApi, AppApi, UpdateApi, UpdateCheckResult, WindowControlsApi } from './apis/shell'
 export type { MenuApi, TsApi } from './apis/menu'
+export type { DevcontainerApi } from './apis/devcontainer'
 
 export type HelpMenuEvent = 'getting-started' | 'shortcuts' | 'reset-tutorial'
 
@@ -44,6 +45,7 @@ import type { GhApi } from './apis/gh'
 import type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from './apis/config'
 import type { ShellApi, DialogApi, AppApi, UpdateApi, WindowControlsApi } from './apis/shell'
 import type { MenuApi, TsApi } from './apis/menu'
+import type { DevcontainerApi } from './apis/devcontainer'
 
 // Import API implementations
 import { ptyApi } from './apis/pty'
@@ -53,10 +55,16 @@ import { ghApi } from './apis/gh'
 import { configApi, profilesApi, agentsApi, reposApi } from './apis/config'
 import { shellApi, dialogApi, appApi, updateApi, windowControlsApi } from './apis/shell'
 import { menuApi, tsApi } from './apis/menu'
+import { devcontainerApi } from './apis/devcontainer'
 
 // Forward menu:select-all from main process to a DOM CustomEvent
 ipcRenderer.on('menu:select-all', () => {
   window.dispatchEvent(new CustomEvent('app:select-all'))
+})
+
+// Forward agent:restart from main process to a DOM CustomEvent
+ipcRenderer.on('agent:restart', () => {
+  window.dispatchEvent(new CustomEvent('agent:restart'))
 })
 
 // Expose all APIs to the renderer process via context bridge
@@ -76,6 +84,7 @@ contextBridge.exposeInMainWorld('agents', agentsApi)
 contextBridge.exposeInMainWorld('ts', tsApi)
 contextBridge.exposeInMainWorld('help', helpApi)
 contextBridge.exposeInMainWorld('update', updateApi)
+contextBridge.exposeInMainWorld('devcontainer', devcontainerApi)
 contextBridge.exposeInMainWorld('windowControls', windowControlsApi)
 
 declare global {
@@ -96,6 +105,7 @@ declare global {
     ts: TsApi
     help: HelpApi
     update: UpdateApi
+    devcontainer: DevcontainerApi
     windowControls: WindowControlsApi
   }
 }

@@ -5,7 +5,7 @@ import { IpcMain } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import simpleGit from 'simple-git'
-import { getCloneErrorHint } from '../cloneErrorHint'
+import { getCloneErrorHint, getGitAuthHint } from '../cloneErrorHint'
 import { normalizePath } from '../platform'
 import { HandlerContext, expandHomePath } from './types'
 import { getDefaultBranch } from './gitUtils'
@@ -18,7 +18,7 @@ function withNonInteractive(git: ReturnType<typeof simpleGit>) {
 }
 
 async function handleClone(ctx: HandlerContext, url: string, targetDir: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -39,13 +39,36 @@ async function handleClone(ctx: HandlerContext, url: string, targetDir: string) 
 }
 
 async function handleWorktreeAdd(ctx: HandlerContext, repoPath: string, worktreePath: string, branchName: string, baseBranch: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
   try {
     const git = simpleGit(expandHomePath(repoPath))
-    await git.raw(['worktree', 'add', '-b', branchName, expandHomePath(worktreePath), baseBranch])
+    const expandedPath = expandHomePath(worktreePath)
+
+    // Try checking out the branch directly first (works for existing local
+    // branches and remote-only branches via git's DWIM). Fall back to -b for
+    // truly new branches.
+    try {
+      await git.raw(['worktree', 'add', expandedPath, branchName])
+    } catch (firstErr) {
+      const firstErrStr = String(firstErr)
+      // Ref path conflict: git stores branches as files on disk, so e.g. a
+      // local "release" branch (a file) prevents creating "release/linux"
+      // (which needs "release/" as a directory). Surface a clear message.
+      if (firstErrStr.includes('cannot create') || firstErrStr.includes('cannot lock ref')) {
+        // Extract the conflicting ref name from the error if possible
+        const conflictMatch = /'refs\/heads\/([^']+)'.*exists/.exec(firstErrStr)
+        const conflicting = conflictMatch ? `"${conflictMatch[1]}"` : 'another branch'
+        throw new Error(
+          `Can't check out "${branchName}" because the local branch ${conflicting} conflicts with it.\n\n` +
+          `Git stores branches as file paths, so you can't have both "${branchName}" and ${conflicting} checked out locally at the same time.\n\n` +
+          `To fix this, delete the ${conflicting} local branch (if you're not using it) or remove its worktree, then try again.`
+        )
+      }
+      await git.raw(['worktree', 'add', '-b', branchName, expandedPath, baseBranch])
+    }
     return { success: true }
   } catch (error) {
     return { success: false, error: String(error) }
@@ -53,7 +76,7 @@ async function handleWorktreeAdd(ctx: HandlerContext, repoPath: string, worktree
 }
 
 async function handleWorktreeList(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return [
       { path: repoPath, branch: 'main', head: 'abc1234' },
     ]
@@ -87,7 +110,7 @@ async function handleWorktreeList(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -96,12 +119,52 @@ async function handlePushNewBranch(ctx: HandlerContext, repoPath: string, branch
     await git.push(['--set-upstream', 'origin', branchName])
     return { success: true }
   } catch (error) {
-    return { success: false, error: String(error) }
+    const errorStr = String(error)
+
+    // Detect ref namespace conflicts (e.g. trying to create "release" when "release/linux" exists)
+    if (errorStr.includes('directory file conflict') || errorStr.includes('cannot lock ref')) {
+      return {
+        success: false,
+        error: `Branch name "${branchName}" conflicts with existing branches on the remote.\n\nThis happens when the remote already has branches that start with "${branchName}/" (e.g. "${branchName}/something"), so Git can't create a branch with that exact name.\n\nTry using a prefix like "feature/${branchName}" or "work/${branchName}" instead.`,
+      }
+    }
+
+    // Detect permission denied — user doesn't have write access to the repo
+    if ((errorStr.includes('Permission to') && errorStr.includes('denied to'))
+      || errorStr.includes('The requested URL returned error: 403')
+      || errorStr.includes('remote: Permission')) {
+      return {
+        success: false,
+        error: 'NO_WRITE_ACCESS:You don\'t have write access to this repository. Fork it on GitHub and clone your fork instead.',
+      }
+    }
+
+    // Detect non-fast-forward rejection — remote branch with same name has different history
+    if (errorStr.includes('non-fast-forward') || errorStr.includes('rejected')) {
+      return {
+        success: false,
+        error: `BRANCH_EXISTS:The remote branch "${branchName}" has diverged. You can create a session from the remote branch instead.`,
+      }
+    }
+
+    let url: string | undefined
+    try {
+      const remotes = await simpleGit(expandHomePath(repoPath)).getRemotes(true)
+      url = remotes.find(r => r.name === 'origin')?.refs.push
+    } catch { /* ignore */ }
+    let ghAvailable = true
+    try {
+      await execFileAsync('gh', ['--version'], { encoding: 'utf-8' })
+    } catch {
+      ghAvailable = false
+    }
+    const hint = getGitAuthHint(errorStr, { url, ghAvailable })
+    return { success: false, error: hint ? errorStr + hint : errorStr }
   }
 }
 
 async function handleDefaultBranch(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'main'
   }
 
@@ -114,7 +177,7 @@ async function handleDefaultBranch(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleRemoteUrl(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'git@github.com:user/demo-project.git'
   }
 
@@ -129,7 +192,7 @@ async function handleRemoteUrl(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleHeadCommit(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return 'abc1234567890'
   }
 
@@ -143,7 +206,7 @@ async function handleHeadCommit(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleListBranches(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return [
       { name: 'main', isRemote: false, current: true },
       { name: 'feature/auth', isRemote: false, current: false },
@@ -178,7 +241,7 @@ async function handleListBranches(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleFetchBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -192,7 +255,7 @@ async function handleFetchBranch(ctx: HandlerContext, repoPath: string, branchNa
 }
 
 async function handleFetchReviewPrHead(ctx: HandlerContext, repoPath: string, prNumber: number, targetBranch?: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -215,7 +278,7 @@ async function handleFetchReviewPrHead(ctx: HandlerContext, repoPath: string, pr
 // Tries fetching by branch name first (same-repo PRs), falls back to PR ref (fork PRs).
 // Uses reset --hard instead of merge so force-pushed PRs update cleanly.
 async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, branchName: string, prNumber: number) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -240,7 +303,7 @@ async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, bra
 }
 
 async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return false
   }
 
@@ -272,7 +335,7 @@ async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: st
 }
 
 async function handleHasBranchCommits(ctx: HandlerContext, repoPath: string, ref: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return false
   }
 
@@ -287,7 +350,7 @@ async function handleHasBranchCommits(ctx: HandlerContext, repoPath: string, ref
 }
 
 async function handleWorktreeRemove(ctx: HandlerContext, repoPath: string, worktreePath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -301,7 +364,7 @@ async function handleWorktreeRemove(ctx: HandlerContext, repoPath: string, workt
 }
 
 async function handleDeleteBranch(ctx: HandlerContext, repoPath: string, branchName: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 

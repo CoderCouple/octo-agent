@@ -33,7 +33,9 @@ vi.mock('../platform', () => ({
   isWindows: false,
   normalizePath: (p: string) => p.replace(/\\/g, '/'),
   getExecShell: vi.fn(() => undefined),
+  resolveCommand: vi.fn(() => null),
   resolveWindowsCommand: vi.fn(() => null),
+  enhancedPath: vi.fn((p: string) => p || ''),
 }))
 
 vi.mock('./types', async (importOriginal) => {
@@ -51,7 +53,7 @@ import { E2EScenario, type HandlerContext } from './types'
 function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
   return {
     isE2ETest: false,
-    e2eScenario: E2EScenario.Default,
+    e2eScenario: E2EScenario.Default, e2eRealRepos: false,
     isDev: false,
     isWindows: false,
     ptyProcesses: new Map(),
@@ -62,6 +64,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   }
 }
@@ -93,7 +96,7 @@ describe('ghCore handlers', () => {
       expect(handlers['gh:repoSlug']).toBeDefined()
       expect(handlers['gh:prStatus']).toBeDefined()
       expect(handlers['gh:hasWriteAccess']).toBeDefined()
-      expect(handlers['gh:mergeBranchToMain']).toBeDefined()
+      expect(handlers['gh:prChecksStatus']).toBeDefined()
       expect(handlers['gh:getPrCreateUrl']).toBeDefined()
     })
   })
@@ -157,6 +160,12 @@ describe('ghCore handlers', () => {
       const handlers = setupHandlers()
       expect(await handlers['gh:isInstalled']()).toBe(false)
     })
+
+    it('returns true when gh is installed', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'gh version 2.x', stderr: '' } as never)
+      const handlers = setupHandlers()
+      expect(await handlers['gh:isInstalled']()).toBe(true)
+    })
   })
 
   describe('gh:issues', () => {
@@ -183,6 +192,40 @@ describe('ghCore handlers', () => {
       vi.mocked(execFile).mockRejectedValue(new Error('fail'))
       const handlers = setupHandlers()
       expect(await handlers['gh:issues'](null, '/repo')).toEqual([])
+    })
+  })
+
+  describe('gh:searchIssues', () => {
+    it('returns filtered mock issues in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:searchIssues'](null, '/repo', 'dark mode')
+      expect(result).toHaveLength(1)
+      expect(result[0].number).toBe(42)
+    })
+
+    it('returns mock issues matching label in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:searchIssues'](null, '/repo', 'bug')
+      expect(result).toHaveLength(1)
+      expect(result[0].number).toBe(17)
+    })
+
+    it('parses search results in normal mode', async () => {
+      const mockIssues = [
+        { number: 5, title: 'Search result', labels: [{ name: 'enhancement' }], url: 'https://github.com/repo/issues/5' },
+      ]
+      vi.mocked(execFile).mockResolvedValue({ stdout: JSON.stringify(mockIssues), stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:searchIssues'](null, '/repo', 'search')
+      expect(result).toHaveLength(1)
+      expect(result[0].labels).toEqual(['enhancement'])
+    })
+
+    it('returns empty array on error', async () => {
+      vi.mocked(execFile).mockRejectedValue(new Error('fail'))
+      const handlers = setupHandlers()
+      expect(await handlers['gh:searchIssues'](null, '/repo', 'test')).toEqual([])
     })
   })
 
@@ -238,7 +281,7 @@ describe('ghCore handlers', () => {
       expect(result.state).toBe('OPEN')
     })
 
-    it('returns null on error', async () => {
+    it('returns null on unexpected error', async () => {
       vi.mocked(execFile).mockRejectedValue(new Error('no PR'))
       const handlers = setupHandlers()
       expect(await handlers['gh:prStatus'](null, '/repo')).toBeNull()
@@ -263,6 +306,12 @@ describe('ghCore handlers', () => {
       expect(await handlers['gh:hasWriteAccess'](null, '/repo')).toBe(true)
     })
 
+    it('returns true for MAINTAIN permission', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'MAINTAIN\n', stderr: '' } as never)
+      const handlers = setupHandlers()
+      expect(await handlers['gh:hasWriteAccess'](null, '/repo')).toBe(true)
+    })
+
     it('returns false for READ permission', async () => {
       vi.mocked(execFile).mockResolvedValue({ stdout: 'READ\n', stderr: '' } as never)
       const handlers = setupHandlers()
@@ -276,53 +325,46 @@ describe('ghCore handlers', () => {
     })
   })
 
-  describe('gh:mergeBranchToMain', () => {
-    it('returns success in E2E mode', async () => {
+  describe('gh:prChecksStatus', () => {
+    it('returns passed in E2E mode', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
-      const result = await handlers['gh:mergeBranchToMain'](null, '/repo')
-      expect(result).toEqual({ success: true })
+      const result = await handlers['gh:prChecksStatus'](null, '/repo')
+      expect(result).toBe('passed')
     })
 
-    it('pushes current branch and to default branch', async () => {
-      mockGitInstance.status.mockResolvedValue({ current: 'feature' })
-      mockGitInstance.raw.mockResolvedValue('refs/remotes/origin/main\n')
-      mockGitInstance.push.mockResolvedValue(undefined)
-
+    it('returns passed when all checks succeed', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'SUCCESS\nSUCCESS\n', stderr: '' } as never)
       const handlers = setupHandlers()
-      const result = await handlers['gh:mergeBranchToMain'](null, '/repo')
-      expect(result).toEqual({ success: true })
-      expect(mockGitInstance.push).toHaveBeenCalledTimes(2)
+      const result = await handlers['gh:prChecksStatus'](null, '/repo')
+      expect(result).toBe('passed')
     })
 
-    it('returns error when current branch cannot be determined', async () => {
-      mockGitInstance.status.mockResolvedValue({ current: null })
-
+    it('returns pending when checks are in progress', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'SUCCESS\nPENDING\n', stderr: '' } as never)
       const handlers = setupHandlers()
-      const result = await handlers['gh:mergeBranchToMain'](null, '/repo')
-      expect(result).toEqual({ success: false, error: 'Could not determine current branch' })
+      const result = await handlers['gh:prChecksStatus'](null, '/repo')
+      expect(result).toBe('pending')
     })
 
-    it('returns error on push failure', async () => {
-      mockGitInstance.status.mockResolvedValue({ current: 'feature' })
-      mockGitInstance.raw.mockResolvedValue('refs/remotes/origin/main\n')
-      mockGitInstance.push.mockRejectedValue(new Error('push failed'))
-
+    it('returns failed when a check fails', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'SUCCESS\nFAILURE\n', stderr: '' } as never)
       const handlers = setupHandlers()
-      const result = await handlers['gh:mergeBranchToMain'](null, '/repo')
-      expect(result).toEqual({ success: false, error: expect.stringContaining('push failed') })
+      const result = await handlers['gh:prChecksStatus'](null, '/repo')
+      expect(result).toBe('failed')
     })
 
-    it('falls back to master when origin/main does not exist', async () => {
-      mockGitInstance.status.mockResolvedValue({ current: 'feature' })
-      mockGitInstance.raw.mockRejectedValueOnce(new Error('no symbolic ref'))
-        .mockRejectedValueOnce(new Error('no main'))
-      mockGitInstance.push.mockResolvedValue(undefined)
-
+    it('returns none when no checks exist', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: '', stderr: '' } as never)
       const handlers = setupHandlers()
-      const result = await handlers['gh:mergeBranchToMain'](null, '/repo')
-      expect(result).toEqual({ success: true })
-      // Should push to master
-      expect(mockGitInstance.push).toHaveBeenCalledWith('origin', 'HEAD:master')
+      const result = await handlers['gh:prChecksStatus'](null, '/repo')
+      expect(result).toBe('none')
+    })
+
+    it('returns none on error', async () => {
+      vi.mocked(execFile).mockRejectedValue(new Error('no PR'))
+      const handlers = setupHandlers()
+      const result = await handlers['gh:prChecksStatus'](null, '/repo')
+      expect(result).toBe('none')
     })
   })
 
@@ -368,6 +410,33 @@ describe('ghCore handlers', () => {
       const handlers = setupHandlers()
       const result = await handlers['gh:getPrCreateUrl'](null, '/repo')
       expect(result).toBeNull()
+    })
+  })
+
+  describe('gh:currentUser', () => {
+    it('returns test-user in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:currentUser'](null)
+      expect(result).toBe('test-user')
+    })
+
+    it('returns login from gh api', async () => {
+      // promisify mock returns fn as-is, so execFileAsync === execFile
+      vi.mocked(execFile).mockReturnValue({ stdout: 'octocat\n', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:currentUser'](null)
+      expect(result).toBe('octocat')
+    })
+
+    it('returns error object on error', async () => {
+      vi.mocked(execFile).mockImplementation(() => {
+        throw new Error('auth fail')
+      })
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:currentUser'](null)
+      expect(result).toEqual({ error: 'auth fail' })
     })
   })
 })

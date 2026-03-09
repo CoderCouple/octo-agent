@@ -35,7 +35,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
   return {
     isDev: false,
     isE2ETest: false,
-    e2eScenario: E2EScenario.Default,
+    e2eScenario: E2EScenario.Default, e2eRealRepos: false,
     isWindows: false,
     ptyProcesses: new Map(),
     ptyOwnerWindows: new Map(),
@@ -45,6 +45,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   } as unknown as HandlerContext
 }
@@ -183,7 +184,7 @@ describe('updater handler', () => {
 
         const handler = getHandler(mockIpcMain, 'updater:checkForUpdates')
         const result = await handler()
-        expect(result).toEqual({ updateAvailable: false })
+        expect(result).toEqual({ updateAvailable: false, checkFailed: true })
       })
 
     })

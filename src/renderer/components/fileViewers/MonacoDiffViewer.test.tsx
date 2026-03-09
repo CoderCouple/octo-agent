@@ -154,12 +154,22 @@ describe('MonacoDiffViewer', () => {
       setPosition: vi.fn(),
       updateOptions: vi.fn(),
     }
+    let diffCallback: (() => void) | null = null
     const mockEditorInstance = {
       getOriginalEditor: vi.fn().mockReturnValue(mockOriginalEditor),
       getModifiedEditor: vi.fn().mockReturnValue(mockModifiedEditor),
-
+      onDidUpdateDiff: vi.fn((cb: () => void) => {
+        diffCallback = cb
+        return { dispose: vi.fn() }
+      }),
     }
     onMountHandler(mockEditorInstance)
+
+    // Scroll happens inside the onDidUpdateDiff callback, not immediately
+    expect(mockModifiedEditor.revealLineInCenter).not.toHaveBeenCalled()
+
+    // Simulate diff computation completing
+    diffCallback!()
 
     expect(mockModifiedEditor.revealLineInCenter).toHaveBeenCalledWith(42)
     expect(mockModifiedEditor.setPosition).toHaveBeenCalledWith({ lineNumber: 42, column: 1 })

@@ -170,72 +170,14 @@ describe('Explorer', () => {
       )
       fireEvent.click(screen.getByText('Show plan'))
       expect(onFileSelect).toHaveBeenCalledWith({
-        filePath: '/repos/project/.broomy/plan.md',
+        filePath: '/repos/project/.broomy/output/plan.md',
         openInDiffMode: false,
       })
     })
 
-    it('shows "Ask agent to plan this issue" chip when issueNumber is set and no plan exists', () => {
-      render(
-        <Explorer
-          {...defaultProps}
-          directory="/repos/project"
-          issueNumber={42}
-          issuePlanExists={false}
-          agentPtyId="pty-1"
-        />
-      )
-      expect(screen.getByText('Ask agent to plan this issue')).toBeTruthy()
-    })
-
-    it('writes command to agent terminal when "Ask agent to plan" is clicked', () => {
-      render(
-        <Explorer
-          {...defaultProps}
-          directory="/repos/project"
-          issueNumber={42}
-          issuePlanExists={false}
-          agentPtyId="pty-1"
-        />
-      )
-      fireEvent.click(screen.getByText('Ask agent to plan this issue'))
-      expect(window.pty.write).toHaveBeenCalledWith(
-        'pty-1',
-        expect.stringContaining('gh issue view 42'),
-      )
-    })
-
-    it('disables "Ask agent to plan" chip when no agentPtyId', () => {
-      render(
-        <Explorer
-          {...defaultProps}
-          directory="/repos/project"
-          issueNumber={42}
-          issuePlanExists={false}
-        />
-      )
-      const button = screen.getByText('Ask agent to plan this issue')
-      expect(button.closest('button')?.disabled).toBe(true)
-    })
-
-    it('does not show issue plan chips when neither condition is met', () => {
-      render(<Explorer {...defaultProps} directory="/repos/project" />)
+    it('does not show plan chip when no plan exists', () => {
+      render(<Explorer {...defaultProps} directory="/repos/project" issueNumber={42} issuePlanExists={false} />)
       expect(screen.queryByText('Show plan')).toBeNull()
-      expect(screen.queryByText('Ask agent to plan this issue')).toBeNull()
-    })
-
-    it('shows "Show plan" chip instead of "Ask agent" when plan exists even with issueNumber', () => {
-      render(
-        <Explorer
-          {...defaultProps}
-          directory="/repos/project"
-          issueNumber={42}
-          issuePlanExists={true}
-          agentPtyId="pty-1"
-        />
-      )
-      expect(screen.getByText('Show plan')).toBeTruthy()
-      expect(screen.queryByText('Ask agent to plan this issue')).toBeNull()
     })
   })
 

@@ -82,9 +82,10 @@ describe('RepoSettingsView', () => {
     })
   })
 
-  it('shows Saved! message after saving', async () => {
+  it('navigates back after saving', async () => {
     vi.mocked(window.repos.saveInitScript).mockResolvedValue({ success: true })
-    render(<RepoSettingsView repo={mockRepo} onBack={vi.fn()} />)
+    const onBack = vi.fn()
+    render(<RepoSettingsView repo={mockRepo} onBack={onBack} />)
 
     await waitFor(() => {
       expect(screen.getByText('Save')).toBeTruthy()
@@ -93,7 +94,7 @@ describe('RepoSettingsView', () => {
     fireEvent.click(screen.getByText('Save'))
 
     await waitFor(() => {
-      expect(screen.getByText('Saved!')).toBeTruthy()
+      expect(onBack).toHaveBeenCalled()
     })
   })
 
@@ -178,6 +179,35 @@ describe('RepoSettingsView', () => {
     render(<RepoSettingsView repo={mockRepo} onBack={vi.fn()} />)
     await waitFor(() => {
       expect(screen.getByText('Init Script')).toBeTruthy()
+    })
+  })
+
+  it('renders isolation settings', async () => {
+    render(<RepoSettingsView repo={mockRepo} onBack={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByText('Run agent in isolated container')).toBeTruthy()
+      expect(screen.getByText('Auto-approve agent commands')).toBeTruthy()
+    })
+  })
+
+  it('saves isolation fields when Save is clicked', async () => {
+    vi.mocked(window.repos.saveInitScript).mockResolvedValue({ success: true })
+    const updateRepo = vi.fn()
+    useRepoStore.setState({ updateRepo })
+
+    render(<RepoSettingsView repo={{ ...mockRepo, isolated: true, skipApproval: true }} onBack={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Save')).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => {
+      expect(updateRepo).toHaveBeenCalledWith('repo-1', expect.objectContaining({
+        isolated: true,
+        skipApproval: true,
+      }))
     })
   })
 

@@ -119,6 +119,37 @@ describe('SCCommitsView', () => {
     expect(screen.getByText('No files changed')).toBeTruthy()
   })
 
+  it('groups commits into Local and Pushed sections when pushed field is set', () => {
+    const branchCommits = [
+      makeCommit({ hash: 'local1', shortHash: 'local1', message: 'Local change', pushed: false }),
+      makeCommit({ hash: 'pushed1', shortHash: 'pushed1', message: 'Pushed change', pushed: true }),
+    ]
+    render(<SCCommitsView {...defaultProps} branchCommits={branchCommits} />)
+    expect(screen.getByText('Local (1)')).toBeTruthy()
+    expect(screen.getByText('Pushed (1)')).toBeTruthy()
+    expect(screen.getByText('Local change')).toBeTruthy()
+    expect(screen.getByText('Pushed change')).toBeTruthy()
+  })
+
+  it('shows only Local section when all commits are local', () => {
+    const branchCommits = [
+      makeCommit({ hash: 'local1', shortHash: 'local1', message: 'Local 1', pushed: false }),
+      makeCommit({ hash: 'local2', shortHash: 'local2', message: 'Local 2', pushed: false }),
+    ]
+    render(<SCCommitsView {...defaultProps} branchCommits={branchCommits} />)
+    expect(screen.getByText('Local (2)')).toBeTruthy()
+    expect(screen.queryByText(/Pushed/)).toBeNull()
+  })
+
+  it('shows only Pushed section when all commits are pushed', () => {
+    const branchCommits = [
+      makeCommit({ hash: 'pushed1', shortHash: 'pushed1', message: 'Pushed 1', pushed: true }),
+    ]
+    render(<SCCommitsView {...defaultProps} branchCommits={branchCommits} />)
+    expect(screen.getByText('Pushed (1)')).toBeTruthy()
+    expect(screen.queryByText(/Local/)).toBeNull()
+  })
+
   it('calls onFileSelect with diff mode when clicking a commit file', () => {
     const onFileSelect = vi.fn()
     const branchCommits = [makeCommit({ hash: 'hash1', shortHash: 'hash1', message: 'Fix' })]

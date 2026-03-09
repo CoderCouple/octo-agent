@@ -1,7 +1,8 @@
 /**
  * Top-level source control container that composes the PR banner, view toggle, and sub-views.
+ * Integrates the modular commands.json action system.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus, PrState } from '../../store/sessions'
 import type { NavigationTarget } from '../../utils/fileNavigation'
@@ -12,6 +13,11 @@ import { SCPrBanner } from './SCPrBanner'
 import { SCCommitsView } from './SCCommitsView'
 import { SCBranchView } from './SCBranchView'
 import { SCWorkingView } from './SCWorkingView'
+import { CommandsSetupBanner } from './CommandsSetupBanner'
+import { CommandsSetupDialog } from './CommandsSetupDialog'
+import { useCommandsConfig } from '../../hooks/useCommandsConfig'
+import { computeConditionState } from '../../utils/conditionState'
+import type { TemplateVars } from '../../utils/commandsConfig'
 
 interface SourceControlProps {
   directory?: string
@@ -22,15 +28,14 @@ interface SourceControlProps {
   branchStatus?: BranchStatus
   repoId?: string
   agentPtyId?: string
+  agentId?: string | null
   onUpdatePrState?: (prState: PrState, prNumber?: number, prUrl?: string) => void
   issueNumber?: number
   issueTitle?: string
   issueUrl?: string
-  pushedToMainAt?: number
-  pushedToMainCommit?: string
-  onRecordPushToMain?: (commitHash: string) => void
-  onClearPushToMain?: () => void
-  onOpenReview?: () => void
+  onSwitchTab?: (tab: string) => void
+  onOpenCommandsEditor?: () => void
+  isReview?: boolean
 }
 
 export function SourceControl({
@@ -42,32 +47,86 @@ export function SourceControl({
   branchStatus,
   repoId,
   agentPtyId,
+  agentId,
   onUpdatePrState,
   issueNumber,
   issueTitle,
   issueUrl,
-  pushedToMainAt,
-  pushedToMainCommit,
-  onRecordPushToMain,
-  onClearPushToMain,
-  onOpenReview,
+  onSwitchTab,
+  onOpenCommandsEditor,
+  isReview,
 }: SourceControlProps) {
   const [scView, setScView] = useState<'working' | 'branch' | 'commits'>('working')
+  const [showSetupDialog, setShowSetupDialog] = useState(false)
+  const [noDevcontainer, setNoDevcontainer] = useState(false)
+  const [hasDevcontainerLoaded, setHasDevcontainerLoaded] = useState(false)
+
+  // Load commands.json
+  const { config: commandsConfig, exists: commandsExists } = useCommandsConfig(directory)
 
   // Reset view when directory (session) changes
   useEffect(() => {
     setScView('working')
+    setHasDevcontainerLoaded(false)
   }, [directory])
 
   const data = useSourceControlData({
     directory, gitStatus, syncStatus, branchStatus, onUpdatePrState,
-    pushedToMainAt, pushedToMainCommit, onClearPushToMain,
     repoId, scView,
   })
 
+  // Check if repo has isolation enabled but no devcontainer config
+  useEffect(() => {
+    if (!directory || !repoId) { setNoDevcontainer(false); setHasDevcontainerLoaded(true); return }
+    if (!data.currentRepo?.isolated) { setNoDevcontainer(false); setHasDevcontainerLoaded(true); return }
+    let cancelled = false
+    window.devcontainer.hasConfig(directory).then((has) => {
+      if (!cancelled) { setNoDevcontainer(!has); setHasDevcontainerLoaded(true) }
+    }).catch(() => {
+      if (!cancelled) { setNoDevcontainer(false); setHasDevcontainerLoaded(true) }
+    })
+    return () => { cancelled = true }
+  }, [directory, repoId, data.currentRepo?.isolated])
+
   const actions = useSourceControlActions({
-    directory, onGitStatusRefresh, agentPtyId, onRecordPushToMain, data,
+    directory, onGitStatusRefresh, agentPtyId, agentId, data,
   })
+
+  // All async sources must complete before we update condition state.
+  // This prevents buttons from appearing one-at-a-time as independent fetches resolve.
+  const allSourcesReady = !data.isInitialLoading && hasDevcontainerLoaded
+
+  const latestConditionState = useMemo(() =>
+    computeConditionState({
+      gitStatus,
+      syncStatus,
+      branchStatus,
+      prNumber: data.prStatus?.number,
+      hasWriteAccess: data.hasWriteAccess,
+      allowApproveAndMerge: data.currentRepo?.allowApproveAndMerge ?? true,
+      checksStatus: data.checksStatus,
+      behindMainCount: data.behindMainCount,
+      issueNumber,
+      noDevcontainer,
+      isReview,
+    }),
+    [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.behindMainCount, issueNumber, noDevcontainer, isReview]
+  )
+
+  // Hold the last settled snapshot until all sources are ready again
+  const settledConditionState = useRef(latestConditionState)
+  if (allSourcesReady) {
+    settledConditionState.current = latestConditionState
+  }
+  const conditionState = settledConditionState.current
+
+  // Template variables for action labels and prompts
+  const templateVars: TemplateVars = useMemo(() => ({
+    main: data.branchBaseName || 'main',
+    branch: syncStatus?.current ?? '',
+    directory: directory ?? '',
+    issueNumber: issueNumber ? String(issueNumber) : undefined,
+  }), [data.branchBaseName, syncStatus?.current, directory, issueNumber])
 
   if (!directory) return null
 
@@ -75,24 +134,39 @@ export function SourceControl({
     <SCViewToggle scView={scView} setScView={setScView} />
   )
 
-  const banners = (
-    <SCPrBanner
-      prStatus={data.prStatus}
-      isPrLoading={data.isPrLoading}
-      branchStatus={branchStatus}
-      branchBaseName={data.branchBaseName}
-      gitStatus={gitStatus}
-      syncStatus={syncStatus}
-      isSyncingWithMain={data.isSyncingWithMain}
-      onSyncWithMain={actions.handleSyncWithMain}
-      gitOpError={data.gitOpError}
-      onDismissError={() => data.setGitOpError(null)}
-      agentMergeMessage={data.agentMergeMessage}
-      onDismissAgentMerge={() => data.setAgentMergeMessage(null)}
-      issueNumber={issueNumber}
-      issueTitle={issueTitle}
-      issueUrl={issueUrl}
+  const setupDialog = showSetupDialog && directory && (
+    <CommandsSetupDialog
+      directory={directory}
+      onClose={() => setShowSetupDialog(false)}
+      onCreated={() => {/* config will auto-reload via file watcher */}}
     />
+  )
+
+  const banners = (
+    <>
+      {!commandsExists && (
+        <CommandsSetupBanner onSetup={() => setShowSetupDialog(true)} />
+      )}
+      <SCPrBanner
+        prStatus={data.prStatus}
+        isPrLoading={data.isPrLoading}
+        branchStatus={branchStatus}
+        branchBaseName={data.branchBaseName}
+        gitStatus={gitStatus}
+        syncStatus={syncStatus}
+        isSyncingWithMain={data.isSyncingWithMain}
+        onSyncWithMain={actions.handleSyncWithMain}
+        gitOpError={data.gitOpError}
+        onDismissError={() => data.setGitOpError(null)}
+        agentMergeMessage={data.agentMergeMessage}
+        onDismissAgentMerge={() => data.setAgentMergeMessage(null)}
+        issueNumber={issueNumber}
+        issueTitle={issueTitle}
+        issueUrl={issueUrl}
+        onRetryGitOp={actions.handleSync}
+        onFileSelect={onFileSelect}
+      />
+    </>
   )
 
   if (scView === 'commits') {
@@ -100,6 +174,7 @@ export function SourceControl({
       <div className="flex flex-col h-full">
         {viewToggle}
         {banners}
+        {setupDialog}
         <SCCommitsView
           directory={directory}
           branchCommits={data.branchCommits}
@@ -120,6 +195,7 @@ export function SourceControl({
       <div className="flex flex-col h-full">
         {viewToggle}
         {banners}
+        {setupDialog}
         <SCBranchView
           directory={directory}
           branchChanges={data.branchChanges}
@@ -137,6 +213,7 @@ export function SourceControl({
     <div className="flex flex-col h-full">
       {viewToggle}
       {banners}
+      {setupDialog}
       <SCWorkingView
         directory={directory}
         gitStatus={gitStatus}
@@ -145,37 +222,23 @@ export function SourceControl({
         branchBaseName={data.branchBaseName}
         stagedFiles={data.stagedFiles}
         unstagedFiles={data.unstagedFiles}
-        commitMessage={data.commitMessage}
-        setCommitMessage={data.setCommitMessage}
-        isCommitting={data.isCommitting}
         isMerging={syncStatus?.isMerging ?? false}
         hasConflicts={syncStatus?.hasConflicts ?? false}
-        commitError={data.commitError}
-        commitErrorExpanded={data.commitErrorExpanded}
-        setCommitErrorExpanded={data.setCommitErrorExpanded}
-        setCommitError={data.setCommitError}
-        isSyncing={data.isSyncing}
+        isCommitting={data.isCommitting}
         onCommit={actions.handleCommit}
         onCommitMerge={actions.handleCommitMerge}
-        onResolveConflicts={actions.handleResolveConflicts}
-        askedAgentToResolve={data.askedAgentToResolve}
-        onSync={actions.handleSync}
-        onSyncWithMain={actions.handleSyncWithMain}
-        onPushNewBranch={actions.handlePushNewBranch}
         onStage={actions.handleStage}
         onStageAll={actions.handleStageAll}
         onUnstage={actions.handleUnstage}
         onFileSelect={onFileSelect}
-        onOpenReview={onOpenReview}
-        prStatus={data.prStatus}
-        hasWriteAccess={data.hasWriteAccess}
-        isPushingToMain={data.isPushingToMain}
-        allowPushToMain={data.currentRepo?.allowPushToMain ?? true}
-        onCreatePr={actions.handleCreatePr}
-        onPushToMain={actions.handlePushToMain}
-        behindMainCount={data.behindMainCount}
-        isFetchingBehindMain={data.isFetchingBehindMain}
-        isSyncingWithMain={data.isSyncingWithMain}
+        onSwitchTab={onSwitchTab}
+        onGitStatusRefresh={onGitStatusRefresh}
+        actions={commandsConfig?.actions ?? null}
+        conditionState={conditionState}
+        templateVars={templateVars}
+        agentPtyId={agentPtyId}
+        agentId={agentId}
+        onOpenCommandsEditor={commandsExists ? onOpenCommandsEditor : undefined}
       />
     </div>
   )

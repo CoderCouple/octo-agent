@@ -28,7 +28,7 @@ import { E2EScenario, type HandlerContext } from './types'
 function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
   return {
     isE2ETest: false,
-    e2eScenario: E2EScenario.Default,
+    e2eScenario: E2EScenario.Default, e2eRealRepos: false,
     isDev: false,
     isWindows: false,
     ptyProcesses: new Map(),
@@ -39,6 +39,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   }
 }
@@ -178,6 +179,121 @@ describe('ghComments handlers', () => {
     })
   })
 
+  describe('gh:prDescription', () => {
+    it('returns mock description in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:prDescription'](null, '/repo', 123)
+      expect(result).toContain('dark mode')
+    })
+
+    it('returns description from gh CLI in normal mode', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: 'PR body text\n', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:prDescription'](null, '/repo', 42)
+      expect(result).toBe('PR body text')
+    })
+
+    it('returns null for empty body', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: '  \n', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:prDescription'](null, '/repo', 42)
+      expect(result).toBeNull()
+    })
+
+    it('returns null on error', async () => {
+      vi.mocked(execFile).mockRejectedValue(new Error('gh error'))
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:prDescription'](null, '/repo', 42)
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('gh:prIssueComments', () => {
+    it('returns mock comments in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:prIssueComments'](null, '/repo', 123)
+      expect(result).toHaveLength(2)
+      expect(result[0].author).toBe('reviewer')
+    })
+
+    it('parses JSON lines output in normal mode', async () => {
+      const mockOutput = [
+        JSON.stringify({ id: 1, body: 'comment', author: 'user1', createdAt: '2024-01-01', url: 'https://example.com', reactions: [] }),
+      ].join('\n')
+      vi.mocked(execFile).mockResolvedValue({ stdout: mockOutput, stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:prIssueComments'](null, '/repo', 42)
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe(1)
+    })
+
+    it('returns empty array on error', async () => {
+      vi.mocked(execFile).mockRejectedValue(new Error('gh error'))
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:prIssueComments'](null, '/repo', 42)
+      expect(result).toEqual([])
+    })
+
+    it('passes pagination params', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: '', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      await handlers['gh:prIssueComments'](null, '/repo', 42, 2, 10)
+      expect(execFile).toHaveBeenCalledWith(
+        'gh',
+        expect.arrayContaining(['-F', 'per_page=10', '-F', 'page=2']),
+        expect.objectContaining({ cwd: '/repo' }),
+      )
+    })
+  })
+
+  describe('gh:addReaction', () => {
+    it('returns success in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:addReaction'](null, '/repo', 1, '+1', 'review')
+      expect(result).toEqual({ success: true })
+    })
+
+    it('adds reaction to review comment', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: '', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:addReaction'](null, '/repo', 5, 'heart', 'review')
+      expect(result).toEqual({ success: true })
+      expect(execFile).toHaveBeenCalledWith(
+        'gh',
+        expect.arrayContaining(['api', 'repos/{owner}/{repo}/pulls/comments/5/reactions']),
+        expect.objectContaining({ cwd: '/repo' }),
+      )
+    })
+
+    it('adds reaction to issue comment', async () => {
+      vi.mocked(execFile).mockResolvedValue({ stdout: '', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:addReaction'](null, '/repo', 5, '+1', 'issue')
+      expect(result).toEqual({ success: true })
+      expect(execFile).toHaveBeenCalledWith(
+        'gh',
+        expect.arrayContaining(['api', 'repos/{owner}/{repo}/issues/comments/5/reactions']),
+        expect.objectContaining({ cwd: '/repo' }),
+      )
+    })
+
+    it('returns error on failure', async () => {
+      vi.mocked(execFile).mockRejectedValue(new Error('api error'))
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:addReaction'](null, '/repo', 1, '+1', 'review')
+      expect(result).toEqual({ success: false, error: expect.stringContaining('api error') })
+    })
+  })
+
   describe('gh:submitDraftReview', () => {
     it('returns success with mock reviewId in E2E mode', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
@@ -200,6 +316,46 @@ describe('ghComments handlers', () => {
       const handlers = setupHandlers()
       const result = await handlers['gh:submitDraftReview'](null, '/repo', 42, [])
       expect(result).toEqual({ success: false, error: expect.stringContaining('api error') })
+    })
+  })
+
+  describe('gh:myReviewStatus', () => {
+    it('returns pending in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['gh:myReviewStatus'](null, '/repo', 42)
+      expect(result).toBe('pending')
+    })
+
+    it('returns reviewed when user is not in requested reviewers', async () => {
+      vi.mocked(execFile)
+        .mockReturnValueOnce({ stdout: 'user/repo\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: 'octocat\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: '\n', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:myReviewStatus'](null, '/repo', 42)
+      expect(result).toBe('reviewed')
+    })
+
+    it('returns pending when user is in requested reviewers', async () => {
+      vi.mocked(execFile)
+        .mockReturnValueOnce({ stdout: 'user/repo\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: 'octocat\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: 'octocat\n', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:myReviewStatus'](null, '/repo', 42)
+      expect(result).toBe('pending')
+    })
+
+    it('returns null on error', async () => {
+      vi.mocked(execFile).mockImplementation(() => {
+        throw new Error('network error')
+      })
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:myReviewStatus'](null, '/repo', 42)
+      expect(result).toBeNull()
     })
   })
 })

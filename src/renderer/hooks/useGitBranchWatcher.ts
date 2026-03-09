@@ -21,12 +21,12 @@ interface UseGitBranchWatcherArgs {
 }
 
 /**
- * Resolve the actual git directory to watch.
- * - Regular repo: .git is a directory → watch it directly
- * - Worktree: .git is a file containing "gitdir: <path>" → watch that path
+ * Resolve the HEAD file path to watch for branch changes.
+ * - Regular repo: .git/HEAD
+ * - Worktree: .git is a file containing "gitdir: <path>" → <path>/HEAD
  * - Missing: returns null
  */
-async function resolveGitDir(sessionDir: string): Promise<string | null> {
+async function resolveHeadPath(sessionDir: string): Promise<string | null> {
   const dotGit = `${sessionDir}/.git`
 
   // Check if .git exists at all
@@ -39,20 +39,23 @@ async function resolveGitDir(sessionDir: string): Promise<string | null> {
     // Worktree .git files contain: "gitdir: /absolute/path/to/.git/worktrees/name"
     const match = /^gitdir:\s*(.+)$/.exec(content.trim())
     if (match?.[1]) {
-      const gitDir = match[1]
-      const gitDirExists = await window.fs.exists(gitDir)
-      return gitDirExists ? gitDir : null
+      const headPath = `${match[1]}/HEAD`
+      const headExists = await window.fs.exists(headPath)
+      return headExists ? headPath : null
     }
   } catch {
-    // readFile failed → .git is a directory (normal repo), use it directly
+    // readFile failed → .git is a directory (normal repo)
   }
 
-  return dotGit
+  const headPath = `${dotGit}/HEAD`
+  const headExists = await window.fs.exists(headPath)
+  return headExists ? headPath : null
 }
 
 export function useGitBranchWatcher({ sessions, activeSessionId, updateSessionBranch }: UseGitBranchWatcherArgs) {
   const activeSession = sessions.find(s => s.id === activeSessionId && !s.isArchived)
   const activeDir = activeSession?.directory
+  const activeBranch = activeSession?.branch
 
   useEffect(() => {
     if (!activeSession || !activeDir || !activeSessionId) return
@@ -61,13 +64,16 @@ export function useGitBranchWatcher({ sessions, activeSessionId, updateSessionBr
     let cancelled = false
     let removeListener: (() => void) | null = null
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    // Track the last known branch in a mutable variable to avoid stale closure
+    let lastKnownBranch = activeBranch
 
     // One-time branch refresh to catch changes while unwatched
     void (async () => {
       try {
         const branch = await window.git.getBranch(activeDir)
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- checked after await
-        if (!cancelled && branch !== activeSession.branch) {
+        if (!cancelled && branch !== lastKnownBranch) {
+          lastKnownBranch = branch
           updateSessionBranch(activeSessionId, branch)
         }
       } catch {
@@ -76,19 +82,18 @@ export function useGitBranchWatcher({ sessions, activeSessionId, updateSessionBr
     })()
 
     const setup = async () => {
-      const gitDir = await resolveGitDir(activeDir)
-      if (!gitDir || cancelled) return
+      const headPath = await resolveHeadPath(activeDir)
+      if (!headPath || cancelled) return
 
       // Register listener before watching (synchronous)
-      removeListener = window.fs.onChange(watcherId, (event) => {
-        if (event.filename && event.filename !== 'HEAD') return
-
+      removeListener = window.fs.onChange(watcherId, () => {
         if (debounceTimer) clearTimeout(debounceTimer)
         debounceTimer = setTimeout(() => {
           void (async () => {
             try {
               const branch = await window.git.getBranch(activeDir)
-              if (branch !== activeSession.branch) {
+              if (branch !== lastKnownBranch) {
+                lastKnownBranch = branch
                 updateSessionBranch(activeSessionId, branch)
               }
             } catch {
@@ -98,7 +103,7 @@ export function useGitBranchWatcher({ sessions, activeSessionId, updateSessionBr
         }, 300)
       })
 
-      const result = await window.fs.watch(watcherId, gitDir)
+      const result = await window.fs.watch(watcherId, headPath)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cancelled may change during async iteration
       if (cancelled) {
         removeListener()

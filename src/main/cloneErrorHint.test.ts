@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getCloneErrorHint } from './cloneErrorHint'
+import { getCloneErrorHint, getGitAuthHint } from './cloneErrorHint'
 
 describe('getCloneErrorHint', () => {
   describe('HTTPS auth errors with HTTPS URL', () => {
@@ -154,6 +154,86 @@ describe('getCloneErrorHint', () => {
 
     it('returns null for generic errors', () => {
       expect(getCloneErrorHint('fatal: something went wrong', 'git@github.com:user/repo.git')).toBeNull()
+    })
+  })
+
+  describe('getGitAuthHint identity errors', () => {
+    it('returns hint for "Please tell me who you are"', () => {
+      const hint = getGitAuthHint("fatal: Please tell me who you are.\n\nRun\n  git config --global user.email")
+      expect(hint).toContain('Git identity not configured')
+      expect(hint).toContain('git config --global user.name')
+      expect(hint).toContain('git config --global user.email')
+    })
+
+    it('returns hint for "Author identity unknown"', () => {
+      const hint = getGitAuthHint('Author identity unknown')
+      expect(hint).toContain('Git identity not configured')
+    })
+
+    it('returns hint for "empty ident name"', () => {
+      const hint = getGitAuthHint('fatal: empty ident name (for <user@host>) not allowed')
+      expect(hint).toContain('Git identity not configured')
+    })
+
+    it('returns hint for "user.useConfigOnly"', () => {
+      const hint = getGitAuthHint('fatal: user.useConfigOnly set but no name given')
+      expect(hint).toContain('Git identity not configured')
+    })
+
+    it('returns hint for merge mode errors', () => {
+      const hint = getGitAuthHint('fatal: Need to specify how to reconcile divergent branches.\nhint: You can do so by running one of the following commands:\nhint:   git config pull.rebase false  # merge\nhint:   git config pull.ff only       # fast-forward only')
+      expect(hint).toContain('Git default merge mode not configured')
+      expect(hint).toContain('git config --global pull.rebase false')
+    })
+  })
+
+  describe('getGitAuthHint without URL', () => {
+    it('returns hint for "could not read Username" without URL', () => {
+      const hint = getGitAuthHint('fatal: could not read Username for \'https://github.com\': terminal prompts disabled')
+      expect(hint).toContain('Git authentication failed')
+      expect(hint).toContain('gh auth login')
+    })
+
+    it('returns hint for "Authentication failed" without URL', () => {
+      const hint = getGitAuthHint('fatal: Authentication failed')
+      expect(hint).toContain('Git authentication failed')
+    })
+
+    it('returns hint for "Permission denied (publickey)" without URL', () => {
+      const hint = getGitAuthHint('Permission denied (publickey)')
+      expect(hint).toContain('Git authentication failed')
+    })
+
+    it('returns hint for "terminal prompts disabled" without URL', () => {
+      const hint = getGitAuthHint('fatal: terminal prompts disabled')
+      expect(hint).toContain('Git authentication failed')
+    })
+
+    it('returns hint for "Host key verification failed" without URL', () => {
+      const hint = getGitAuthHint('Host key verification failed.')
+      expect(hint).toContain('Git authentication failed')
+    })
+
+    it('suggests installing gh CLI when ghAvailable is false', () => {
+      const hint = getGitAuthHint('fatal: could not read Username', { ghAvailable: false })
+      expect(hint).toContain('Install GitHub CLI')
+      expect(hint).not.toContain('gh auth login')
+    })
+
+    it('suggests gh auth login when ghAvailable is true', () => {
+      const hint = getGitAuthHint('fatal: could not read Username', { ghAvailable: true })
+      expect(hint).toContain('gh auth login')
+    })
+
+    it('returns null for non-auth errors', () => {
+      expect(getGitAuthHint('fatal: repository not found')).toBeNull()
+      expect(getGitAuthHint('ENOTFOUND github.com')).toBeNull()
+    })
+
+    it('delegates to getCloneErrorHint when URL is provided', () => {
+      const hint = getGitAuthHint('fatal: could not read Username', { url: 'https://github.com/user/repo' })
+      expect(hint).toContain('could not authenticate over HTTPS')
+      expect(hint).toContain('git@github.com:user/repo.git')
     })
   })
 

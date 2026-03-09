@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import '../../test/react-setup'
 import TabbedTerminal from './TabbedTerminal'
 import { useSessionStore } from '../store/sessions'
 
+// Mock DockerInfoPanel
+vi.mock('./DockerInfoPanel', () => ({ default: () => <div data-testid="docker-info">DockerInfo</div> }))
+
 // Mock Terminal component to avoid xterm.js issues in jsdom
 vi.mock('./Terminal', () => ({
-  default: (props: { sessionId: string; cwd: string }) => (
-    <div data-testid={`terminal-${props.sessionId}`}>Terminal: {props.cwd}</div>
+  default: (props: { sessionId: string; cwd: string; agentNotInstalled?: boolean }) => (
+    <div data-testid={`terminal-${props.sessionId}`} data-agent-not-installed={props.agentNotInstalled ? 'true' : undefined}>Terminal: {props.cwd}</div>
   ),
 }))
 
@@ -91,6 +94,7 @@ beforeEach(() => {
         },
         branchStatus: 'in-progress',
         isArchived: false,
+        isRestored: false,
       },
     ],
   })
@@ -99,7 +103,7 @@ beforeEach(() => {
 describe('TabbedTerminal', () => {
   it('renders tab bar and terminal for active tab', () => {
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     expect(screen.getByTestId('tab-bar')).toBeTruthy()
     expect(screen.getByText('Terminal 1')).toBeTruthy()
@@ -108,7 +112,7 @@ describe('TabbedTerminal', () => {
 
   it('renders a Terminal for each tab', () => {
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     expect(screen.getByTestId(`terminal-user-session-1-${tab1Id}`)).toBeTruthy()
     expect(screen.getByTestId(`terminal-user-session-1-${tab2Id}`)).toBeTruthy()
@@ -118,7 +122,7 @@ describe('TabbedTerminal', () => {
     const setActiveTerminalTab = vi.fn()
     useSessionStore.setState({ setActiveTerminalTab } as unknown as Record<string, unknown>)
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     fireEvent.click(screen.getByTestId(`tab-${tab2Id}`))
     expect(setActiveTerminalTab).toHaveBeenCalledWith('session-1', tab2Id)
@@ -128,7 +132,7 @@ describe('TabbedTerminal', () => {
     const addTerminalTab = vi.fn()
     useSessionStore.setState({ addTerminalTab } as unknown as Record<string, unknown>)
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     fireEvent.click(screen.getByTestId('add-tab'))
     expect(addTerminalTab).toHaveBeenCalledWith('session-1')
@@ -138,7 +142,7 @@ describe('TabbedTerminal', () => {
     const removeTerminalTab = vi.fn()
     useSessionStore.setState({ removeTerminalTab } as unknown as Record<string, unknown>)
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     fireEvent.click(screen.getByTestId(`close-${tab1Id}`))
     expect(removeTerminalTab).toHaveBeenCalledWith('session-1', tab1Id)
@@ -147,14 +151,14 @@ describe('TabbedTerminal', () => {
   it('handles missing session gracefully', () => {
     useSessionStore.setState({ sessions: [] })
     const { container } = render(
-      <TabbedTerminal sessionId="nonexistent" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="nonexistent" cwd="/tmp/test" isolated={false} />
     )
     expect(container.querySelector('[data-testid="tab-bar"]')).toBeTruthy()
   })
 
   it('starts rename on double-click of user tab', () => {
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     fireEvent.click(screen.getByTestId('dblclick-first'))
     // After double-click, editing should be active (editingTabId set)
@@ -164,7 +168,7 @@ describe('TabbedTerminal', () => {
 
   it('renders agent terminal always visible', () => {
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     // Agent terminal should be rendered
     expect(screen.getByTestId('terminal-session-1')).toBeTruthy()
@@ -172,7 +176,7 @@ describe('TabbedTerminal', () => {
 
   it('passes agentCommand to agent terminal', () => {
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} agentCommand="claude" />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" agentCommand="claude" isolated={false} />
     )
     expect(screen.getByTestId('terminal-session-1')).toBeTruthy()
   })
@@ -180,11 +184,107 @@ describe('TabbedTerminal', () => {
   it('shows active tab content only', () => {
     // With tab1 active, both terminals should be rendered but tab2 hidden
     const { container } = render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     const terminals = container.querySelectorAll('[class*="absolute inset-0"]')
     // Agent + 2 user tabs = 3 terminal containers
     expect(terminals.length).toBe(3)
+  })
+
+  it('passes agentNotInstalled=true when agent is not installed', async () => {
+    vi.mocked(window.agents.isInstalled).mockResolvedValue(false)
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" agentCommand="claude" isolated={false} />
+    )
+    await waitFor(() => {
+      const agentTerminal = screen.getByTestId('terminal-session-1')
+      expect(agentTerminal.getAttribute('data-agent-not-installed')).toBe('true')
+    })
+  })
+
+  it('does not pass agentNotInstalled when agent is installed', async () => {
+    vi.mocked(window.agents.isInstalled).mockResolvedValue(true)
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" agentCommand="claude" isolated={false} />
+    )
+    await waitFor(() => {
+      expect(window.agents.isInstalled).toHaveBeenCalledWith('claude')
+    })
+    const agentTerminal = screen.getByTestId('terminal-session-1')
+    expect(agentTerminal.getAttribute('data-agent-not-installed')).toBeNull()
+  })
+
+  it('shows add menu when isolation is enabled and add button is clicked', () => {
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={true} />
+    )
+    fireEvent.click(screen.getByTestId('add-tab'))
+    // Add menu should appear with Local/Container options
+    expect(screen.getByText('Local Terminal')).toBeTruthy()
+    expect(screen.getByText('Container Terminal')).toBeTruthy()
+  })
+
+  it('adds local tab from add menu', () => {
+    const addTerminalTab = vi.fn()
+    useSessionStore.setState({ addTerminalTab } as unknown as Record<string, unknown>)
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={true} />
+    )
+    fireEvent.click(screen.getByTestId('add-tab'))
+    fireEvent.click(screen.getByText('Local Terminal'))
+    expect(addTerminalTab).toHaveBeenCalledWith('session-1')
+  })
+
+  it('adds container tab from add menu', () => {
+    const addTerminalTab = vi.fn()
+    useSessionStore.setState({ addTerminalTab } as unknown as Record<string, unknown>)
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={true} />
+    )
+    fireEvent.click(screen.getByTestId('add-tab'))
+    fireEvent.click(screen.getByText('Container Terminal'))
+    expect(addTerminalTab).toHaveBeenCalledWith('session-1', undefined, true)
+  })
+
+  it('renders container info panel tab when isolated', () => {
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={true} />,
+    )
+    // Container tab should be in the tab bar
+    expect(screen.getByText('(container)')).toBeTruthy()
+    // ContainerInfoPanel should be rendered (it shows "Dev Container Isolation" heading)
+    expect(screen.getByText('Dev Container Isolation')).toBeTruthy()
+  })
+
+  it('does not render container tab when not isolated', () => {
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />,
+    )
+    expect(screen.queryByText('(container)')).toBeNull()
+  })
+
+  it('does not remove agent tab when close is clicked', () => {
+    const removeTerminalTab = vi.fn()
+    useSessionStore.setState({ removeTerminalTab } as unknown as Record<string, unknown>)
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />,
+    )
+    // Try to close agent tab (via the close button on tab-1 which is a user tab, should work)
+    fireEvent.click(screen.getByTestId(`close-${tab1Id}`))
+    expect(removeTerminalTab).toHaveBeenCalledWith('session-1', tab1Id)
+  })
+
+  it('closes add menu on outside click', () => {
+    render(
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={true} />,
+    )
+    // Open add menu
+    fireEvent.click(screen.getByTestId('add-tab'))
+    expect(screen.getByText('Local Terminal')).toBeTruthy()
+    // Click outside (on document body)
+    fireEvent.mouseDown(document.body)
+    // Menu should be gone
+    expect(screen.queryByText('Local Terminal')).toBeNull()
   })
 
   it('defaults to agent tab when no stored active tab', () => {
@@ -223,11 +323,12 @@ describe('TabbedTerminal', () => {
           },
           branchStatus: 'in-progress',
           isArchived: false,
+          isRestored: false,
         },
       ],
     })
     render(
-      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isActive={true} />
+      <TabbedTerminal sessionId="session-1" cwd="/tmp/test" isolated={false} />
     )
     // Should not crash and should render the tab bar
     expect(screen.getByTestId('tab-bar')).toBeTruthy()

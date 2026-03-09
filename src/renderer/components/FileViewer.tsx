@@ -11,8 +11,10 @@
  */
 import { basename } from 'path-browserify'
 import MonacoDiffViewer from './fileViewers/MonacoDiffViewer'
+import ImageDiffViewer from './fileViewers/ImageDiffViewer'
 import FileViewerToolbar from './FileViewerToolbar'
 import { useFileViewer } from '../hooks/useFileViewer'
+import { DialogErrorBanner } from './ErrorBanner'
 import PanelErrorBoundary from './PanelErrorBoundary'
 
 export type FileViewerPosition = 'top' | 'left'
@@ -36,11 +38,12 @@ interface FileViewerProps {
   diffCurrentRef?: string // Git ref for the "modified" side (e.g. commit hash for commit diffs)
   diffLabel?: string // Label to display in the header (e.g. "abc1234: commit message")
   reviewContext?: { sessionDirectory: string; commentsFilePath: string }
+  prFilesUrl?: string // PR files URL for "Show on GitHub" button in diff view
   onOpenFile?: (filePath: string, line?: number) => void // Navigate to a different file (e.g. go-to-definition)
   isActive?: boolean // Whether this session is the active one (controls file watcher)
 }
 
-export default function FileViewer({ filePath, position = 'top', onPositionChange, onClose, fileStatus, directory, onSaveComplete, initialViewMode = 'latest', scrollToLine, searchHighlight, onDirtyStateChange, onSaveFunctionChange, diffBaseRef, diffCurrentRef, diffLabel, reviewContext, onOpenFile, isActive }: FileViewerProps) {
+export default function FileViewer({ filePath, position = 'top', onPositionChange, onClose, fileStatus, directory, onSaveComplete, initialViewMode = 'latest', scrollToLine, searchHighlight, onDirtyStateChange, onSaveFunctionChange, diffBaseRef, diffCurrentRef, diffLabel, reviewContext, prFilesUrl, onOpenFile, isActive }: FileViewerProps) {
   const viewer = useFileViewer({
     filePath,
     fileStatus,
@@ -128,6 +131,8 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
         diffLabel={diffLabel}
         fileStatus={fileStatus}
         position={position}
+        prFilesUrl={prFilesUrl}
+        onOpenFile={onOpenFile ? (path) => onOpenFile(path) : undefined}
         onPositionChange={onPositionChange}
         onClose={onClose}
         onSaveButton={viewer.handleSaveButton}
@@ -135,10 +140,19 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
         onSelectViewer={viewer.setSelectedViewerId}
         onSetViewMode={viewer.requestViewMode}
       />
+      {viewer.saveError && <div className="px-3 py-1"><DialogErrorBanner error={viewer.saveError} onDismiss={() => viewer.clearSaveError()} /></div>}
       <div className="flex-1 min-h-0">
         <PanelErrorBoundary name="File Viewer Content">
           {viewer.viewMode === 'diff' ? (
-            viewer.isLoadingDiff ? (
+            viewer.isImageFile ? (
+              <ImageDiffViewer
+                filePath={filePath}
+                directory={directory}
+                fileStatus={fileStatus}
+                diffBaseRef={diffBaseRef}
+                diffCurrentRef={diffCurrentRef}
+              />
+            ) : viewer.isLoadingDiff ? (
               <div className="h-full flex items-center justify-center text-text-secondary text-sm">
                 Loading diff...
               </div>
@@ -149,12 +163,14 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
                 modifiedContent={viewer.diffModifiedContent !== null ? viewer.diffModifiedContent : (fileStatus === 'deleted' ? '' : viewer.content)}
                 sideBySide={viewer.diffSideBySide}
                 scrollToLine={scrollToLine}
+                reviewContext={reviewContext}
               />
             )
           ) : ViewerComponent ? (
             <ViewerComponent
               filePath={filePath}
               content={diffCurrentRef ? (viewer.diffModifiedContent ?? viewer.content) : viewer.content}
+              directory={directory}
               onSave={diffCurrentRef ? undefined : viewer.handleSave}
               onDirtyChange={diffCurrentRef ? undefined : viewer.handleDirtyChange}
               scrollToLine={scrollToLine}

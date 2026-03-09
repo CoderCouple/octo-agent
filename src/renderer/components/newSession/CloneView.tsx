@@ -1,89 +1,31 @@
 /**
  * View for cloning a GitHub repository and registering it as a managed repo.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import { DialogErrorBanner } from '../ErrorBanner'
-import { AuthTerminal } from '../AuthTerminal'
+import { AuthSetupSection } from '../AuthSetupSection'
+import { IsolationSettings } from '../IsolationSettings'
+import type { DevcontainerStatus } from '../../../preload/index'
 
-const AUTH_ERROR_MARKERS = [
-  'could not authenticate',
-  'Authentication failed',
-  'Permission denied',
-  'could not read Username',
-  'terminal prompts disabled',
-  'Host key verification failed',
-]
-
-function isAuthError(error: string): boolean {
-  return AUTH_ERROR_MARKERS.some((marker) => error.includes(marker))
-}
-
-function AuthSetupSection({
-  error,
-  ghAvailable,
-  onRetryClone,
-}: {
-  error: string | null
-  ghAvailable: boolean | null
-  onRetryClone: () => void
-}) {
-  const [authPtyId, setAuthPtyId] = useState<string | null>(null)
-  const [authCompleted, setAuthCompleted] = useState(false)
-
-  const showAuthButton = error && isAuthError(error) && !authPtyId
-
-  const handleSetupAuth = async () => {
-    if (!ghAvailable) {
-      await window.shell.openExternal('https://cli.github.com')
-      return
-    }
-
-    const id = `auth-setup-${Date.now()}`
-    const homedir = await window.app.homedir()
-    await window.pty.create({ id, cwd: homedir })
-    void window.pty.write(id, 'gh auth login\r')
-    setAuthPtyId(id)
-  }
-
-  const handleAuthDone = () => {
-    setAuthPtyId(null)
-    setAuthCompleted(true)
-  }
-
+function NoWriteAccessBanner({ onContinue }: { onContinue?: () => void }) {
   return (
-    <>
-      {showAuthButton && (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSetupAuth}
-            className="px-3 py-1.5 text-xs rounded bg-yellow-600/20 text-yellow-300 hover:bg-yellow-600/30 border border-yellow-500/30 transition-colors"
-          >
-            {ghAvailable ? 'Set up Git Authentication' : 'Install GitHub CLI'}
-          </button>
-          {!ghAvailable && (
-            <span className="text-xs text-text-secondary">Install GitHub CLI, then try again</span>
-          )}
-        </div>
+    <div className="rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-text-primary">
+      <div className="font-medium text-yellow-400">No write access</div>
+      <p className="text-xs text-text-secondary mt-1">
+        You don't have push access to this repository. You won't be able to create branches or push changes.
+        Consider forking the repo on GitHub and cloning your fork instead.
+      </p>
+      {onContinue && (
+        <button
+          onClick={onContinue}
+          className="mt-2 px-3 py-1.5 text-xs rounded border border-yellow-500/30 bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 transition-colors"
+        >
+          Continue anyway (read-only)
+        </button>
       )}
-
-      {authPtyId && (
-        <AuthTerminal ptyId={authPtyId} onDone={handleAuthDone} />
-      )}
-
-      {authCompleted && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-green-400">Authentication setup complete.</span>
-          <button
-            onClick={onRetryClone}
-            className="px-3 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/80 transition-colors"
-          >
-            Retry Clone
-          </button>
-        </div>
-      )}
-    </>
+    </div>
   )
 }
 
@@ -102,8 +44,19 @@ export function CloneView({
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(agents[0]?.id || null)
   const [initScript, setInitScript] = useState('')
   const [showInitScript, setShowInitScript] = useState(false)
+  const [isolated, setIsolated] = useState(false)
+  const [skipApproval, setSkipApproval] = useState(false)
+  const [devcontainerStatus, setDevcontainerStatus] = useState<DevcontainerStatus | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [noWriteAccess, setNoWriteAccess] = useState(false)
+  const [pendingComplete, setPendingComplete] = useState<{ dir: string; agentId: string | null; extra: { repoId?: string; name?: string } } | null>(null)
+
+  useEffect(() => {
+    if (isolated) {
+      void window.devcontainer.status().then(setDevcontainerStatus).catch(() => setDevcontainerStatus({ available: false, error: 'Failed to check devcontainer status' }))
+    }
+  }, [isolated])
 
   // Derive repo name from URL
   const repoName = url
@@ -116,6 +69,8 @@ export function CloneView({
     if (!url || !location || !repoName) return
     setLoading(true)
     setError(null)
+    setNoWriteAccess(false)
+    setPendingComplete(null)
 
     try {
       const rootDir = `${location}/${repoName}`
@@ -131,12 +86,18 @@ export function CloneView({
       const defaultBranch = await window.git.defaultBranch(mainDir)
       const remoteUrl = await window.git.remoteUrl(mainDir) || url
 
-      // Check write access to enable push-to-main by default
-      let allowPushToMain = false
+      // Check write access to enable approve-and-merge by default
+      let allowApproveAndMerge = false
+      let hasWriteAccess = false
       try {
-        allowPushToMain = await window.gh.hasWriteAccess(mainDir)
+        hasWriteAccess = await window.gh.hasWriteAccess(mainDir)
+        allowApproveAndMerge = hasWriteAccess
       } catch {
         // gh CLI not available or other error - default to false
+      }
+
+      if (!hasWriteAccess) {
+        setNoWriteAccess(true)
       }
 
       // Save managed repo with default agent
@@ -146,7 +107,9 @@ export function CloneView({
         rootDir,
         defaultBranch,
         defaultAgentId: selectedAgentId || undefined,
-        allowPushToMain,
+        allowApproveAndMerge,
+        isolated: isolated || undefined,
+        skipApproval: skipApproval || undefined,
       })
 
       // Get the repo ID that was just created
@@ -157,6 +120,12 @@ export function CloneView({
       // Optionally save and run init script
       if (initScript.trim() && repoId) {
         await window.repos.saveInitScript(repoId, initScript)
+      }
+
+      // If no write access, pause to show warning before completing
+      if (!hasWriteAccess) {
+        setPendingComplete({ dir: mainDir, agentId: selectedAgentId, extra: { repoId, name: repoName } })
+        return
       }
 
       onComplete(mainDir, selectedAgentId, { repoId, name: repoName })
@@ -235,6 +204,13 @@ export function CloneView({
           </select>
         </div>
 
+        <IsolationSettings
+          isolated={isolated} skipApproval={skipApproval}
+          dockerStatus={null} devcontainerStatus={devcontainerStatus}
+          hasDevcontainerConfig={null}
+          onIsolatedChange={setIsolated} onSkipApprovalChange={setSkipApproval}
+        />
+
         <div>
           <button
             onClick={() => setShowInitScript(!showInitScript)}
@@ -260,7 +236,13 @@ export function CloneView({
           <DialogErrorBanner error={error} onDismiss={() => setError(null)} />
         )}
 
-        <AuthSetupSection error={error} ghAvailable={ghAvailable} onRetryClone={handleClone} />
+        {noWriteAccess && (
+          <NoWriteAccessBanner
+            onContinue={pendingComplete ? () => onComplete(pendingComplete.dir, pendingComplete.agentId, pendingComplete.extra) : undefined}
+          />
+        )}
+
+        <AuthSetupSection error={error} ghAvailable={ghAvailable} onRetry={handleClone} retryLabel="Retry Clone" />
       </div>
 
       <div className="px-4 py-3 border-t border-border flex justify-end gap-2">

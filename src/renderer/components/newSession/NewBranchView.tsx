@@ -3,33 +3,45 @@
  */
 import { useState } from 'react'
 import { useAgentStore } from '../../store/agents'
+import { useRepoStore } from '../../store/repos'
+import { useSessionStore } from '../../store/sessions'
 import type { ManagedRepo, GitHubIssue } from '../../../preload/index'
 import { issueToBranchName } from '../../utils/slugify'
 import { DialogErrorBanner } from '../ErrorBanner'
+import { AuthSetupSection } from '../AuthSetupSection'
 
 export function NewBranchView({
   repo,
   issue,
   onBack,
   onComplete,
+  onUseExisting,
 }: {
   repo: ManagedRepo
   issue?: GitHubIssue
   onBack: () => void
   onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string }) => void
+  onUseExisting?: (branchName: string) => void
 }) {
-  const { agents } = useAgentStore()
+  const agents = useAgentStore(s => s.agents)
+  const ghAvailable = useRepoStore(s => s.ghAvailable)
+  const sessions = useSessionStore(s => s.sessions)
+  const setActiveSession = useSessionStore(s => s.setActiveSession)
 
   const [branchName, setBranchName] = useState(issue ? issueToBranchName(issue) : '')
   // Use repo's default agent, or fall back to first agent
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(repo.defaultAgentId || agents[0]?.id || null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [existingSessionId, setExistingSessionId] = useState<string | null>(null)
+  const [branchExistsRemote, setBranchExistsRemote] = useState(false)
 
   const handleCreate = async () => {
     if (!branchName) return
     setLoading(true)
     setError(null)
+    setExistingSessionId(null)
+    setBranchExistsRemote(false)
 
     try {
       const mainDir = `${repo.rootDir}/main`
@@ -38,15 +50,48 @@ export function NewBranchView({
       // Pull latest on main first
       await window.git.pull(mainDir)
 
-      // Create worktree with new branch
+      // Create worktree with new branch — tolerate "already exists" on retry
+      // (e.g. if worktree was created but push failed on first attempt)
       const result = await window.git.worktreeAdd(mainDir, worktreePath, branchName, repo.defaultBranch)
-      if (!result.success) {
+      if (!result.success && !result.error?.includes('already exists')) {
         throw new Error(result.error || 'Failed to create worktree')
       }
 
       // Push new branch upstream to create tracking branch
       const pushResult = await window.git.pushNewBranch(worktreePath, branchName)
       if (!pushResult.success) {
+        // Clean up the worktree and local branch we just created
+        try {
+          await window.git.worktreeRemove(mainDir, worktreePath)
+          await window.git.deleteBranch(mainDir, branchName)
+        } catch {
+          // Best-effort cleanup
+        }
+
+        // Check if this is a permission denied error
+        if (pushResult.error?.startsWith('NO_WRITE_ACCESS:')) {
+          setError(pushResult.error.slice('NO_WRITE_ACCESS:'.length))
+          setLoading(false)
+          return
+        }
+
+        // Check if this is a "branch already exists on remote" error
+        if (pushResult.error?.startsWith('BRANCH_EXISTS:')) {
+          const existingSession = sessions.find(
+            (s) => s.branch === branchName && !s.isArchived &&
+              (s.repoId === repo.id || s.directory.startsWith(`${repo.rootDir}/`))
+          )
+          if (existingSession) {
+            setExistingSessionId(existingSession.id)
+          } else {
+            setBranchExistsRemote(true)
+          }
+          // Set raw error string (not matched by knownErrors patterns)
+          setError(pushResult.error.slice('BRANCH_EXISTS:'.length))
+          setLoading(false)
+          return
+        }
+
         throw new Error(pushResult.error || 'Failed to push branch to remote')
       }
 
@@ -135,8 +180,31 @@ export function NewBranchView({
         </div>
 
         {error && (
-          <DialogErrorBanner error={error} onDismiss={() => setError(null)} />
+          <DialogErrorBanner error={error} onDismiss={() => { setError(null); setExistingSessionId(null); setBranchExistsRemote(false) }} />
         )}
+
+        {existingSessionId && (
+          <button
+            onClick={() => {
+              setActiveSession(existingSessionId)
+              onBack()
+            }}
+            className="w-full px-4 py-2 text-sm rounded border border-accent bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+          >
+            Open existing session
+          </button>
+        )}
+
+        {branchExistsRemote && onUseExisting && (
+          <button
+            onClick={() => onUseExisting(branchName)}
+            className="w-full px-4 py-2 text-sm rounded border border-accent bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+          >
+            Use existing branch instead
+          </button>
+        )}
+
+        <AuthSetupSection error={error} ghAvailable={ghAvailable} onRetry={handleCreate} retryLabel="Retry Create Branch" />
       </div>
 
       <div className="px-4 py-3 border-t border-border flex justify-end gap-2">

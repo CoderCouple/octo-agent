@@ -52,42 +52,11 @@ describe('sessionBranchActions', () => {
       terminalTabs: { tabs: [{ id: 'tab-1', name: 'Terminal' }], activeTabId: 'tab-1' },
       branchStatus: 'in-progress' as const,
       isArchived: false,
+      isRestored: false,
     }
     useSessionStore.setState({ sessions: [session], activeSessionId: id })
     return session
   }
-
-  describe('recordPushToMain', () => {
-    it('records push to main timestamp and commit', () => {
-      addTestSession()
-      useSessionStore.getState().recordPushToMain('test-session', 'abc123')
-      const session = useSessionStore.getState().sessions[0]
-      expect(session.pushedToMainAt).toBeGreaterThan(0)
-      expect(session.pushedToMainCommit).toBe('abc123')
-    })
-
-    it('does not affect other sessions', () => {
-      addTestSession('s1')
-      const session2 = { ...useSessionStore.getState().sessions[0], id: 's2', name: 'other' }
-      useSessionStore.setState({ sessions: [...useSessionStore.getState().sessions, session2] })
-
-      useSessionStore.getState().recordPushToMain('s1', 'abc123')
-      const sessions = useSessionStore.getState().sessions
-      expect(sessions[0].pushedToMainCommit).toBe('abc123')
-      expect(sessions[1].pushedToMainCommit).toBeUndefined()
-    })
-  })
-
-  describe('clearPushToMain', () => {
-    it('clears push to main fields', () => {
-      addTestSession()
-      useSessionStore.getState().recordPushToMain('test-session', 'abc123')
-      useSessionStore.getState().clearPushToMain('test-session')
-      const session = useSessionStore.getState().sessions[0]
-      expect(session.pushedToMainAt).toBeUndefined()
-      expect(session.pushedToMainCommit).toBeUndefined()
-    })
-  })
 
   describe('markHasHadCommits', () => {
     it('marks session as having had commits', () => {
@@ -171,6 +140,36 @@ describe('sessionBranchActions', () => {
       useSessionStore.getState().archiveSession('test-session')
       useSessionStore.getState().unarchiveSession('test-session')
       expect(useSessionStore.getState().sessions[0].isArchived).toBe(false)
+    })
+  })
+
+  describe('updateReviewStatus', () => {
+    it('updates review status for a session', () => {
+      addTestSession()
+      useSessionStore.getState().updateReviewStatus('test-session', 'reviewed')
+      expect(useSessionStore.getState().sessions[0].reviewStatus).toBe('reviewed')
+    })
+
+    it('is a no-op when status is already the same', () => {
+      addTestSession()
+      useSessionStore.getState().updateReviewStatus('test-session', 'reviewed')
+      vi.clearAllMocks()
+      useSessionStore.getState().updateReviewStatus('test-session', 'reviewed')
+      // Should not trigger another save since status did not change
+      expect(useSessionStore.getState().sessions[0].reviewStatus).toBe('reviewed')
+    })
+
+    it('is a no-op for non-existent session', () => {
+      addTestSession()
+      useSessionStore.getState().updateReviewStatus('nonexistent', 'reviewed')
+      expect(useSessionStore.getState().sessions[0].reviewStatus).toBeUndefined()
+    })
+
+    it('changes from reviewed back to pending', () => {
+      addTestSession()
+      useSessionStore.getState().updateReviewStatus('test-session', 'reviewed')
+      useSessionStore.getState().updateReviewStatus('test-session', 'pending')
+      expect(useSessionStore.getState().sessions[0].reviewStatus).toBe('pending')
     })
   })
 })

@@ -22,11 +22,37 @@ vi.mock('electron', () => ({
   IpcMain: {},
 }))
 
+// Mock containerUtils
+const mockIsDockerAvailable = vi.fn()
+const mockEnsureAgentInstalled = vi.fn()
+vi.mock('../containerUtils', () => ({
+  acquireSetupLock: async () => () => {},
+  isSetupLockHeld: () => false,
+  isDockerAvailable: (...args: unknown[]) => mockIsDockerAvailable(...args),
+  dockerSetupMessage: () => 'Docker not available',
+  ensureAgentInstalled: (...args: unknown[]) => mockEnsureAgentInstalled(...args),
+}))
+
+// Mock devcontainer
+const mockHasDevcontainerConfig = vi.fn()
+const mockIsDevcontainerCliAvailable = vi.fn()
+const mockDevcontainerUp = vi.fn()
+const mockBuildDevcontainerExecArgs = vi.fn()
+vi.mock('../devcontainer', () => ({
+  hasDevcontainerConfig: (...args: unknown[]) => mockHasDevcontainerConfig(...args),
+  isDevcontainerCliAvailable: (...args: unknown[]) => mockIsDevcontainerCliAvailable(...args),
+  devcontainerUp: (...args: unknown[]) => mockDevcontainerUp(...args),
+  buildDevcontainerExecArgs: (...args: unknown[]) => mockBuildDevcontainerExecArgs(...args),
+  devcontainerSetupMessage: () => 'Devcontainer CLI not available',
+}))
+
 // Mock platform
 vi.mock('../platform', () => ({
   isWindows: false,
   getDefaultShell: () => '/bin/zsh',
   normalizePath: (p: string) => p.replace(/\\/g, '/'),
+  resolveCommand: () => null,
+  enhancedPath: (p: string) => p || '',
 }))
 
 function createMockPtyProcess() {
@@ -42,7 +68,7 @@ function createMockPtyProcess() {
 function createCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
   return {
     isE2ETest: false,
-    e2eScenario: E2EScenario.Default,
+    e2eScenario: E2EScenario.Default, e2eRealRepos: false,
     isDev: false,
     isWindows: false,
     ptyProcesses: new Map(),
@@ -53,6 +79,7 @@ function createCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   } as HandlerContext
 }
@@ -335,6 +362,7 @@ describe('pty handlers', () => {
       expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith('pty:exit:exit-1', 0)
       expect(ctx.ptyProcesses.has('exit-1')).toBe(false)
       expect(ctx.ptyOwnerWindows.has('exit-1')).toBe(false)
+      // Disposables should be cleaned up on exit too
       expect(dataDispose).toHaveBeenCalled()
       expect(exitDispose).toHaveBeenCalled()
     })
@@ -469,6 +497,241 @@ describe('pty handlers', () => {
 
       expect(ctx.ptyProcesses.has('no-sender')).toBe(true)
       expect(ctx.ptyOwnerWindows.has('no-sender')).toBe(false)
+    })
+    it('kills existing PTY with the same ID before creating a new one', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      // Pre-populate an existing PTY in the context
+      const existingProcess = createMockPtyProcess()
+      ctx.ptyProcesses.set('dup-id', existingProcess as never)
+      ctx.ptyOwnerWindows.set('dup-id', mockSenderWindow as never)
+
+      const newProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(newProcess)
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'dup-id',
+        cwd: '/tmp',
+      })
+
+      expect(existingProcess.kill).toHaveBeenCalled()
+      expect(ctx.ptyProcesses.get('dup-id')).toBe(newProcess)
+    })
+  })
+
+  describe('pty:create with devcontainer isolation', () => {
+    it('falls through when no devcontainer config exists', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockHasDevcontainerConfig.mockReturnValue(false)
+
+      const result = await handlers['pty:create'](mockEvent, {
+        id: 'dc-fallthrough',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-ft',
+      })
+
+      // Returns id (falls through to standard PTY)
+      expect(result).toEqual({ id: 'dc-fallthrough' })
+      // Should notify renderer about missing config
+      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+        'pty:devcontainer-missing',
+        { sessionId: 'sess-ft' },
+      )
+    })
+
+    it('returns id immediately when devcontainer config exists', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockHasDevcontainerConfig.mockReturnValue(true)
+      mockIsDevcontainerCliAvailable.mockResolvedValue({ available: true })
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockDevcontainerUp.mockResolvedValue({
+        success: true,
+        result: { containerId: 'dc-123', remoteUser: 'node' },
+      })
+      mockBuildDevcontainerExecArgs.mockReturnValue(['exec', '-it', 'dc-123', 'bash', '-l'])
+      mockEnsureAgentInstalled.mockResolvedValue({ success: true })
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      const result = await handlers['pty:create'](mockEvent, {
+        id: 'dc-sync',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-dc',
+      })
+
+      expect(result).toEqual({ id: 'dc-sync' })
+    })
+
+    it('displays error when devcontainer CLI is not available', async () => {
+      vi.useFakeTimers()
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockHasDevcontainerConfig.mockReturnValue(true)
+      mockIsDevcontainerCliAvailable.mockResolvedValue({ available: false, error: 'Not found' })
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'dc-no-cli',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-no-cli',
+      })
+
+      await vi.advanceTimersByTimeAsync(300)
+
+      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+        'pty:data:dc-no-cli',
+        expect.stringContaining('Devcontainer CLI not available'),
+      )
+      vi.useRealTimers()
+    })
+
+    it('displays error when Docker is not available', async () => {
+      vi.useFakeTimers()
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockHasDevcontainerConfig.mockReturnValue(true)
+      mockIsDevcontainerCliAvailable.mockResolvedValue({ available: true })
+      mockIsDockerAvailable.mockResolvedValue({ available: false, error: 'Docker not running' })
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'dc-no-docker',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-no-docker',
+      })
+
+      await vi.advanceTimersByTimeAsync(300)
+
+      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+        'pty:data:dc-no-docker',
+        expect.stringContaining('Docker not available'),
+      )
+      vi.useRealTimers()
+    })
+
+    it('displays error when devcontainer up fails', async () => {
+      vi.useFakeTimers()
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockHasDevcontainerConfig.mockReturnValue(true)
+      mockIsDevcontainerCliAvailable.mockResolvedValue({ available: true })
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockDevcontainerUp.mockResolvedValue({ success: false, error: 'Build failed' })
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'dc-fail',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-fail',
+      })
+
+      await vi.advanceTimersByTimeAsync(300)
+
+      expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+        'pty:data:dc-fail',
+        expect.stringContaining('Build failed'),
+      )
+      vi.useRealTimers()
+    })
+
+    it('starts docker exec PTY after successful devcontainer setup', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockHasDevcontainerConfig.mockReturnValue(true)
+      mockIsDevcontainerCliAvailable.mockResolvedValue({ available: true })
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockDevcontainerUp.mockResolvedValue({
+        success: true,
+        result: { containerId: 'dc-123', remoteUser: 'node', remoteWorkspaceFolder: '/workspaces/repo' },
+      })
+      mockBuildDevcontainerExecArgs.mockReturnValue(['exec', '-it', '-u', 'node', 'dc-123', 'bash', '-l'])
+      mockEnsureAgentInstalled.mockResolvedValue({ success: true })
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'dc-pty',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-pty',
+        command: 'claude',
+      })
+
+      await vi.waitFor(() => {
+        expect(mockBuildDevcontainerExecArgs).toHaveBeenCalledWith(
+          'dc-123', 'node', '/workspaces/repo', expect.any(Object), 'claude',
+        )
+        expect(mockPtySpawn).toHaveBeenCalledWith(
+          'docker',
+          ['exec', '-it', '-u', 'node', 'dc-123', 'bash', '-l'],
+          expect.any(Object),
+        )
+      })
+    })
+
+    it('emits devcontainer-ready when postAttachCommand is present', async () => {
+      const { register } = await import('./pty')
+      const ctx = createCtx()
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockSenderWindow)
+      mockHasDevcontainerConfig.mockReturnValue(true)
+      mockIsDevcontainerCliAvailable.mockResolvedValue({ available: true })
+      mockIsDockerAvailable.mockResolvedValue({ available: true })
+      mockDevcontainerUp.mockResolvedValue({
+        success: true,
+        result: { containerId: 'dc-svc', remoteUser: 'node', remoteWorkspaceFolder: '/workspaces/repo', postAttachCommand: 'npm start' },
+      })
+      mockBuildDevcontainerExecArgs.mockReturnValue(['exec', '-it', 'dc-svc', 'bash', '-l'])
+
+      const mockProcess = createMockPtyProcess()
+      mockPtySpawn.mockReturnValue(mockProcess)
+
+      await handlers['pty:create'](mockEvent, {
+        id: 'dc-svc',
+        cwd: '/repo',
+        isolated: true,
+        sessionId: 'sess-svc',
+      })
+
+      await vi.waitFor(() => {
+        expect(mockSenderWindow.webContents.send).toHaveBeenCalledWith(
+          'pty:devcontainer-ready',
+          expect.objectContaining({
+            sessionId: 'sess-svc',
+            postAttachCommand: 'npm start',
+            containerId: 'dc-svc',
+            remoteUser: 'node',
+          }),
+        )
+      })
     })
   })
 

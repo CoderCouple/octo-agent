@@ -13,15 +13,17 @@ pnpm install         # Install dependencies (use pnpm, not npm/yarn)
 ```bash
 pnpm dev             # Development with hot reload (renderer only; restart for main/preload changes)
 pnpm build           # Build without packaging
-pnpm test:unit       # Run Vitest unit tests
-pnpm test:unit:watch # Unit tests in watch mode
-pnpm test:unit:coverage # Unit tests with 90% line coverage threshold
-pnpm test:e2e        # Run Playwright E2E tests (fast, uses Vite dev server)
-pnpm test:e2e:headed # E2E tests with visible window
-pnpm test:e2e:built  # E2E tests against production build (for CI)
 pnpm dist            # Build and package for macOS
-pnpm check:all       # Run all project-specific checks (workers, etc.)
+pnpm storybook       # Storybook dev server on port 6006
+pnpm storybook:test  # Visual regression test (screenshot + pixel-diff + report)
+pnpm storybook:update-refs  # Accept current screenshots as reference baseline
 ```
+
+## Shell Commands
+
+**Never use `${}` syntax (shell parameter expansion) in Bash tool calls.** This includes `$(...)` subshells and `${VAR}` variable expansions. These trigger manual approval prompts. Instead, use plain variable references like `$VAR`, pipe chains, or break commands into multiple sequential tool calls.
+
+**Don't run tests or checks manually** — use `/validate` instead. It runs all checks in the right order and fixes failures automatically.
 
 ## Troubleshooting
 
@@ -80,99 +82,58 @@ Session store debounces saves with 500ms delay. Runtime-only state (`status`, `i
 
 ## Testing
 
-Always run lint, typecheck, and unit tests before E2E or feature doc tests.
+Unit tests are co-located with source files (`src/**/*.test.ts`). Vitest with 90% line coverage threshold. E2E tests use Playwright with `E2E_TEST=true` for deterministic mock data. Storybook visual regression tests screenshot every component and diff against reference images. See `docs/testing-guide.md` for patterns and conventions.
 
-### Unit Tests
+### Storybook Visual Regression
 
-Co-located with source files (`src/**/*.test.ts`). Vitest with 90% line coverage threshold on targeted files. The setup file (`src/test/setup.ts`) mocks all `window.*` APIs.
+```bash
+pnpm storybook              # Dev server on port 6006
+pnpm storybook:build        # Build to storybook-static/
+pnpm storybook:test         # Screenshot all stories, diff against refs, generate report
+pnpm storybook:update-refs  # Accept current screenshots as new references
+```
 
-When writing tests:
-- Test pure functions and store actions, not React component rendering
-- Use `vi.mocked(window.xyz.method).mockResolvedValue(...)` to customize mock responses
-- Use `vi.useFakeTimers()` for time-dependent tests (remember to call `vi.useRealTimers()` in cleanup)
+Stories are co-located as `*.stories.tsx` next to source files. Reference images live in `.storybook-refs/` (checked into git). The diff report is generated at `.storybook-report/index.html`.
 
-### E2E Tests
+### Adding a new store
 
-Playwright tests in `tests/`. The test system:
-- Sets `E2E_TEST=true` so all IPC handlers return mock data
-- Uses `scripts/fake-claude.sh` for predictable agent output
-- Creates demo sessions with known repos, branches, and agents
-- Never writes to real config files or touches real git repos
-- `E2E_HEADLESS` env var controls window visibility
+1. Create `src/renderer/store/myStore.ts` with Zustand
+2. Load in `App.tsx` on mount
+3. Create `src/renderer/store/myStore.test.ts`
+
+## Skills
+
+**Use these skills instead of doing things manually.** They encode the project's conventions and ensure nothing is forgotten.
+
+| Skill | When to use |
+|---|---|
+| `/validate` | **After any code changes.** Runs lint, typecheck, check:all, unit tests, coverage, E2E — fixes failures automatically. |
+| `/sync` | **Before starting or after finishing a chunk of work.** Commits current work, merges latest main, resolves conflicts, then validates. |
+| `/feature-doc <slug>` | **After completing a feature.** Creates the required screenshot walkthrough spec. Every feature needs one — this is not optional. |
+| `/code-review [path]` | **Before submitting work.** Scans for duplication, bad naming, wrong-layer code, missing mocks, style violations. |
+| `/new-handler <ns:action>` | **When adding a new IPC handler.** Scaffolds handler + preload API + Window type + test mock in one go. |
+| `/new-panel <Name> <position>` | **When adding a new panel.** Scaffolds panel ID + definition + Layout rendering + default visibility. |
+| `/coverage-run` | **After any code changes that affect coverage.** Runs full test suite with coverage, caches results for incremental checks. |
+| `/coverage-check <file>` | **When iterating on a single file's tests.** Runs only that file's tests, updates cached coverage — much faster than the full suite. |
+| `/coverage-increase` | **When coverage is below 90%.** Iteratively writes tests for under-covered files using cached data. |
+| `/coverage-gaps` | **When coverage is low or before releases.** Finds untested code and suggests concrete test stubs. |
+| `/tech-debt` | **Periodically.** Audits `docs/code-improvements.md` — marks resolved items, finds new issues. |
+| `/release-notes` | **Before a release.** Generates human-readable release notes from commits since the last tag. Output used by release scripts. |
+| `/release-readiness` | **Before a release.** Analyzes screenshot comparison report and produces a readiness assessment. |
+| `/release-compare-issue` | **After release readiness review.** Creates a GitHub issue from the readiness report. |
 
 ### Workflow
 
 1. Make your code changes
 2. Write or update unit tests for any changed logic
-3. Run `pnpm lint` to verify there are no lint errors
-4. Run `pnpm typecheck` to verify there are no type errors
-5. Run `pnpm check:all` to verify project-specific checks pass (worker config, etc.)
-6. Run `pnpm test:unit` to verify all unit tests pass
-7. Run `pnpm test:unit:coverage` to confirm coverage stays above 90%
-8. Run `pnpm test:e2e` to verify E2E tests still pass
-9. Create or update a feature doc screenshot walkthrough (see [Feature Documentation](#feature-documentation) below), then run `pnpm test:feature-docs <feature-slug>` to verify it generates correctly
+3. Run `/validate` to run all checks and fix any failures
+4. Run `/feature-doc <slug>` to create or update the screenshot walkthrough
+5. Run `/code-review` to catch anything you missed
 
 ### Verification Checklist
 
-**When writing a plan, ALWAYS include this complete checklist in the Verification section. Do not omit any items.**
+**When writing a plan, ALWAYS include this in the Verification section:**
 
-1. `pnpm lint` — no lint errors
-2. `pnpm typecheck` — no type errors
-3. `pnpm check:all` — project-specific checks pass
-4. `pnpm test:unit` — all unit tests pass
-5. `pnpm test:unit:coverage` — coverage above 90%
-6. `pnpm test:e2e` — E2E tests pass
-7. Create/update feature doc screenshot walkthrough in `tests/features/<feature-slug>/` (see [Feature Documentation](#feature-documentation))
-8. `pnpm test:feature-docs <feature-slug>` — feature doc generates correctly
-
-## Adding New Features
-
-### New IPC handler
-1. Add handler in `src/main/index.ts` (with E2E mock data)
-2. Add type + wiring in `src/preload/index.ts`
-3. Update `Window` type declaration in preload
-4. Add mock to `src/test/setup.ts`
-
-### New panel
-1. Add panel ID to `PANEL_IDS` in `src/renderer/panels/types.ts`
-2. Add definition in `src/renderer/panels/builtinPanels.tsx`
-3. Add rendering in `src/renderer/components/Layout.tsx`
-4. Add default visibility in `src/renderer/store/sessions.ts`
-
-### New store
-1. Create `src/renderer/store/myStore.ts` with Zustand
-2. Load in `App.tsx` on mount
-3. Create `src/renderer/store/myStore.test.ts`
-
-## Feature Documentation
-
-**Every feature or significant change requires a screenshot walkthrough — this is a required verification step, not optional.** If your plan's verification section doesn't include a feature doc, your plan is incomplete. Create a screenshot-documented E2E test that exercises the feature flow and generates a visual writeup. This serves as both verification and documentation. The spec file is committed; running `pnpm test:feature-docs` generates the screenshots and HTML locally.
-
-### How to create a feature doc
-
-1. Create `tests/features/<feature-slug>/` directory
-2. Write `<feature-slug>.spec.ts` that:
-   - Launches the Electron app with `E2E_TEST=true`
-   - Navigates to the relevant state for the feature
-   - Exercises each step of the feature flow
-   - Captures a cropped screenshot at each meaningful stage (use helpers from `_shared/screenshot-helpers.ts`)
-   - Collects step metadata (screenshot path + caption) into an array
-   - In `afterAll`, calls `generateFeaturePage()` to produce `index.html`, then `generateIndex()` to update the table of contents
-3. Run `pnpm test:feature-docs <feature-slug>` to verify screenshots and HTML generate correctly
-4. The generated screenshots and HTML are gitignored — only the `.spec.ts` is committed
-
-### Screenshot guidelines
-
-- Crop to the relevant UI region — don't screenshot the whole window unless the whole window is relevant
-- Use `screenshotElement()` for single-element crops, `screenshotRegion()` for multi-element regions
-- Name screenshots with numeric prefixes: `01-initial.png`, `02-after-click.png`, etc.
-- Write captions that explain what the user should notice, not just what's on screen
-
-### Running feature docs
-
-```bash
-pnpm test:feature-docs <feature-slug> [feature-slug...]  # Generate docs for specific features
-pnpm test:feature-docs:view                               # Open generated docs in browser
-```
-
-Feature doc tests are **not** run as part of `pnpm test:e2e`. They are separate, on-demand tests for documenting and validating feature flows. See `tests/features/session-switching/` for a reference example.
+1. Run `/validate` (covers lint, typecheck, check:all, unit tests, coverage, E2E)
+2. Run `/feature-doc <slug>` to create/update the screenshot walkthrough
+3. Run `/code-review` on changed files

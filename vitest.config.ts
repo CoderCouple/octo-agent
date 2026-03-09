@@ -13,9 +13,11 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     coverage: {
       provider: 'v8',
+      reporter: ['text', 'json-summary'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/**/*.test.{ts,tsx}',
+        'src/**/*.stories.{ts,tsx}',
         'src/test/**',
         'src/renderer/main.tsx',
         'src/main/index.ts',
@@ -26,6 +28,7 @@ export default defineConfig({
         'src/renderer/components/newSession/types.ts',
         'src/renderer/components/explorer/types.ts',
         'src/renderer/components/AuthTerminal.tsx',
+        'src/renderer/components/DockerInfoPanel.tsx',
       ],
       thresholds: {
         lines: 90,

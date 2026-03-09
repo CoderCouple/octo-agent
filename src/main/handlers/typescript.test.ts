@@ -15,7 +15,7 @@ import { E2EScenario, type HandlerContext } from './types'
 function createCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
   return {
     isE2ETest: false,
-    e2eScenario: E2EScenario.Default,
+    e2eScenario: E2EScenario.Default, e2eRealRepos: false,
     isDev: false,
     isWindows: false,
     ptyProcesses: new Map(),
@@ -26,6 +26,7 @@ function createCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
     mainWindow: null,
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
+    dockerContainers: new Map(),
     ...overrides,
   } as HandlerContext
 }

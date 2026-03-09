@@ -40,9 +40,9 @@ describe('preload gh API', () => {
     expect(mockInvoke).toHaveBeenCalledWith('gh:hasWriteAccess', '/repo')
   })
 
-  it('mergeBranchToMain invokes gh:mergeBranchToMain', async () => {
-    await ghApi.mergeBranchToMain('/repo')
-    expect(mockInvoke).toHaveBeenCalledWith('gh:mergeBranchToMain', '/repo')
+  it('prChecksStatus invokes gh:prChecksStatus', async () => {
+    await ghApi.prChecksStatus('/repo')
+    expect(mockInvoke).toHaveBeenCalledWith('gh:prChecksStatus', '/repo')
   })
 
   it('getPrCreateUrl invokes gh:getPrCreateUrl', async () => {
@@ -69,5 +69,30 @@ describe('preload gh API', () => {
     const comments = [{ path: 'file.ts', line: 1, body: 'comment' }]
     await ghApi.submitDraftReview('/repo', 42, comments)
     expect(mockInvoke).toHaveBeenCalledWith('gh:submitDraftReview', '/repo', 42, comments)
+  })
+
+  it('searchIssues invokes gh:searchIssues', async () => {
+    await ghApi.searchIssues('/repo', 'bug')
+    expect(mockInvoke).toHaveBeenCalledWith('gh:searchIssues', '/repo', 'bug')
+  })
+
+  it('prDescription invokes gh:prDescription', async () => {
+    await ghApi.prDescription('/repo', 42)
+    expect(mockInvoke).toHaveBeenCalledWith('gh:prDescription', '/repo', 42)
+  })
+
+  it('prIssueComments invokes gh:prIssueComments', async () => {
+    await ghApi.prIssueComments('/repo', 42, 1, 25)
+    expect(mockInvoke).toHaveBeenCalledWith('gh:prIssueComments', '/repo', 42, 1, 25)
+  })
+
+  it('addReaction invokes gh:addReaction', async () => {
+    await ghApi.addReaction('/repo', 1, '+1', 'review')
+    expect(mockInvoke).toHaveBeenCalledWith('gh:addReaction', '/repo', 1, '+1', 'review')
+  })
+
+  it('currentUser invokes gh:currentUser', async () => {
+    await ghApi.currentUser()
+    expect(mockInvoke).toHaveBeenCalledWith('gh:currentUser')
   })
 })

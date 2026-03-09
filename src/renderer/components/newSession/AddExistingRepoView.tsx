@@ -1,10 +1,12 @@
 /**
  * View for adding an existing multi-worktree folder as a managed repository.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import { DialogErrorBanner } from '../ErrorBanner'
+import { IsolationSettings } from '../IsolationSettings'
+import type { DevcontainerStatus } from '../../../preload/index'
 
 async function validateWorktreeFolder(folder: string): Promise<{ worktrees: { path: string; branch: string }[]; error?: string }> {
   try {
@@ -65,6 +67,26 @@ async function validateWorktreeFolder(folder: string): Promise<{ worktrees: { pa
   }
 }
 
+function useIsolationState(rootDir: string) {
+  const [isolated, setIsolated] = useState(false)
+  const [skipApproval, setSkipApproval] = useState(false)
+  const [devcontainerStatus, setDevcontainerStatus] = useState<DevcontainerStatus | null>(null)
+  const [hasDevcontainerConfigState, setHasDevcontainerConfig] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    if (isolated && rootDir) {
+      void window.devcontainer.status().then(setDevcontainerStatus)
+      void window.devcontainer.hasConfig(rootDir).then(setHasDevcontainerConfig)
+    }
+  }, [isolated, rootDir])
+
+  return {
+    isolated, setIsolated,
+    skipApproval, setSkipApproval, devcontainerStatus,
+    hasDevcontainerConfigState, setHasDevcontainerConfig,
+  }
+}
+
 export function AddExistingRepoView({
   onBack,
   onComplete,
@@ -79,6 +101,7 @@ export function AddExistingRepoView({
   const [repoName, setRepoName] = useState('')
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(agents[0]?.id || null)
   const [worktrees, setWorktrees] = useState<{ path: string; branch: string }[]>([])
+  const iso = useIsolationState(rootDir)
   const [loading, setLoading] = useState(false)
   const [validating, setValidating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -122,10 +145,10 @@ export function AddExistingRepoView({
       const defaultBranch = await window.git.defaultBranch(mainDir)
       const remoteUrl = await window.git.remoteUrl(mainDir) || ''
 
-      // Check write access to enable push-to-main by default
-      let allowPushToMain = false
+      // Check write access to enable approve-and-merge by default
+      let allowApproveAndMerge = false
       try {
-        allowPushToMain = await window.gh.hasWriteAccess(mainDir)
+        allowApproveAndMerge = await window.gh.hasWriteAccess(mainDir)
       } catch {
         // gh CLI not available or other error - default to false
       }
@@ -136,7 +159,9 @@ export function AddExistingRepoView({
         rootDir,
         defaultBranch,
         defaultAgentId: selectedAgentId || undefined,
-        allowPushToMain,
+        allowApproveAndMerge,
+        isolated: iso.isolated || undefined,
+        skipApproval: iso.skipApproval || undefined,
       })
 
       // Get the repo ID
@@ -241,6 +266,17 @@ export function AddExistingRepoView({
                 This agent will be pre-selected when creating branches in this repo.
               </p>
             </div>
+
+            <IsolationSettings
+              isolated={iso.isolated} skipApproval={iso.skipApproval}
+              dockerStatus={null} devcontainerStatus={iso.devcontainerStatus}
+              hasDevcontainerConfig={iso.hasDevcontainerConfigState}
+              onIsolatedChange={iso.setIsolated} onSkipApprovalChange={iso.setSkipApproval}
+              onGenerateDevcontainerConfig={rootDir ? async () => {
+                await window.devcontainer.generateDefaultConfig(rootDir)
+                iso.setHasDevcontainerConfig(true)
+              } : undefined}
+            />
           </>
         )}
 

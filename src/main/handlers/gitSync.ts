@@ -13,7 +13,7 @@ function withNonInteractive(git: ReturnType<typeof simpleGit>) {
 }
 
 async function handlePullOriginMain(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -38,7 +38,7 @@ async function handlePullOriginMain(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleIsBehindMain(ctx: HandlerContext, repoPath: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { behind: 0, defaultBranch: 'main' }
   }
 
@@ -59,7 +59,7 @@ async function handleIsBehindMain(ctx: HandlerContext, repoPath: string) {
 }
 
 async function handleGetConfig(ctx: HandlerContext, repoPath: string, key: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return null
   }
 
@@ -73,7 +73,7 @@ async function handleGetConfig(ctx: HandlerContext, repoPath: string, key: strin
 }
 
 async function handleSetConfig(ctx: HandlerContext, repoPath: string, key: string, value: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return { success: true }
   }
 
@@ -86,8 +86,22 @@ async function handleSetConfig(ctx: HandlerContext, repoPath: string, key: strin
   }
 }
 
+async function handleSetGlobalConfig(ctx: HandlerContext, key: string, value: string) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
+    return { success: true }
+  }
+
+  try {
+    const git = simpleGit()
+    await git.raw(['config', '--global', key, value])
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
 async function handleBranchChanges(ctx: HandlerContext, repoPath: string, baseBranch?: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return getScenarioData(ctx.e2eScenario).branchChanges
   }
 
@@ -130,7 +144,7 @@ async function handleBranchChanges(ctx: HandlerContext, repoPath: string, baseBr
 }
 
 async function handleBranchCommits(ctx: HandlerContext, repoPath: string, baseBranch?: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return getScenarioData(ctx.e2eScenario).branchCommits
   }
 
@@ -189,7 +203,7 @@ async function handleBranchCommits(ctx: HandlerContext, repoPath: string, baseBr
 }
 
 async function handleCommitFiles(ctx: HandlerContext, repoPath: string, commitHash: string) {
-  if (ctx.isE2ETest) {
+  if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     return [
       { path: 'src/index.ts', status: 'modified' },
       { path: 'src/utils.ts', status: 'added' },
@@ -232,6 +246,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('git:isBehindMain', (_event, repoPath: string) => handleIsBehindMain(ctx, repoPath))
   ipcMain.handle('git:getConfig', (_event, repoPath: string, key: string) => handleGetConfig(ctx, repoPath, key))
   ipcMain.handle('git:setConfig', (_event, repoPath: string, key: string, value: string) => handleSetConfig(ctx, repoPath, key, value))
+  ipcMain.handle('git:setGlobalConfig', (_event, key: string, value: string) => handleSetGlobalConfig(ctx, key, value))
   ipcMain.handle('git:branchChanges', (_event, repoPath: string, baseBranch?: string) => handleBranchChanges(ctx, repoPath, baseBranch))
   ipcMain.handle('git:branchCommits', (_event, repoPath: string, baseBranch?: string) => handleBranchCommits(ctx, repoPath, baseBranch))
   ipcMain.handle('git:commitFiles', (_event, repoPath: string, commitHash: string) => handleCommitFiles(ctx, repoPath, commitHash))

@@ -55,6 +55,7 @@ describe('sessionTerminalTabs', () => {
       },
       branchStatus: 'in-progress' as const,
       isArchived: false,
+      isRestored: false,
     }
     useSessionStore.setState({ sessions: [session], activeSessionId: id })
     return session
@@ -81,6 +82,29 @@ describe('sessionTerminalTabs', () => {
       useSessionStore.getState().addTerminalTab('test-session')
       const session = useSessionStore.getState().sessions[0]
       expect(session.terminalTabs.tabs[1].name).toBe('Terminal 2')
+    })
+
+    it('uses "Container N" name when isolated is true', () => {
+      addTestSession()
+      useSessionStore.getState().addTerminalTab('test-session', undefined, true)
+      const session = useSessionStore.getState().sessions[0]
+      expect(session.terminalTabs.tabs[1].name).toBe('Container 2')
+      expect(session.terminalTabs.tabs[1].isolated).toBe(true)
+    })
+
+    it('does not set isolated flag when isolated is false/undefined', () => {
+      addTestSession()
+      useSessionStore.getState().addTerminalTab('test-session')
+      const session = useSessionStore.getState().sessions[0]
+      expect(session.terminalTabs.tabs[1].isolated).toBeUndefined()
+    })
+
+    it('uses provided name even when isolated', () => {
+      addTestSession()
+      useSessionStore.getState().addTerminalTab('test-session', 'My Container', true)
+      const session = useSessionStore.getState().sessions[0]
+      expect(session.terminalTabs.tabs[1].name).toBe('My Container')
+      expect(session.terminalTabs.tabs[1].isolated).toBe(true)
     })
   })
 

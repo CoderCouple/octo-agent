@@ -20,6 +20,7 @@ import type { GhApi } from '../preload/apis/gh'
 import type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from '../preload/apis/config'
 import type { ShellApi, DialogApi, AppApi, UpdateApi, WindowControlsApi } from '../preload/apis/shell'
 import type { MenuApi, TsApi } from '../preload/apis/menu'
+import type { DevcontainerApi } from '../preload/apis/devcontainer'
 
 /** Maps every key of an API type to a Vitest Mock — catches missing/extra keys and non-function values. */
 type Mocked<T> = { [K in keyof T]: Mock }
@@ -38,6 +39,7 @@ const mockGit: Mocked<GitApi> = {
   status: vi.fn().mockResolvedValue({ files: [], ahead: 0, behind: 0, tracking: null, current: 'main', isMerging: false }),
   diff: vi.fn().mockResolvedValue(''),
   show: vi.fn().mockResolvedValue(''),
+  showBase64: vi.fn().mockResolvedValue(''),
   stage: vi.fn().mockResolvedValue({ success: true }),
   stageAll: vi.fn().mockResolvedValue({ success: true }),
   unstage: vi.fn().mockResolvedValue({ success: true }),
@@ -68,6 +70,7 @@ const mockGit: Mocked<GitApi> = {
   isBehindMain: vi.fn().mockResolvedValue({ behind: 0, defaultBranch: 'main' }),
   getConfig: vi.fn().mockResolvedValue(null),
   setConfig: vi.fn().mockResolvedValue({ success: true }),
+  setGlobalConfig: vi.fn().mockResolvedValue({ success: true }),
 }
 
 // Mock window.app
@@ -108,7 +111,7 @@ const mockGh: Mocked<GhApi> = {
   repoSlug: vi.fn().mockResolvedValue(null),
   prStatus: vi.fn().mockResolvedValue(null),
   hasWriteAccess: vi.fn().mockResolvedValue(false),
-  mergeBranchToMain: vi.fn().mockResolvedValue({ success: true }),
+  prChecksStatus: vi.fn().mockResolvedValue('none'),
   getPrCreateUrl: vi.fn().mockResolvedValue(null),
   prComments: vi.fn().mockResolvedValue([]),
   prDescription: vi.fn().mockResolvedValue(null),
@@ -117,6 +120,8 @@ const mockGh: Mocked<GhApi> = {
   addReaction: vi.fn().mockResolvedValue({ success: true }),
   prsToReview: vi.fn().mockResolvedValue([]),
   submitDraftReview: vi.fn().mockResolvedValue({ success: true }),
+  myReviewStatus: vi.fn().mockResolvedValue('pending'),
+  currentUser: vi.fn().mockResolvedValue('test-user'),
 }
 
 // Mock window.shell
@@ -183,6 +188,8 @@ const mockPty: Mocked<PtyApi> = {
   kill: vi.fn().mockResolvedValue(undefined),
   onData: vi.fn().mockReturnValue(() => {}),
   onExit: vi.fn().mockReturnValue(() => {}),
+  onDevcontainerReady: vi.fn().mockReturnValue(() => {}),
+  onDevcontainerMissing: vi.fn().mockReturnValue(() => {}),
 }
 
 // Mock window.windowControls
@@ -195,6 +202,15 @@ const mockWindowControls: Mocked<WindowControlsApi> = {
 // Mock window.dialog
 const mockDialog: Mocked<DialogApi> = {
   openFolder: vi.fn().mockResolvedValue(null),
+}
+
+// Mock window.devcontainer
+const mockDevcontainer: Mocked<DevcontainerApi> = {
+  status: vi.fn().mockResolvedValue({ available: true, version: '0.71.0' }),
+  hasConfig: vi.fn().mockResolvedValue(false),
+  generateDefaultConfig: vi.fn().mockResolvedValue(undefined),
+  containerInfo: vi.fn().mockResolvedValue(null),
+  resetContainer: vi.fn().mockResolvedValue(undefined),
 }
 
 // All Broomy-specific mocks to attach to window
@@ -214,6 +230,7 @@ const broomyMocks = {
   fs: mockFs,
   pty: mockPty,
   dialog: mockDialog,
+  devcontainer: mockDevcontainer,
   windowControls: mockWindowControls,
 }
 

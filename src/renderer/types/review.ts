@@ -3,8 +3,7 @@
  *
  * Defines the structure of AI-generated code reviews (ReviewData), including overview,
  * change patterns with source locations, potential issues with severity levels, design
- * decisions with alternatives, and requested changes. Also defines ReviewComparison for
- * tracking changes between successive reviews, PendingComment for draft PR comments,
+ * decisions with alternatives, and requested changes. Also defines PendingComment for draft PR comments,
  * and ReviewHistory for the full chain of reviews on a PR.
  */
 export interface CodeLocation {
@@ -56,20 +55,15 @@ export interface ReviewData {
     responsesToComments: {
       comment: string
       response: string
+      status: 'addressed' | 'not-addressed' | 'partially-addressed'
     }[]
-    otherNotableChanges: string[]
+    changePatterns: {
+      id: string
+      title: string
+      description: string
+      locations: CodeLocation[]
+    }[]
   }
-}
-
-// Comparison of changes between reviews
-export interface ReviewComparison {
-  newCommitsSince: string[]  // Commit SHAs since last review
-  newFileChanges: { file: string; changeType: 'added' | 'modified' | 'deleted' }[]
-  requestedChangeStatus: {
-    change: RequestedChange
-    status: 'addressed' | 'not-addressed' | 'partially-addressed'
-    notes?: string
-  }[]
 }
 
 export interface PendingComment {
