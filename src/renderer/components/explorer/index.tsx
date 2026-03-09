@@ -138,6 +138,7 @@ export default function Explorer({
             <SearchPanel
               directory={directory}
               onFileSelect={onFileSelect}
+              sessionId={sessionId}
             />
           </PanelErrorBoundary>
         )}
