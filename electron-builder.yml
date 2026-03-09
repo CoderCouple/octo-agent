@@ -44,7 +44,7 @@ linux:
 deb:
   packageName: broomy
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: true
 publish:
   provider: github
