@@ -35,11 +35,14 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
 linux:
+  executableName: broomy
   target:
     - AppImage
     - deb
   maintainer: Rob Ennals <rob.ennals@gmail.com>
   category: Utility
+deb:
+  packageName: broomy
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: true
