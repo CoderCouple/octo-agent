@@ -1,8 +1,8 @@
 /**
  * Crash log persistence — writes/reads JSON crash reports to ~/.broomy/crash-reports/.
  *
- * Uses a pidfile (running.pid) to detect unclean shutdowns: written on launch,
- * deleted on clean exit. If it exists on next launch, we know we crashed.
+ * Crash reports are only created when the app actually catches an error
+ * (uncaughtException, unhandledRejection, render-process-gone).
  *
  * macOS native crash reports (.ips files in ~/Library/Logs/DiagnosticReports/)
  * are only read when the user explicitly clicks "Report Issue", to avoid
@@ -32,7 +32,6 @@ export type CrashReport = {
 }
 
 const CRASH_DIR = join(CONFIG_DIR, 'crash-reports')
-const RUNNING_PID_FILE = join(CRASH_DIR, 'running.pid')
 const MAX_ERROR_LOG_ENTRIES = 50
 
 /** In-memory ring buffer of recent error-level log messages. */
@@ -161,56 +160,6 @@ export function buildCrashReportUrl(report: CrashReport): string {
   return `https://github.com/Broomy-AI/broomy/issues/new?${params.toString()}`
 }
 
-// --- Pidfile-based crash detection ---
-
-/**
- * Write a pidfile on launch. If this file exists on the next launch,
- * we know the previous session didn't exit cleanly.
- */
-export function markRunning(): void {
-  ensureCrashDir()
-  writeFileSync(RUNNING_PID_FILE, String(process.pid))
-}
-
-/** Remove the pidfile on clean exit. */
-export function markCleanExit(): void {
-  try {
-    unlinkSync(RUNNING_PID_FILE)
-  } catch {
-    // ignore
-  }
-}
-
-/**
- * Check if the previous session crashed (pidfile still exists).
- * If so, write a crash log so the recovery banner picks it up,
- * then remove the stale pidfile.
- */
-export function checkForUncleanShutdown(): void {
-  try {
-    const pid = readFileSync(RUNNING_PID_FILE, 'utf-8').trim()
-    // Pidfile exists — previous session didn't exit cleanly.
-    // Only write a crash log if we don't already have one (e.g. from uncaughtException).
-    if (!readLatestCrashLog()) {
-      ensureCrashDir()
-      const report: CrashReport = {
-        timestamp: new Date().toISOString(),
-        message: `Unexpected shutdown (previous PID: ${pid})`,
-        stack: null,
-        electronVersion: process.versions.electron || 'unknown',
-        appVersion: app.isReady() ? app.getVersion() : 'unknown',
-        platform: process.platform,
-        processType: 'main',
-      }
-      const filename = `crash-${Date.now()}.json`
-      writeFileSync(join(CRASH_DIR, filename), JSON.stringify(report, null, 2))
-    }
-    // Clean up the stale pidfile
-    unlinkSync(RUNNING_PID_FILE)
-  } catch {
-    // No pidfile or read error — previous session exited cleanly (or first run)
-  }
-}
 
 // --- macOS native crash report lookup (on-demand only) ---
 

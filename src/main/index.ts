@@ -20,7 +20,7 @@ import * as pty from 'node-pty'
 import { isWindows, isMac, isLinux, resolveCommand, enhancedPath } from './platform'
 import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
 import { resolveShellEnv } from './shellEnv'
-import { writeCrashLog, appendErrorLog, checkForUncleanShutdown, markRunning, markCleanExit } from './crashLog'
+import { writeCrashLog, appendErrorLog } from './crashLog'
 import { disposePtyListenersForWindow, disposeAllPtyListeners } from './handlers/pty'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
@@ -54,12 +54,6 @@ if (isWindows) {
   }
 }
 
-// Detect unclean shutdown from previous session (pidfile still present),
-// then mark this session as running so the next launch can detect crashes
-if (!isE2ETest) {
-  checkForUncleanShutdown()
-  markRunning()
-}
 
 // Crash handlers — write crash report to disk so the next launch can show recovery UI
 if (!isE2ETest) {
@@ -499,12 +493,6 @@ function buildAppMenu() {
   })
 })
 
-// Mark clean exit so the next launch doesn't show a crash banner
-app.on('will-quit', () => {
-  if (!isE2ETest) {
-    markCleanExit()
-  }
-})
 
 app.on('window-all-closed', () => {
   // Dispose all native PTY event listeners before killing processes
