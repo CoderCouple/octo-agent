@@ -11,6 +11,8 @@ const mockCrashReport: CrashReport = {
   stack: null,
   electronVersion: '1.0.0',
   appVersion: '0.9.0',
+  platform: 'darwin',
+  processType: 'main',
 }
 
 afterEach(() => {
@@ -33,7 +35,7 @@ describe('CrashRecoveryBanner', () => {
   })
 
   it('renders the banner when a crash log exists', async () => {
-    vi.mocked(window.app.getCrashLog).mockResolvedValue('crash data')
+    vi.mocked(window.app.getCrashLog).mockResolvedValue(mockCrashReport)
     render(<CrashRecoveryBanner />)
     await waitFor(() => {
       expect(screen.getByText('Broomy crashed unexpectedly during your last session.')).toBeTruthy()
@@ -43,7 +45,7 @@ describe('CrashRecoveryBanner', () => {
   })
 
   it('opens the crash report URL and dismisses on Report Issue click', async () => {
-    vi.mocked(window.app.getCrashLog).mockResolvedValue('crash data')
+    vi.mocked(window.app.getCrashLog).mockResolvedValue(mockCrashReport)
     vi.mocked(window.app.getCrashReportUrl).mockResolvedValue('https://github.com/issues/new')
     vi.mocked(window.app.dismissCrashLog).mockResolvedValue(undefined)
     vi.mocked(window.shell.openExternal).mockResolvedValue(undefined)
@@ -63,7 +65,7 @@ describe('CrashRecoveryBanner', () => {
   })
 
   it('dismisses without reporting on Dismiss click', async () => {
-    vi.mocked(window.app.getCrashLog).mockResolvedValue('crash data')
+    vi.mocked(window.app.getCrashLog).mockResolvedValue(mockCrashReport)
     vi.mocked(window.app.dismissCrashLog).mockResolvedValue(undefined)
 
     render(<CrashRecoveryBanner />)
@@ -80,7 +82,7 @@ describe('CrashRecoveryBanner', () => {
   })
 
   it('does not call openExternal when crash report URL is null', async () => {
-    vi.mocked(window.app.getCrashLog).mockResolvedValue('crash data')
+    vi.mocked(window.app.getCrashLog).mockResolvedValue(mockCrashReport)
     vi.mocked(window.app.getCrashReportUrl).mockResolvedValue(null)
     vi.mocked(window.app.dismissCrashLog).mockResolvedValue(undefined)
 
