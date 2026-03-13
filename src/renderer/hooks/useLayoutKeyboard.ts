@@ -3,12 +3,14 @@
  */
 import { ReactNode, useEffect, useState, useCallback, useRef } from 'react'
 import { PANEL_IDS, MAX_SHORTCUT_PANELS } from '../panels'
+import { focusPanel, setLastFocusedPanel } from '../utils/focusHelpers'
 
 interface UseLayoutKeyboardParams {
   toolbarPanels: string[]
   isPanelVisible: (panelId: string) => boolean
   panels: Record<string, ReactNode>
   handleToggle: (panelId: string) => void
+  activeSessionId?: string | null
   onSearchFiles?: () => void
   onNewSession?: () => void
   onNextSession?: () => void
@@ -51,6 +53,7 @@ export function useLayoutKeyboard({
   isPanelVisible,
   panels,
   handleToggle,
+  activeSessionId,
   onSearchFiles,
   onNewSession,
   onNextSession,
@@ -67,24 +70,21 @@ export function useLayoutKeyboard({
   const [flashedPanel, setFlashedPanel] = useState<string | null>(null)
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Panel navigation helpers
-  const focusPanel = useCallback((panelId: string) => {
-    const container = document.querySelector(`[data-panel-id="${panelId}"]`)
-    if (!container) return
-
-    // For xterm: find a visible textarea (hidden tabs have display:none parents)
-    const xtermTextareas = container.querySelectorAll<HTMLElement>('.xterm-helper-textarea')
-    for (const ta of xtermTextareas) {
-      if (ta.offsetParent !== null) { ta.focus(); return }
+  // Track which panel has focus so we can restore it on session switch
+  const activeSessionIdRef = useRef(activeSessionId)
+  activeSessionIdRef.current = activeSessionId
+  useEffect(() => {
+    const handleFocusIn = () => {
+      const sessionId = activeSessionIdRef.current
+      if (!sessionId) return
+      const activeEl = document.activeElement
+      if (!activeEl) return
+      const panelEl = activeEl.closest('[data-panel-id]')
+      const panelId = panelEl?.getAttribute('data-panel-id')
+      if (panelId) setLastFocusedPanel(sessionId, panelId)
     }
-
-    const monacoTextarea = container.querySelector<HTMLElement>('textarea.inputarea')
-    if (monacoTextarea) { monacoTextarea.focus(); return }
-
-    const focusable = container.querySelector<HTMLElement>('input, textarea, button, [tabindex]')
-    if (focusable) { focusable.focus(); return }
-
-    ;(container as HTMLElement).focus()
+    window.addEventListener('focusin', handleFocusIn)
+    return () => window.removeEventListener('focusin', handleFocusIn)
   }, [])
 
   const getCurrentPanel = useCallback((): string | null => {
@@ -131,7 +131,7 @@ export function useLayoutKeyboard({
     setFlashedPanel(targetPanel)
     if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current)
     flashTimeoutRef.current = setTimeout(() => setFlashedPanel(null), 250)
-  }, [toolbarPanels, isPanelVisible, panels, getCurrentPanel, focusPanel])
+  }, [toolbarPanels, isPanelVisible, panels, getCurrentPanel])
 
   const handleToggleByKey = useCallback((key: string) => {
     const index = parseInt(key, 10) - 1

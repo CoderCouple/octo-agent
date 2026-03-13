@@ -7,7 +7,7 @@ import { PANEL_IDS } from '../panels'
 import type { AgentConfig } from '../store/agents'
 import type { PrState } from '../utils/branchStatus'
 import type { DuplicateSessionResult } from '../store/sessionCoreActions'
-import { focusActiveTerminal } from '../utils/focusHelpers'
+import { restoreSessionFocus } from '../utils/focusHelpers'
 
 
 interface AppCallbacksDeps {
@@ -124,7 +124,7 @@ export function useAppCallbacks({
 
   const handleSelectSession = useCallback((id: string) => {
     setActiveSession(id)
-    focusActiveTerminal()
+    restoreSessionFocus(id)
   }, [setActiveSession])
 
   const handleDeleteSession = useCallback((id: string, deleteWorktree: boolean) => {

@@ -1,7 +1,7 @@
 /**
  * Multi-step new session dialog that routes between repo selection, branch, clone, and agent picker views.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { View, NewSessionDialogProps } from './types'
 import { HomeView } from './HomeView'
 import { CloneView } from './CloneView'
@@ -15,6 +15,12 @@ import { AgentPickerView } from './AgentPickerView'
 
 export function NewSessionDialog({ onComplete, onCancel }: NewSessionDialogProps) {
   const [view, setView] = useState<View>({ type: 'home' })
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Steal focus from terminal (or wherever) when dialog mounts
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
 
   // Escape key: go back to home from sub-views (home view handles its own Escape)
   useEffect(() => {
@@ -32,7 +38,9 @@ export function NewSessionDialog({ onComplete, onCancel }: NewSessionDialogProps
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
-        className="bg-bg-secondary rounded-lg shadow-xl border border-border w-full max-w-lg mx-4"
+        ref={dialogRef}
+        tabIndex={-1}
+        className="bg-bg-secondary rounded-lg shadow-xl border border-border w-full max-w-lg mx-4 outline-none"
       >
         {view.type === 'home' && (
           <HomeView

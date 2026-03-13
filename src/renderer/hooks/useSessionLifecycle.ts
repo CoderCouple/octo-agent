@@ -6,7 +6,7 @@ import type { Session } from '../store/sessions'
 import type { ProfileData } from '../store/profiles'
 import { terminalBufferRegistry } from '../utils/terminalBufferRegistry'
 import { loadMonacoProjectContext } from '../utils/monacoProjectContext'
-import { focusActiveTerminal } from '../utils/focusHelpers'
+import { restoreSessionFocus } from '../utils/focusHelpers'
 
 export function useSessionLifecycle({
   sessions,
@@ -100,9 +100,9 @@ export function useSessionLifecycle({
   useEffect(() => {
     if (activeSessionId) {
       markSessionRead(activeSessionId)
-      // Focus the active terminal after a short delay to let it render
+      // Restore focus to the last focused panel after a short delay to let it render
       const timeout = setTimeout(() => {
-        focusActiveTerminal()
+        restoreSessionFocus(activeSessionId)
       }, 100)
       return () => clearTimeout(timeout)
     }
