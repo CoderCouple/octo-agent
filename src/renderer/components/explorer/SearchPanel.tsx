@@ -171,7 +171,6 @@ export function SearchPanel({ directory, onFileSelect, sessionId }: SearchPanelP
         try {
           const results = await window.fs.search(directory, searchQuery)
           setSearchResults(results)
-          if (sessionId) addSearchHistory(sessionId, searchQuery)
         } catch {
           setSearchResults([])
           setSearchError('Search failed')
@@ -211,6 +210,7 @@ export function SearchPanel({ directory, onFileSelect, sessionId }: SearchPanelP
             data-explorer-search
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onBlur={() => { if (sessionId && searchQuery.length >= 2) addSearchHistory(sessionId, searchQuery) }}
             placeholder="Search files..."
             className="w-full bg-bg-tertiary border border-border rounded px-2 py-1 pr-6 text-xs text-text-primary outline-none focus:border-accent"
           />

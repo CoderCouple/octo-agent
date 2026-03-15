@@ -295,6 +295,7 @@ function AppContent() {
         errorMessage={activeSession && !activeDirectoryExists ? `Folder not found: ${activeSession.directory}` : null}
         title={activeSession ? activeSession.name : undefined}
         profileChip={<ProfileChip onSwitchProfile={handleSwitchProfile} />}
+        activeSessionId={activeSessionId}
         onTogglePanel={handleTogglePanel}
         onToggleGlobalPanel={toggleGlobalPanel}
         onOpenPanelPicker={isMac ? () => setShowPanelPicker(true) : undefined}

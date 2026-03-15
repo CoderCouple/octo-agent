@@ -44,7 +44,6 @@ Components and stores import individual utilities as needed. The terminal utilit
 | File | Description |
 |------|-------------|
 | `prPromptBuilder.ts` | Builds the agent prompt for creating a pull request from the current branch, including diff analysis and PR template discovery. |
-| `reviewPromptBuilder.ts` | Builds the agent prompt for generating structured code reviews with requested changes, incorporating PR comments and description. |
 
 ### UI Helpers
 
@@ -69,6 +68,5 @@ Components and stores import individual utilities as needed. The terminal utilit
 | `stripAnsi.test.ts` | Unit tests for ANSI stripping. |
 | `monacoProjectContext.test.ts` | Unit tests for Monaco project context loading. |
 | `prPromptBuilder.test.ts` | Unit tests for PR prompt builder. |
-| `reviewPromptBuilder.test.ts` | Unit tests for review prompt builder. |
 | `gitOperationProgress.test.ts` | Unit tests for git operation progress tracking. |
 | `knownErrors.test.ts` | Unit tests for known error message mapping. |

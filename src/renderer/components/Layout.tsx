@@ -46,6 +46,7 @@ interface LayoutProps {
   onToggleGlobalPanel: (panelId: string) => void
   onOpenPanelPicker?: () => void
   onMenuButtonClick?: () => void
+  activeSessionId?: string | null
   onSearchFiles?: () => void
   onNewSession?: () => void
   onNextSession?: () => void
@@ -78,6 +79,7 @@ export default function Layout({
   onToggleGlobalPanel,
   onOpenPanelPicker,
   onMenuButtonClick,
+  activeSessionId,
   onSearchFiles,
   onNewSession,
   onNextSession,
@@ -139,6 +141,7 @@ export default function Layout({
     isPanelVisible,
     panels,
     handleToggle,
+    activeSessionId,
     onSearchFiles,
     onNewSession,
     onNextSession,
