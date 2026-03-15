@@ -165,7 +165,7 @@ function AppContent() {
 
   const {
     activeSessionGitStatus, activeSessionGitStatusResult, selectedFileStatus, fetchGitStatus,
-  } = useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus })
+  } = useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus, updatePrState })
 
   const {
     openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel,

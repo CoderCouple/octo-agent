@@ -175,12 +175,14 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
   ipcMain.handle('gh:prStatus', async (_event, repoDir: string) => {
     if (ctx.isE2ETest) {
+      const mockPrState = process.env.E2E_MOCK_PR_STATE
+      if (mockPrState === 'none') return null
       const branch = getScenarioData(ctx.e2eScenario).branches[repoDir]
       if (branch && branch !== 'main') {
         return {
           number: 123,
           title: 'Test PR',
-          state: 'OPEN',
+          state: mockPrState === 'MERGED' || mockPrState === 'CLOSED' ? mockPrState : 'OPEN',
           url: 'https://github.com/user/demo-project/pull/123',
           headRefName: branch,
           baseRefName: 'main',

@@ -14,12 +14,14 @@ export function useGitPolling({
   repos,
   markHasHadCommits,
   updateBranchStatus,
+  updatePrState,
 }: {
   sessions: Session[]
   activeSession: Session | undefined
   repos: ManagedRepo[]
   markHasHadCommits: (sessionId: string) => void
   updateBranchStatus: (sessionId: string, status: BranchStatus) => void
+  updatePrState: (sessionId: string, prState: import('../store/sessions').PrState, prNumber?: number, prUrl?: string) => void
 }) {
   const [gitStatusBySession, setGitStatusBySession] = useState<Record<string, GitStatusResult | undefined>>({})
   const [isMergedBySession, setIsMergedBySession] = useState<Record<string, boolean | undefined>>({})
@@ -97,6 +99,15 @@ export function useGitPolling({
 
       if (status !== session.branchStatus) {
         updateBranchStatus(session.id, status)
+      }
+
+      // Clear stale PR state when new work is detected on a previously merged/closed branch.
+      // This prevents the branch from snapping back to 'merged' after pushing new commits.
+      if (
+        (session.lastKnownPrState === 'MERGED' || session.lastKnownPrState === 'CLOSED') &&
+        (gitStatus.ahead > 0 || gitStatus.files.length > 0)
+      ) {
+        updatePrState(session.id, null)
       }
     }
   }, [gitStatusBySession, isMergedBySession, sessions, updateBranchStatus])

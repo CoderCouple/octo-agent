@@ -41,8 +41,10 @@ export function createBranchActions(get: StoreGet, set: StoreSet) {
           ? {
               ...s,
               lastKnownPrState: prState,
-              lastKnownPrNumber: prNumber ?? s.lastKnownPrNumber,
-              lastKnownPrUrl: prUrl ?? s.lastKnownPrUrl,
+              // When clearing PR state (null), also clear number and URL so the session
+              // can start a fresh PR lifecycle.
+              lastKnownPrNumber: prState === null ? undefined : (prNumber ?? s.lastKnownPrNumber),
+              lastKnownPrUrl: prState === null ? undefined : (prUrl ?? s.lastKnownPrUrl),
             }
           : s
       )

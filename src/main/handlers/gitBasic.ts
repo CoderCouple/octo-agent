@@ -52,12 +52,27 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
   if (ctx.isE2ETest && !ctx.e2eRealRepos) {
     const scenario = getScenarioData(ctx.e2eScenario)
     const mockMerge = process.env.E2E_MOCK_MERGE
-    return {
+    const branch = scenario.branches[repoPath] || 'main'
+    const base = {
       ...scenario.gitStatus,
-      current: scenario.branches[repoPath] || 'main',
+      current: branch,
       isMerging: mockMerge === 'true' || mockMerge === 'conflicts',
       hasConflicts: mockMerge === 'conflicts',
     }
+    // Allow overriding git status fields for feature docs
+    if (process.env.E2E_MOCK_GIT_CLEAN === 'true') {
+      base.files = []
+      base.ahead = 0
+      base.behind = 0
+      base.tracking = branch !== 'main' ? 'origin/' + branch : null
+    }
+    if (process.env.E2E_MOCK_GIT_AHEAD) {
+      base.ahead = parseInt(process.env.E2E_MOCK_GIT_AHEAD, 10)
+    }
+    if (process.env.E2E_MOCK_GIT_TRACKING) {
+      base.tracking = process.env.E2E_MOCK_GIT_TRACKING
+    }
+    return base
   }
 
   try {

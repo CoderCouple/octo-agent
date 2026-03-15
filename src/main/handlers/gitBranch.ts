@@ -328,7 +328,7 @@ async function handleSyncReviewBranch(ctx: HandlerContext, repoPath: string, bra
 
 async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: string) {
   if (ctx.isE2ETest && !ctx.e2eRealRepos) {
-    return false
+    return process.env.E2E_MOCK_IS_MERGED === 'true'
   }
 
   try {
@@ -360,7 +360,7 @@ async function handleIsMergedInto(ctx: HandlerContext, repoPath: string, ref: st
 
 async function handleHasBranchCommits(ctx: HandlerContext, repoPath: string, ref: string) {
   if (ctx.isE2ETest && !ctx.e2eRealRepos) {
-    return false
+    return process.env.E2E_MOCK_HAS_BRANCH_COMMITS === 'true'
   }
 
   try {

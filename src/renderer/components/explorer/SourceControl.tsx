@@ -102,6 +102,7 @@ export function SourceControl({
       syncStatus,
       branchStatus,
       prNumber: data.prStatus?.number,
+      prState: data.prStatus?.state,
       hasWriteAccess: data.hasWriteAccess,
       allowApproveAndMerge: data.currentRepo?.allowApproveAndMerge ?? true,
       checksStatus: data.checksStatus,
