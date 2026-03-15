@@ -16,12 +16,14 @@ export function NewBranchView({
   onBack,
   onComplete,
   onUseExisting,
+  onStartBranch,
 }: {
   repo: ManagedRepo
   issue?: GitHubIssue
   onBack: () => void
   onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string }) => void
   onUseExisting?: (branchName: string) => void
+  onStartBranch?: (params: { repo: ManagedRepo; branchName: string; agentId: string | null; issue?: { number: number; title: string; url: string } }) => void
 }) {
   const agents = useAgentStore(s => s.agents)
   const ghAvailable = useRepoStore(s => s.ghAvailable)
@@ -38,6 +40,19 @@ export function NewBranchView({
 
   const handleCreate = async () => {
     if (!branchName) return
+
+    // Use instant setup path when available
+    if (onStartBranch) {
+      onStartBranch({
+        repo,
+        branchName,
+        agentId: selectedAgentId,
+        issue: issue ? { number: issue.number, title: issue.title, url: issue.url } : undefined,
+      })
+      return
+    }
+
+    // Fallback: inline git operations (legacy path)
     setLoading(true)
     setError(null)
     setExistingSessionId(null)

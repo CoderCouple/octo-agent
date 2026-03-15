@@ -28,7 +28,7 @@ export function useGitPolling({
 
   // Fetch git status for active session
   const fetchGitStatus = useCallback(async () => {
-    if (!activeSession) return
+    if (!activeSession || activeSession.status === 'initializing') return
     try {
       const status = await window.git.status(activeSession.directory)
       const normalized = normalizeGitStatus(status)
@@ -74,12 +74,12 @@ export function useGitPolling({
 
   // Poll git status every 2 seconds
   useEffect(() => {
-    if (activeSession) {
+    if (activeSession && activeSession.status !== 'initializing') {
       void fetchGitStatus()
       const interval = setInterval(() => { void fetchGitStatus() }, 2000)
       return () => clearInterval(interval)
     }
-  }, [activeSession?.id, fetchGitStatus])
+  }, [activeSession?.id, activeSession?.status, fetchGitStatus])
 
   // Compute branch status whenever git status changes
   useEffect(() => {

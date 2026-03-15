@@ -23,7 +23,7 @@ import { createCoreActions, DEFAULT_SIDEBAR_WIDTH } from './sessionCoreActions'
 
 export type { BranchStatus, PrState }
 
-export type SessionStatus = 'working' | 'idle' | 'error'
+export type SessionStatus = 'working' | 'idle' | 'error' | 'initializing'
 export type FileViewerPosition = 'top' | 'left'
 
 // Terminal tab types
@@ -107,6 +107,8 @@ export interface Session {
   isArchived: boolean
   // Whether this session was loaded from config (runtime only, not persisted)
   isRestored: boolean
+  // Error from background initialization (runtime only, not persisted)
+  initError?: string | null
 }
 
 // Global panel visibility (sidebar, settings, tutorial)
@@ -177,6 +179,10 @@ interface SessionStore {
   // Archive actions
   archiveSession: (sessionId: string) => void
   unarchiveSession: (sessionId: string) => void
+  // Instant setup actions
+  addInitializingSession: (params: { directory: string; branch: string; agentId: string | null; extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string } }) => string
+  finalizeSession: (id: string) => void
+  failSession: (id: string, error: string) => void
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => {
@@ -264,6 +270,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
     const { sessions } = get()
     const session = sessions.find(s => s.id === id)
     if (!session) return
+    if (session.status === 'initializing') return
     // Bail out if nothing would change (e.g. setting status to 'working' when already 'working')
     if (update.status !== undefined && update.status === session.status && update.lastMessage === undefined) return
     const updatedSessions = sessions.map((s) => {

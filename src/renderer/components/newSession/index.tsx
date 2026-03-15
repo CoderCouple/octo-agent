@@ -13,7 +13,7 @@ import { IssuesView } from './IssuesView'
 import { ReviewPrsView } from './ReviewPrsView'
 import { AgentPickerView } from './AgentPickerView'
 
-export function NewSessionDialog({ onComplete, onCancel }: NewSessionDialogProps) {
+export function NewSessionDialog({ onComplete, onCancel, onStartBranch, onStartExistingBranch }: NewSessionDialogProps) {
   const [view, setView] = useState<View>({ type: 'home' })
   const dialogRef = useRef<HTMLDivElement>(null)
 
@@ -80,6 +80,7 @@ export function NewSessionDialog({ onComplete, onCancel }: NewSessionDialogProps
             onBack={() => view.issue ? setView({ type: 'issues', repo: view.repo }) : setView({ type: 'home' })}
             onComplete={onComplete}
             onUseExisting={() => setView({ type: 'existing-branch', repo: view.repo })}
+            onStartBranch={onStartBranch}
           />
         )}
         {view.type === 'existing-branch' && (
@@ -87,6 +88,7 @@ export function NewSessionDialog({ onComplete, onCancel }: NewSessionDialogProps
             repo={view.repo}
             onBack={() => setView({ type: 'home' })}
             onComplete={onComplete}
+            onStartExistingBranch={onStartExistingBranch}
           />
         )}
         {view.type === 'repo-settings' && (

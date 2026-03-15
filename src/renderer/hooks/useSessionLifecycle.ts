@@ -57,6 +57,7 @@ export function useSessionLifecycle({
     const checkDirectories = async () => {
       const results: Record<string, boolean> = {}
       for (const session of activeSessions) {
+        if (session.status === 'initializing') continue
         results[session.id] = await window.fs.exists(session.directory)
       }
       setDirectoryExists(results)
@@ -91,10 +92,10 @@ export function useSessionLifecycle({
 
   // Load TypeScript project context when active session changes
   useEffect(() => {
-    if (activeSession?.directory) {
+    if (activeSession?.directory && activeSession.status !== 'initializing') {
       void loadMonacoProjectContext(activeSession.directory)
     }
-  }, [activeSession?.directory])
+  }, [activeSession?.directory, activeSession?.status])
 
   // Mark session as read when it becomes active, and focus the active terminal tab
   useEffect(() => {
@@ -155,7 +156,9 @@ export function useSessionLifecycle({
     return () => window.removeEventListener('keydown', handleCopyTerminal)
   }, [activeSession])
 
-  const activeDirectoryExists = activeSession ? (directoryExists[activeSession.id] ?? true) : true
+  const activeDirectoryExists = activeSession
+    ? (activeSession.status === 'initializing' || (directoryExists[activeSession.id] ?? true))
+    : true
 
   return {
     directoryExists,

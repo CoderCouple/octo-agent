@@ -136,6 +136,76 @@ function handleDuplicateSession(
   return { existingSessionId: duplicate.id, existingSessionName: duplicate.name, wasArchived }
 }
 
+export function createInstantSetupActions(get: StoreGet, set: StoreSet) {
+  return {
+    addInitializingSession: (params: { directory: string; branch: string; agentId: string | null; extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string } }): string => {
+      const { directory, branch, agentId, extra } = params
+      const id = generateId()
+      const name = extra?.name || basename(directory)
+      const panelVisibility = { ...DEFAULT_PANEL_VISIBILITY }
+
+      const newSession: Session = {
+        id,
+        name,
+        directory,
+        branch,
+        status: 'initializing',
+        agentId,
+        ...extra,
+        panelVisibility,
+        showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
+        showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
+        showDiff: false,
+        selectedFilePath: null,
+        planFilePath: null,
+        fileViewerPosition: 'top',
+        layoutSizes: { ...DEFAULT_LAYOUT_SIZES },
+        explorerFilter: 'source-control',
+        lastMessage: null,
+        lastMessageTime: null,
+        isUnread: false,
+        workingStartTime: null,
+        recentFiles: [],
+        searchHistory: [],
+        terminalTabs: createDefaultTerminalTabs(),
+        branchStatus: 'in-progress',
+        isArchived: false,
+        isRestored: false,
+      }
+
+      const { sessions } = get()
+      set({
+        sessions: [...sessions, newSession],
+        activeSessionId: id,
+      })
+      // Do NOT persist — initializing sessions are transient
+      return id
+    },
+
+    finalizeSession: (id: string) => {
+      const { sessions } = get()
+      if (sessions.find(s => s.id === id)?.status !== 'initializing') return
+      set({
+        sessions: sessions.map(s =>
+          s.id === id ? { ...s, status: 'idle' as const, isUnread: true } : s
+        ),
+      })
+      debouncedSave()
+    },
+
+    failSession: (id: string, error: string) => {
+      const { sessions } = get()
+      if (!sessions.find(s => s.id === id)) return
+      set({
+        sessions: sessions.map(s =>
+          s.id === id ? { ...s, status: 'error' as const, initError: error } : s
+        ),
+      })
+      // Do NOT persist — error state is transient
+    },
+  }
+}
+
 export function createCoreActions(get: StoreGet, set: StoreSet) {
   const updateSessionBranch = (id: string, branch: string) => {
     const { sessions } = get()
@@ -341,6 +411,8 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
     },
 
     updateSessionBranch,
+
+    ...createInstantSetupActions(get, set),
 
     refreshAllBranches: async () => {
       const { sessions } = get()

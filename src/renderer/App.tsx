@@ -139,33 +139,27 @@ function AppContent() {
   const sidebarWidth = useSessionStore(s => s.sidebarWidth)
   const toolbarPanels = useSessionStore(s => s.toolbarPanels)
   const globalPanelVisibility = useSessionStore(s => s.globalPanelVisibility)
-  // Actions are referentially stable in Zustand — get them once without subscribing to state changes
   const {
-    loadSessions, addSession, removeSession, setActiveSession,
-    togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
-    selectFile, setExplorerFilter, setFileViewerPosition, updateLayoutSize,
-    markSessionRead, markHasHadCommits,
-    updateBranchStatus, updatePrState, updateReviewStatus, archiveSession, unarchiveSession, setPanelVisibility, updateSessionBranch,
-    closeCommandsEditor,
+    loadSessions, addSession, addInitializingSession, finalizeSession, failSession, removeSession,
+    setActiveSession, togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
+    selectFile, setExplorerFilter, setFileViewerPosition, updateLayoutSize, markSessionRead,
+    markHasHadCommits, updateBranchStatus, updatePrState, updateReviewStatus, archiveSession,
+    unarchiveSession, setPanelVisibility, updateSessionBranch, closeCommandsEditor,
   } = useMemo(() => useSessionStore.getState(), [])
 
   useGitBranchWatcher({ sessions, activeSessionId, updateSessionBranch })
-
   const { agents, loadAgents } = useAgentStore()
   const { repos, loadRepos, loadError: repoLoadError, checkGhAvailability, checkGitAvailability } = useRepoStore()
   const { currentProfileId, profiles, loadProfiles, switchProfile } = useProfileStore()
   const { showHelpModal, setShowHelpModal, showShortcutsModal, setShowShortcutsModal } = useHelpMenu(currentProfileId)
   const currentProfile = profiles.find((p) => p.id === currentProfileId)
   const activeSession = sessions.find((s) => s.id === activeSessionId)
-
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false)
   const [showPanelPicker, setShowPanelPicker] = useState(false)
   const [duplicateSessionInfo, setDuplicateSessionInfo] = useState<{ name: string; wasArchived: boolean } | null>(null)
   const [appError, setAppError] = useState<string | null>(null)
-
-  const {
-    activeSessionGitStatus, activeSessionGitStatusResult, selectedFileStatus, fetchGitStatus,
-  } = useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus, updatePrState })
+  const { activeSessionGitStatus, activeSessionGitStatusResult, selectedFileStatus, fetchGitStatus } =
+    useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus, updatePrState })
 
   const {
     openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel,
@@ -199,36 +193,16 @@ function AppContent() {
     updateReviewStatus,
   })
 
-  // App callbacks hook
   const {
-    handleNewSession,
-    handleNewSessionComplete,
-    handleCancelNewSession,
-    handleDeleteSession,
-    refreshPrStatus,
-    getAgentCommand,
-    getAgentEnv,
-    getRepoIsolation,
-    handleLayoutSizeChange,
-    handleFileViewerPositionChange,
-    handleSelectSession,
-    handleTogglePanel,
-    handleToggleFileViewer,
+    handleNewSession, handleNewSessionComplete, handleCancelNewSession, handleDeleteSession,
+    handleStartBranchSession, handleStartExistingBranchSession, refreshPrStatus,
+    getAgentCommand, getAgentEnv, getRepoIsolation, handleLayoutSizeChange,
+    handleFileViewerPositionChange, handleSelectSession, handleTogglePanel, handleToggleFileViewer,
   } = useAppCallbacks({
-    sessions,
-    activeSessionId,
-    agents,
-    repos,
-    addSession,
-    removeSession,
-    setActiveSession,
-    togglePanel,
-    updateLayoutSize,
-    setFileViewerPosition,
-    updatePrState,
-    setShowNewSessionDialog,
-    onSessionAlreadyExists: setDuplicateSessionInfo,
-    onError: setAppError,
+    sessions, activeSessionId, agents, repos, addSession, addInitializingSession,
+    finalizeSession, failSession, removeSession, setActiveSession,
+    togglePanel, updateLayoutSize, setFileViewerPosition, updatePrState,
+    setShowNewSessionDialog, onSessionAlreadyExists: setDuplicateSessionInfo, onError: setAppError,
   })
 
   const setActiveTerminalTab = useSessionStore((state) => state.setActiveTerminalTab)
@@ -319,6 +293,8 @@ function AppContent() {
         <NewSessionDialog
           onComplete={handleNewSessionComplete}
           onCancel={handleCancelNewSession}
+          onStartBranch={handleStartBranchSession}
+          onStartExistingBranch={handleStartExistingBranchSession}
         />
       )}
 

@@ -14,6 +14,7 @@ const statusLabels: Record<SessionStatus, string> = {
   working: 'Working',
   idle: 'Idle',
   error: 'Error',
+  initializing: 'Setting up...',
 }
 
 function Spinner({ className = '' }: { className?: string }) {
@@ -44,6 +45,10 @@ function Spinner({ className = '' }: { className?: string }) {
 }
 
 function StatusIndicator({ status, isUnread }: { status: SessionStatus; isUnread: boolean }) {
+  if (status === 'initializing') {
+    return <Spinner className="text-accent" />
+  }
+
   if (status === 'working') {
     return <Spinner className="text-status-working" />
   }
@@ -108,6 +113,7 @@ export default memo(function SessionCard({
         isArchived: sess.isArchived,
         sessionType: sess.sessionType,
         reviewStatus: sess.reviewStatus,
+        initError: sess.initError,
       }
     }),
   )
@@ -129,7 +135,8 @@ export default memo(function SessionCard({
 
   if (!session) return null
 
-  const displayStatus: SessionStatus = showWorking ? 'working' : (session.status === 'error' ? 'error' : 'idle')
+  const displayStatus: SessionStatus = session.status === 'initializing' ? 'initializing'
+    : showWorking ? 'working' : (session.status === 'error' ? 'error' : 'idle')
   const isUnread = session.isUnread
 
   return (
@@ -227,7 +234,11 @@ export default memo(function SessionCard({
           <span className="text-purple-400 flex-shrink-0">PR #{session.prNumber}</span>
         )}
       </div>
-      {session.lastMessage ? (
+      {session.initError ? (
+        <div className="text-xs mt-1 truncate text-status-error">
+          {session.initError}
+        </div>
+      ) : session.lastMessage ? (
         <div className={`text-xs mt-1 truncate ${
           isUnread ? 'text-text-secondary' : 'text-text-secondary/60'
         }`}>
