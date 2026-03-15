@@ -159,7 +159,7 @@ function AppContent() {
   const [duplicateSessionInfo, setDuplicateSessionInfo] = useState<{ name: string; wasArchived: boolean } | null>(null)
   const [appError, setAppError] = useState<string | null>(null)
   const { activeSessionGitStatus, activeSessionGitStatusResult, selectedFileStatus, fetchGitStatus } =
-    useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus })
+    useGitPolling({ sessions, activeSession, repos, markHasHadCommits, updateBranchStatus, updatePrState })
 
   const {
     openFileInDiffMode, scrollToLine, searchHighlight, diffBaseRef, diffCurrentRef, diffLabel,

@@ -75,6 +75,18 @@ interface ResetOptions {
   scenario?: 'marketing'
   /** Set mock merge state ('true', 'conflicts', or undefined to clear) */
   mockMerge?: string
+  /** Override gh:prStatus state ('OPEN', 'MERGED', 'CLOSED', 'none') */
+  mockPrState?: string
+  /** Override git:isMergedInto return value */
+  mockIsMerged?: boolean
+  /** Override git:hasBranchCommits return value */
+  mockHasBranchCommits?: boolean
+  /** Return clean git status (no files, ahead=0, with tracking) */
+  mockGitClean?: boolean
+  /** Override git status ahead count */
+  mockGitAhead?: number
+  /** Override git status tracking branch */
+  mockGitTracking?: string
 }
 
 /**
@@ -89,10 +101,27 @@ export async function resetApp(opts?: ResetOptions): Promise<{ electronApp: Elec
   // Set env vars on the main process before reload so IPC handlers pick them up
   const scenario = opts?.scenario ?? 'default'
   const mockMerge = opts?.mockMerge ?? ''
-  await electronApp.evaluate((_electron, { sc, mm }) => {
-    process.env.E2E_SCENARIO = sc
-    if (mm) process.env.E2E_MOCK_MERGE = mm; else delete process.env.E2E_MOCK_MERGE
-  }, { sc: scenario, mm: mockMerge })
+  const envOverrides = {
+    sc: scenario,
+    mm: mockMerge,
+    prState: opts?.mockPrState ?? '',
+    isMerged: opts?.mockIsMerged ? 'true' : '',
+    hasBranchCommits: opts?.mockHasBranchCommits ? 'true' : '',
+    gitClean: opts?.mockGitClean ? 'true' : '',
+    gitAhead: opts?.mockGitAhead !== undefined ? String(opts.mockGitAhead) : '',
+    gitTracking: opts?.mockGitTracking ?? '',
+  }
+  await electronApp.evaluate((_electron, env) => {
+    process.env.E2E_SCENARIO = env.sc
+    const setOrDelete = (key: string, val: string) => { process.env[key] = val || '' }
+    setOrDelete('E2E_MOCK_MERGE', env.mm)
+    setOrDelete('E2E_MOCK_PR_STATE', env.prState)
+    setOrDelete('E2E_MOCK_IS_MERGED', env.isMerged)
+    setOrDelete('E2E_MOCK_HAS_BRANCH_COMMITS', env.hasBranchCommits)
+    setOrDelete('E2E_MOCK_GIT_CLEAN', env.gitClean)
+    setOrDelete('E2E_MOCK_GIT_AHEAD', env.gitAhead)
+    setOrDelete('E2E_MOCK_GIT_TRACKING', env.gitTracking)
+  }, envOverrides)
 
   if (isFirstCall) {
     // First call — app is already fresh from launch

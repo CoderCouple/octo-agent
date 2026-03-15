@@ -20,12 +20,13 @@ export interface SourceControlDataProps {
 interface PrEffectsConfig {
   directory?: string
   syncStatus?: GitStatusResult | null
+  branchStatus?: BranchStatus
   onUpdatePrState?: (prState: PrState, prNumber?: number, prUrl?: string) => void
 }
 
 /** PR data-fetching effects, extracted for function size limits. */
 function usePrEffects(config: PrEffectsConfig) {
-  const { directory, syncStatus, onUpdatePrState } = config
+  const { directory, syncStatus, branchStatus, onUpdatePrState } = config
   const [prStatus, setPrStatus] = useState<GitHubPrStatus>(null)
   const [isPrLoading, setIsPrLoading] = useState(false)
   const [hasWriteAccess, setHasWriteAccess] = useState(false)
@@ -85,16 +86,25 @@ function usePrEffects(config: PrEffectsConfig) {
     return () => { cancelled = true }
   }, [directory, syncStatus?.ahead, syncStatus?.behind, prRefreshKey])
 
-  // Update session PR state when Explorer fetches PR status
+  // Update session PR state when Explorer fetches PR status.
+  // Don't re-persist MERGED/CLOSED state if the branch has moved on (new work after merge).
+  // The git polling hook clears stale PR state when it detects new commits, and we avoid
+  // re-setting it here so the branch can transition to a fresh PR lifecycle.
   useEffect(() => {
     if (!onUpdatePrState) return
     if (isPrLoading) return
     if (prStatus) {
+      const isTerminalState = prStatus.state === 'MERGED' || prStatus.state === 'CLOSED'
+      const branchMovedOn = branchStatus === 'in-progress' || branchStatus === 'pushed'
+      if (isTerminalState && branchMovedOn) {
+        // Branch has new work — don't re-persist the stale merged/closed state
+        return
+      }
       onUpdatePrState(prStatus.state, prStatus.number, prStatus.url)
     } else {
       onUpdatePrState(null)
     }
-  }, [prStatus, isPrLoading])
+  }, [prStatus, isPrLoading, branchStatus])
 
   // Watch for agent-created pr-result.json to detect PR creation immediately
   usePrResultWatcher({ directory, onUpdatePrState, setPrStatus })
@@ -157,7 +167,7 @@ export function useSourceControlData({
   const [askedAgentToResolve, setAskedAgentToResolve] = useState(false)
 
   // PR effects
-  const pr = usePrEffects({ directory, syncStatus, onUpdatePrState })
+  const pr = usePrEffects({ directory, syncStatus, branchStatus, onUpdatePrState })
 
   // Repo lookup for allowApproveAndMerge
   const repos = useRepoStore((s) => s.repos)
