@@ -202,6 +202,45 @@ describe('NewBranchView', () => {
     expect(screen.getByText('Claude')).toBeTruthy()
   })
 
+  describe('instant setup via onStartBranch', () => {
+    it('calls onStartBranch instead of doing git work when prop is provided', () => {
+      const onStartBranch = vi.fn()
+      render(
+        <NewBranchView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} onStartBranch={onStartBranch} />
+      )
+
+      const input = screen.getByPlaceholderText('feature/my-feature')
+      fireEvent.change(input, { target: { value: 'feature/auth' } })
+      fireEvent.click(screen.getByText('Create Branch'))
+
+      expect(onStartBranch).toHaveBeenCalledWith({
+        repo: mockRepo,
+        branchName: 'feature/auth',
+        agentId: 'agent-1',
+        issue: undefined,
+      })
+      // Should NOT call git operations
+      expect(window.git.pull).not.toHaveBeenCalled()
+      expect(window.git.worktreeAdd).not.toHaveBeenCalled()
+    })
+
+    it('passes issue info to onStartBranch when issue is provided', () => {
+      const onStartBranch = vi.fn()
+      const issue = { number: 42, title: 'Fix login bug', labels: [], url: 'https://github.com/user/my-project/issues/42' }
+      render(
+        <NewBranchView repo={mockRepo} issue={issue} onBack={vi.fn()} onComplete={vi.fn()} onStartBranch={onStartBranch} />
+      )
+
+      const input = screen.getByPlaceholderText('feature/my-feature')
+      fireEvent.change(input, { target: { value: 'fix/login-bug' } })
+      fireEvent.click(screen.getByText('Create Branch'))
+
+      expect(onStartBranch).toHaveBeenCalledWith(expect.objectContaining({
+        issue: { number: 42, title: 'Fix login bug', url: 'https://github.com/user/my-project/issues/42' },
+      }))
+    })
+  })
+
   describe('branch already exists on remote', () => {
     beforeEach(() => {
       vi.mocked(window.git.pull).mockResolvedValue({ success: true })

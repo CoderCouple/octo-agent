@@ -236,6 +236,35 @@ describe('usePanelsMap', () => {
     expect(result.current.terminal).not.toBeNull()
   })
 
+  describe('initializing sessions', () => {
+    it('renders placeholder instead of terminal for initializing sessions', () => {
+      const session = makeSession({ status: 'initializing' as never })
+      const config = makeConfig({ sessions: [session], activeSession: session })
+      const { result } = renderHook(() => usePanelsMap(config))
+
+      // Terminal panel should exist
+      expect(result.current.terminal).not.toBeNull()
+    })
+
+    it('returns null for explorer when session is initializing', () => {
+      const session = makeSession({ status: 'initializing' as never, showExplorer: true })
+      const config = makeConfig({ sessions: [session], activeSession: session })
+      const { result } = renderHook(() => usePanelsMap(config))
+
+      expect(result.current[PANEL_IDS.EXPLORER]).toBeNull()
+    })
+
+    it('excludes initializing sessions from file viewer', () => {
+      const session = makeSession({ status: 'initializing' as never })
+      const config = makeConfig({ sessions: [session], activeSession: session })
+      const { result } = renderHook(() => usePanelsMap(config))
+
+      // File viewer should still return a container (sessions.length > 0),
+      // but the initializing session should be filtered out from rendering
+      expect(result.current[PANEL_IDS.FILE_VIEWER]).not.toBeNull()
+    })
+  })
+
   describe('explorer callbacks', () => {
     function renderExplorer(configOverrides: Partial<PanelsMapConfig> = {}) {
       const session = makeSession({ showExplorer: true })

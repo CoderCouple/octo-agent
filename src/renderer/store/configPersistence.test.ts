@@ -137,6 +137,44 @@ describe('configPersistence', () => {
     })
   })
 
+  describe('initializing session filtering', () => {
+    it('excludes initializing sessions from save', async () => {
+      useAgentStore.setState({ agents: [{ id: 'a1', name: 'Claude', command: 'claude' }] })
+      useSessionStore.setState({
+        sessions: [
+          {
+            id: 's1', name: 'Ready', directory: '/d1', branch: 'main', status: 'idle',
+            agentId: null, panelVisibility: {}, showExplorer: false, showFileViewer: false,
+            showDiff: false, selectedFilePath: null, planFilePath: null,
+            fileViewerPosition: 'top', layoutSizes: { explorerWidth: 256, fileViewerSize: 300, userTerminalHeight: 192, diffPanelWidth: 320, tutorialPanelWidth: 320 },
+            explorerFilter: 'files', lastMessage: null, lastMessageTime: null,
+            isUnread: false, workingStartTime: null, recentFiles: [], searchHistory: [],
+            terminalTabs: { tabs: [], activeTabId: null }, branchStatus: 'in-progress',
+            isArchived: false, isRestored: false,
+          },
+          {
+            id: 's2', name: 'Setting up', directory: '/d2', branch: 'feat', status: 'initializing',
+            agentId: null, panelVisibility: {}, showExplorer: false, showFileViewer: false,
+            showDiff: false, selectedFilePath: null, planFilePath: null,
+            fileViewerPosition: 'top', layoutSizes: { explorerWidth: 256, fileViewerSize: 300, userTerminalHeight: 192, diffPanelWidth: 320, tutorialPanelWidth: 320 },
+            explorerFilter: 'files', lastMessage: null, lastMessageTime: null,
+            isUnread: false, workingStartTime: null, recentFiles: [], searchHistory: [],
+            terminalTabs: { tabs: [], activeTabId: null }, branchStatus: 'in-progress',
+            isArchived: false, isRestored: false,
+          },
+        ] as never,
+      })
+
+      scheduleSave()
+      await vi.advanceTimersByTimeAsync(600)
+
+      expect(window.config.save).toHaveBeenCalledTimes(1)
+      const savedConfig = vi.mocked(window.config.save).mock.calls[0][0] as { sessions: { id: string }[] }
+      expect(savedConfig.sessions).toHaveLength(1)
+      expect(savedConfig.sessions[0].id).toBe('s1')
+    })
+  })
+
   describe('save guards', () => {
     beforeEach(() => { allowConsoleWarn() })
 

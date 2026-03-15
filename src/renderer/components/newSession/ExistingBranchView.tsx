@@ -98,10 +98,12 @@ export function ExistingBranchView({
   repo,
   onBack,
   onComplete,
+  onStartExistingBranch,
 }: {
   repo: ManagedRepo
   onBack: () => void
   onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; name?: string }) => void
+  onStartExistingBranch?: (params: { repo: ManagedRepo; branchName: string; agentId: string | null }) => void
 }) {
   const { agents } = useAgentStore()
   const [branches, setBranches] = useState<BranchInfo[]>([])
@@ -132,13 +134,15 @@ export function ExistingBranchView({
 
   const handleCreateWorktree = async () => {
     if (!selectedBranch) return
+    if (onStartExistingBranch) {
+      onStartExistingBranch({ repo, branchName: selectedBranch.name, agentId: selectedAgentId })
+      return
+    }
     setCreating(true)
     setError(null)
     try {
       const result = await createWorktreeForBranch(repo, selectedBranch.name)
-      if (result.error) {
-        throw new Error(result.error)
-      }
+      if (result.error) throw new Error(result.error)
       onComplete(result.worktreePath, selectedAgentId, { repoId: repo.id, name: repo.name })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

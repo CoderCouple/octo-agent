@@ -8,14 +8,18 @@ import type { AgentConfig } from '../store/agents'
 import type { PrState } from '../utils/branchStatus'
 import type { DuplicateSessionResult } from '../store/sessionCoreActions'
 import { restoreSessionFocus } from '../utils/focusHelpers'
+import { useBackgroundInit } from './useBackgroundInit'
 
 
 interface AppCallbacksDeps {
   sessions: Session[]
   activeSessionId: string | null
   agents: AgentConfig[]
-  repos: { id: string; rootDir: string; defaultBranch: string; isolated?: boolean; skipApproval?: boolean }[]
+  repos: { id: string; rootDir: string; defaultBranch: string; isolated?: boolean; skipApproval?: boolean; name?: string; defaultAgentId?: string }[]
   addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string }) => Promise<DuplicateSessionResult | undefined>
+  addInitializingSession: (params: { directory: string; branch: string; agentId: string | null; extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string } }) => string
+  finalizeSession: (id: string) => void
+  failSession: (id: string, error: string) => void
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
   togglePanel: (sessionId: string, panelId: string) => void
@@ -33,6 +37,9 @@ export function useAppCallbacks({
   agents,
   repos,
   addSession,
+  addInitializingSession,
+  finalizeSession,
+  failSession,
   removeSession,
   setActiveSession,
   togglePanel,
@@ -110,6 +117,13 @@ export function useAppCallbacks({
     return { isolated: true, repoRootDir: repo.rootDir }
   }, [repos])
 
+  const { handleStartBranchSession, handleStartExistingBranchSession, abortInit } = useBackgroundInit({
+    addInitializingSession,
+    finalizeSession,
+    failSession,
+    setShowNewSessionDialog,
+  })
+
   const handleLayoutSizeChange = useCallback((key: keyof LayoutSizes, value: number) => {
     if (activeSessionId) {
       updateLayoutSize(activeSessionId, key, value)
@@ -128,6 +142,9 @@ export function useAppCallbacks({
   }, [setActiveSession])
 
   const handleDeleteSession = useCallback((id: string, deleteWorktree: boolean) => {
+    // Abort any in-flight background init for this session
+    abortInit(id)
+
     // Remove session immediately for responsive UI
     const session = sessions.find(s => s.id === id)
     removeSession(id)
@@ -157,7 +174,7 @@ export function useAppCallbacks({
         })()
       }
     }
-  }, [sessions, repos, removeSession, onError])
+  }, [sessions, repos, removeSession, onError, abortInit])
 
   const handleTogglePanel = useCallback((panelId: string) => {
     if (activeSessionId) {
@@ -176,6 +193,8 @@ export function useAppCallbacks({
     handleNewSessionComplete,
     handleCancelNewSession,
     handleDeleteSession,
+    handleStartBranchSession,
+    handleStartExistingBranchSession,
     refreshPrStatus,
     getAgentCommand,
     getAgentEnv,

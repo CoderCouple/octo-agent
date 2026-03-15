@@ -169,6 +169,121 @@ describe('sessionCoreActions', () => {
 
   })
 
+  describe('addInitializingSession', () => {
+    it('creates a session with initializing status', () => {
+      const id = useSessionStore.getState().addInitializingSession({
+        directory: '/repos/my-project/feature/test',
+        branch: 'feature/test',
+        agentId: 'claude',
+        extra: { repoId: 'repo-1', name: 'my-project' },
+      })
+
+      const state = useSessionStore.getState()
+      expect(state.sessions).toHaveLength(1)
+      expect(state.sessions[0].id).toBe(id)
+      expect(state.sessions[0].status).toBe('initializing')
+      expect(state.sessions[0].directory).toBe('/repos/my-project/feature/test')
+      expect(state.sessions[0].branch).toBe('feature/test')
+      expect(state.sessions[0].agentId).toBe('claude')
+      expect(state.sessions[0].name).toBe('my-project')
+      expect(state.activeSessionId).toBe(id)
+    })
+
+    it('does not trigger a save', () => {
+      useSessionStore.getState().addInitializingSession({
+        directory: '/repos/test',
+        branch: 'test',
+        agentId: null,
+      })
+
+      vi.advanceTimersByTime(1000)
+      expect(window.config.save).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('finalizeSession', () => {
+    it('transitions initializing session to idle with isUnread', () => {
+      const id = useSessionStore.getState().addInitializingSession({
+        directory: '/repos/test',
+        branch: 'test',
+        agentId: null,
+      })
+
+      useSessionStore.getState().finalizeSession(id)
+
+      const session = useSessionStore.getState().sessions.find(s => s.id === id)
+      expect(session?.status).toBe('idle')
+      expect(session?.isUnread).toBe(true)
+    })
+
+    it('triggers a save after finalization', async () => {
+      const id = useSessionStore.getState().addInitializingSession({
+        directory: '/repos/test',
+        branch: 'test',
+        agentId: null,
+      })
+
+      useSessionStore.getState().finalizeSession(id)
+      await vi.advanceTimersByTimeAsync(600)
+
+      expect(window.config.save).toHaveBeenCalledTimes(1)
+    })
+
+    it('does nothing if session is not initializing', async () => {
+      vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
+      await useSessionStore.getState().addSession('/test/repo', null)
+      const id = useSessionStore.getState().sessions[0].id
+
+      useSessionStore.getState().finalizeSession(id)
+
+      // Status should remain idle (unchanged)
+      expect(useSessionStore.getState().sessions[0].status).toBe('idle')
+    })
+  })
+
+  describe('failSession', () => {
+    it('sets status to error and records initError', () => {
+      const id = useSessionStore.getState().addInitializingSession({
+        directory: '/repos/test',
+        branch: 'test',
+        agentId: null,
+      })
+
+      useSessionStore.getState().failSession(id, 'Push failed')
+
+      const session = useSessionStore.getState().sessions.find(s => s.id === id)
+      expect(session?.status).toBe('error')
+      expect(session?.initError).toBe('Push failed')
+    })
+
+    it('does not trigger a save', () => {
+      const id = useSessionStore.getState().addInitializingSession({
+        directory: '/repos/test',
+        branch: 'test',
+        agentId: null,
+      })
+
+      useSessionStore.getState().failSession(id, 'error')
+      vi.advanceTimersByTime(1000)
+
+      expect(window.config.save).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('updateAgentMonitor guards initializing sessions', () => {
+    it('does not update status for initializing sessions', () => {
+      const id = useSessionStore.getState().addInitializingSession({
+        directory: '/repos/test',
+        branch: 'test',
+        agentId: null,
+      })
+
+      useSessionStore.getState().updateAgentMonitor(id, { status: 'working' })
+
+      expect(useSessionStore.getState().sessions[0].status).toBe('initializing')
+    })
+  })
+
   describe('removeSession', () => {
     it('removes a session', async () => {
       vi.mocked(window.git.isGitRepo).mockResolvedValue(true)

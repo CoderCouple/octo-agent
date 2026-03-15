@@ -17,6 +17,8 @@ export type View =
 export interface NewSessionDialogProps {
   onComplete: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string; lastKnownPrState?: 'OPEN' | 'MERGED' | 'CLOSED' | null }) => void
   onCancel: () => void
+  onStartBranch?: (params: { repo: ManagedRepo; branchName: string; agentId: string | null; issue?: { number: number; title: string; url: string } }) => void
+  onStartExistingBranch?: (params: { repo: ManagedRepo; branchName: string; agentId: string | null }) => void
 }
 
 export type BranchInfo = {

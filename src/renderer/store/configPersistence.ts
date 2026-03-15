@@ -90,7 +90,7 @@ async function doSave(): Promise<void> {
   await window.config.save({
     profileId: currentProfileId,
     agents,
-    sessions: sessions.map((s) => ({
+    sessions: sessions.filter(s => s.status !== 'initializing').map((s) => ({
       id: s.id,
       name: s.name,
       directory: s.directory,
