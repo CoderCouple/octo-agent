@@ -119,6 +119,6 @@ export const WithMultipleViewers: Story = {
 export const WithEditorActions: Story = {
   args: {
     ...LatestMode.args,
-    editorActions: { showOutline: noop },
+    editorActions: { showOutline: noop, showFind: noop },
   },
 }

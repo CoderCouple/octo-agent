@@ -552,7 +552,7 @@ describe('useFileViewer', () => {
       )
 
       act(() => {
-        result.current.setEditorActions({ showOutline: vi.fn() })
+        result.current.setEditorActions({ showOutline: vi.fn(), showFind: vi.fn() })
       })
       expect(result.current.editorActions).not.toBeNull()
 

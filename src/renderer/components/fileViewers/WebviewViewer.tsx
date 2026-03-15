@@ -1,16 +1,21 @@
 /**
  * File viewer plugin that renders URLs in an Electron webview.
  * Handles paths starting with "https://" and displays them in an embedded browser
- * with navigation controls.
+ * with navigation controls and in-page find (Cmd+F).
  */
 import { useRef, useCallback, useState, useEffect } from 'react'
 import type { FileViewerPlugin, FileViewerComponentProps } from './types'
+import FindBar from './FindBar'
 
-function WebviewViewerComponent({ filePath }: FileViewerComponentProps) {
+function WebviewViewerComponent({ filePath, onEditorReady }: FileViewerComponentProps) {
   const webviewRef = useRef<Electron.WebviewTag | null>(null)
+  const findInputRef = useRef<HTMLInputElement | null>(null)
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const [currentUrl, setCurrentUrl] = useState(filePath)
+  const [showFindBar, setShowFindBar] = useState(false)
+  const [findQuery, setFindQuery] = useState('')
+  const [findResult, setFindResult] = useState<{ activeMatch: number; matches: number } | null>(null)
 
   useEffect(() => {
     const webview = webviewRef.current
@@ -22,9 +27,6 @@ function WebviewViewerComponent({ filePath }: FileViewerComponentProps) {
       setCurrentUrl(webview.getURL())
     }
 
-    // When a page finishes loading with a hash fragment, retry scrolling to the
-    // target element. GitHub lazily loads PR diffs so the anchor element may not
-    // exist when the page first renders.
     const handleDomReady = () => {
       const hash = new URL(webview.getURL()).hash
       if (!hash) return
@@ -43,41 +45,89 @@ function WebviewViewerComponent({ filePath }: FileViewerComponentProps) {
       document.dispatchEvent(new CustomEvent('broomy:check-pr-status'))
     }
 
+    const handleFoundInPage = (e: Electron.FoundInPageEvent) => {
+      setFindResult({ activeMatch: e.result.activeMatchOrdinal, matches: e.result.matches })
+    }
+
     webview.addEventListener('did-navigate', handleNavigation)
     webview.addEventListener('did-navigate-in-page', handleNavigation)
     webview.addEventListener('dom-ready', handleDomReady)
     webview.addEventListener('blur', handleBlur)
+    webview.addEventListener('found-in-page', handleFoundInPage)
 
     return () => {
       webview.removeEventListener('did-navigate', handleNavigation)
       webview.removeEventListener('did-navigate-in-page', handleNavigation)
       webview.removeEventListener('dom-ready', handleDomReady)
       webview.removeEventListener('blur', handleBlur)
+      webview.removeEventListener('found-in-page', handleFoundInPage)
     }
   }, [])
 
-  const handleBack = useCallback(() => {
-    webviewRef.current?.goBack()
+  // Expose find action via EditorActions
+  const openFindBar = useCallback(() => {
+    setShowFindBar(true)
+    requestAnimationFrame(() => findInputRef.current?.focus())
   }, [])
 
-  const handleForward = useCallback(() => {
-    webviewRef.current?.goForward()
+  useEffect(() => {
+    onEditorReady?.({
+      showOutline: () => { /* no outline for webview */ },
+      showFind: openFindBar,
+    })
+    return () => { onEditorReady?.(null) }
+  }, [onEditorReady, openFindBar])
+
+  // Handle Cmd+F within the webview's parent container
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        e.stopPropagation()
+        openFindBar()
+      }
+    }
+    const container = webviewRef.current?.parentElement?.parentElement
+    container?.addEventListener('keydown', handleKeyDown, true)
+    return () => container?.removeEventListener('keydown', handleKeyDown, true)
+  }, [openFindBar])
+
+  // Run findInPage when query changes
+  const findActiveRef = useRef(false)
+  useEffect(() => {
+    const webview = webviewRef.current
+    if (!webview) return
+    if (findQuery) {
+      findActiveRef.current = true
+      webview.findInPage(findQuery)
+    } else if (findActiveRef.current) {
+      findActiveRef.current = false
+      webview.stopFindInPage('clearSelection')
+      setFindResult(null)
+    }
+  }, [findQuery])
+
+  const closeFindBar = useCallback(() => {
+    setShowFindBar(false)
+    setFindQuery('')
+    setFindResult(null)
+    webviewRef.current?.stopFindInPage('clearSelection')
   }, [])
 
-  const handleReload = useCallback(() => {
-    webviewRef.current?.reload()
-  }, [])
+  const findNext = useCallback(() => {
+    if (findQuery) webviewRef.current?.findInPage(findQuery, { findNext: true })
+  }, [findQuery])
 
-  const handleOpenExternal = useCallback(() => {
-    void window.shell.openExternal(currentUrl)
-  }, [currentUrl])
+  const findPrevious = useCallback(() => {
+    if (findQuery) webviewRef.current?.findInPage(findQuery, { forward: false, findNext: true })
+  }, [findQuery])
 
   return (
     <div className="h-full flex flex-col">
       {/* Navigation bar */}
       <div className="flex items-center gap-1 px-2 py-1 bg-bg-tertiary border-b border-border flex-shrink-0">
         <button
-          onClick={handleBack}
+          onClick={() => webviewRef.current?.goBack()}
           disabled={!canGoBack}
           className="p-1 rounded text-text-secondary hover:text-text-primary disabled:opacity-30 transition-colors"
           title="Go back"
@@ -87,7 +137,7 @@ function WebviewViewerComponent({ filePath }: FileViewerComponentProps) {
           </svg>
         </button>
         <button
-          onClick={handleForward}
+          onClick={() => webviewRef.current?.goForward()}
           disabled={!canGoForward}
           className="p-1 rounded text-text-secondary hover:text-text-primary disabled:opacity-30 transition-colors"
           title="Go forward"
@@ -97,7 +147,7 @@ function WebviewViewerComponent({ filePath }: FileViewerComponentProps) {
           </svg>
         </button>
         <button
-          onClick={handleReload}
+          onClick={() => webviewRef.current?.reload()}
           className="p-1 rounded text-text-secondary hover:text-text-primary transition-colors"
           title="Reload"
         >
@@ -109,7 +159,7 @@ function WebviewViewerComponent({ filePath }: FileViewerComponentProps) {
           {currentUrl}
         </div>
         <button
-          onClick={handleOpenExternal}
+          onClick={() => void window.shell.openExternal(currentUrl)}
           className="p-1 rounded text-text-secondary hover:text-text-primary transition-colors"
           title="Open in browser"
         >
@@ -118,6 +168,19 @@ function WebviewViewerComponent({ filePath }: FileViewerComponentProps) {
           </svg>
         </button>
       </div>
+
+      {/* Find bar */}
+      {showFindBar && (
+        <FindBar
+          inputRef={findInputRef}
+          query={findQuery}
+          onQueryChange={setFindQuery}
+          onNext={findNext}
+          onPrevious={findPrevious}
+          onClose={closeFindBar}
+          matchInfo={findResult ? { active: findResult.activeMatch, total: findResult.matches } : null}
+        />
+      )}
 
       {/* Webview */}
       <div className="flex-1 min-h-0">

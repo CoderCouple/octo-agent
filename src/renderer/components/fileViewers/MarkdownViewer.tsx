@@ -6,23 +6,157 @@
  * tables, strikethrough, and other GFM extensions. Registered at higher priority than
  * Monaco for .md/.markdown/.mdx files so preview is the default view.
  */
+import { useRef, useState, useCallback, useEffect } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { FileViewerPlugin, FileViewerComponentProps } from './types'
 import { matchesExtensions } from './types'
 import { createMarkdownComponents } from '../../utils/markdownComponents'
+import FindBar from './FindBar'
 
 const MARKDOWN_EXTENSIONS = ['md', 'markdown', 'mdx']
 const markdownComponents = createMarkdownComponents('default')
 
-function MarkdownViewerComponent({ content }: FileViewerComponentProps) {
+/** Walk all text nodes under `root` and return ranges matching `query` (case-insensitive). */
+function findTextRanges(root: HTMLElement, query: string): Range[] {
+  const ranges: Range[] = []
+  const lower = query.toLowerCase()
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node: Text | null
+  while ((node = walker.nextNode() as Text | null)) {
+    const text = (node.textContent || '').toLowerCase()
+    let start = 0
+    let idx: number
+    while ((idx = text.indexOf(lower, start)) !== -1) {
+      const range = document.createRange()
+      range.setStart(node, idx)
+      range.setEnd(node, idx + query.length)
+      ranges.push(range)
+      start = idx + 1
+    }
+  }
+  return ranges
+}
+
+function MarkdownViewerComponent({ content, onEditorReady }: FileViewerComponentProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const findInputRef = useRef<HTMLInputElement | null>(null)
+  const [showFindBar, setShowFindBar] = useState(false)
+  const [findQuery, setFindQuery] = useState('')
+  const [matchCount, setMatchCount] = useState(0)
+  const [activeMatch, setActiveMatch] = useState(0)
+  const highlightRef = useRef<Highlight | null>(null)
+  const rangesRef = useRef<Range[]>([])
+
+  const openFindBar = useCallback(() => {
+    setShowFindBar(true)
+    requestAnimationFrame(() => findInputRef.current?.focus())
+  }, [])
+
+  // Expose find action via EditorActions
+  useEffect(() => {
+    onEditorReady?.({
+      showOutline: () => { /* no outline for markdown */ },
+      showFind: openFindBar,
+    })
+    return () => { onEditorReady?.(null) }
+  }, [onEditorReady, openFindBar])
+
+  // Handle Cmd+F within the container
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault()
+        e.stopPropagation()
+        openFindBar()
+      }
+    }
+    el.addEventListener('keydown', handleKeyDown, true)
+    return () => el.removeEventListener('keydown', handleKeyDown, true)
+  }, [openFindBar])
+
+  // Highlight matches using CSS Custom Highlight API
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !findQuery) {
+      if (highlightRef.current) {
+        CSS.highlights.delete('broomy-find')
+        CSS.highlights.delete('broomy-find-active')
+      }
+      rangesRef.current = []
+      setMatchCount(0)
+      setActiveMatch(0)
+      return
+    }
+
+    const ranges = findTextRanges(container, findQuery)
+    rangesRef.current = ranges
+    setMatchCount(ranges.length)
+    setActiveMatch(ranges.length > 0 ? 1 : 0)
+
+    const highlight = new Highlight(...ranges)
+    CSS.highlights.set('broomy-find', highlight)
+    highlightRef.current = highlight
+
+    if (ranges.length > 0) {
+      CSS.highlights.set('broomy-find-active', new Highlight(ranges[0]))
+      ranges[0].startContainer.parentElement?.scrollIntoView({ block: 'center' })
+    }
+
+    return () => {
+      CSS.highlights.delete('broomy-find')
+      CSS.highlights.delete('broomy-find-active')
+    }
+  }, [findQuery, content])
+
+  const navigateMatch = useCallback((direction: 1 | -1) => {
+    const ranges = rangesRef.current
+    if (ranges.length === 0) return
+    const newIndex = ((activeMatch - 1 + direction + ranges.length) % ranges.length)
+    setActiveMatch(newIndex + 1)
+    CSS.highlights.set('broomy-find-active', new Highlight(ranges[newIndex]))
+    ranges[newIndex].startContainer.parentElement?.scrollIntoView({ block: 'center' })
+  }, [activeMatch])
+
+  const closeFindBar = useCallback(() => {
+    setShowFindBar(false)
+    setFindQuery('')
+  }, [])
+
   return (
-    <div className="h-full overflow-auto p-4 bg-bg-primary">
-      <div className="max-w-3xl mx-auto prose prose-invert prose-sm">
-        <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {content}
-        </Markdown>
+    <div ref={containerRef} className="h-full flex flex-col" tabIndex={-1}>
+      {showFindBar && (
+        <FindBar
+          inputRef={findInputRef}
+          query={findQuery}
+          onQueryChange={setFindQuery}
+          onNext={() => navigateMatch(1)}
+          onPrevious={() => navigateMatch(-1)}
+          onClose={closeFindBar}
+          matchInfo={findQuery ? { active: activeMatch, total: matchCount } : null}
+        />
+      )}
+
+      <div className="flex-1 overflow-auto p-4 bg-bg-primary">
+        <div className="max-w-3xl mx-auto prose prose-invert prose-sm">
+          <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {content}
+          </Markdown>
+        </div>
       </div>
+
+      <style>{`
+        ::highlight(broomy-find) {
+          background-color: rgba(234, 179, 8, 0.3);
+          color: inherit;
+        }
+        ::highlight(broomy-find-active) {
+          background-color: rgba(234, 179, 8, 0.7);
+          color: inherit;
+        }
+      `}</style>
     </div>
   )
 }

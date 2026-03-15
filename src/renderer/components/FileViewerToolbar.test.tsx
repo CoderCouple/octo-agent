@@ -69,7 +69,7 @@ describe('FileViewerToolbar', () => {
   })
 
   it('shows outline button when editorActions are available and not in diff mode', () => {
-    const editorActions = { showOutline: vi.fn() }
+    const editorActions = { showOutline: vi.fn(), showFind: vi.fn() }
     render(<FileViewerToolbar {...defaultProps} editorActions={editorActions} />)
     const outlineButton = screen.getByTitle('Outline (symbol list)')
     expect(outlineButton).toBeTruthy()
@@ -78,7 +78,7 @@ describe('FileViewerToolbar', () => {
   })
 
   it('does not show outline button in diff mode', () => {
-    const editorActions = { showOutline: vi.fn() }
+    const editorActions = { showOutline: vi.fn(), showFind: vi.fn() }
     render(<FileViewerToolbar {...defaultProps} editorActions={editorActions} viewMode="diff" />)
     expect(screen.queryByTitle('Outline (symbol list)')).toBeNull()
   })

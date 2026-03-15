@@ -23,6 +23,7 @@ export interface FileViewerPlugin {
 
 export interface EditorActions {
   showOutline: () => void
+  showFind: () => void
 }
 
 export interface FileViewerComponentProps {

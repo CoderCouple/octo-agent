@@ -164,6 +164,7 @@ export default function FileViewer({ filePath, position = 'top', onPositionChang
                 sideBySide={viewer.diffSideBySide}
                 scrollToLine={scrollToLine}
                 reviewContext={reviewContext}
+                onEditorReady={viewer.setEditorActions}
               />
             )
           ) : ViewerComponent ? (

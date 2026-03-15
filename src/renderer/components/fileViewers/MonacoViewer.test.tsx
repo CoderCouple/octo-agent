@@ -399,7 +399,7 @@ describe('MonacoViewerComponent onMount lifecycle', () => {
     expect(editor.onMouseDown).not.toHaveBeenCalled()
   })
 
-  it('calls onEditorReady with showOutline action', () => {
+  it('calls onEditorReady with showOutline and showFind actions', () => {
     const onEditorReady = vi.fn()
     render(
       <MonacoViewerComponent filePath="/test/file.ts" content="" onEditorReady={onEditorReady} />
@@ -412,7 +412,7 @@ describe('MonacoViewerComponent onMount lifecycle', () => {
     onMount(editor, monacoInst)
 
     expect(onEditorReady).toHaveBeenCalledWith(
-      expect.objectContaining({ showOutline: expect.any(Function) }),
+      expect.objectContaining({ showOutline: expect.any(Function), showFind: expect.any(Function) }),
     )
 
     // Test the showOutline action
@@ -420,6 +420,13 @@ describe('MonacoViewerComponent onMount lifecycle', () => {
     actions.showOutline()
     expect(editor.focus).toHaveBeenCalled()
     expect(editor.trigger).toHaveBeenCalledWith('keyboard', 'editor.action.quickOutline', {})
+
+    // Test the showFind action
+    editor.focus.mockClear()
+    editor.trigger.mockClear()
+    actions.showFind()
+    expect(editor.focus).toHaveBeenCalled()
+    expect(editor.trigger).toHaveBeenCalledWith('keyboard', 'actions.find', {})
   })
 
   it('scrolls to line on mount when scrollToLine is set', () => {

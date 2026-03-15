@@ -22,6 +22,7 @@ interface MonacoDiffViewerProps {
   sideBySide?: boolean
   scrollToLine?: number
   reviewContext?: { sessionDirectory: string; commentsFilePath: string }
+  onEditorReady?: (actions: import('./types').EditorActions | null) => void
 }
 
 // Map file extensions to Monaco language IDs
@@ -86,6 +87,7 @@ export default function MonacoDiffViewer({
   sideBySide = true,
   scrollToLine,
   reviewContext,
+  onEditorReady,
 }: MonacoDiffViewerProps) {
   const detectedLanguage = language || getLanguageFromPath(filePath)
   const diffEditorRef = useRef<monacoEditor.editor.IStandaloneDiffEditor | null>(null)
@@ -140,6 +142,18 @@ export default function MonacoDiffViewer({
         modifiedEditor.setPosition({ lineNumber: scrollToLine, column: 1 })
       })
     }
+
+    // Notify parent of available editor actions
+    onEditorReady?.({
+      showOutline: () => {
+        modifiedEditor.focus()
+        modifiedEditor.trigger('keyboard', 'editor.action.quickOutline', {})
+      },
+      showFind: () => {
+        modifiedEditor.focus()
+        modifiedEditor.trigger('keyboard', 'actions.find', {})
+      },
+    })
   }
 
   useEffect(() => {

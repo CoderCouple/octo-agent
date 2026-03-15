@@ -152,6 +152,36 @@ const getLanguageFromPath = (filePath: string): string => {
   return languageMap[ext] || 'plaintext'
 }
 
+/** Scroll to a line and highlight search text in the editor */
+function scrollAndHighlight(
+  editor: monaco.editor.IStandaloneCodeEditor,
+  line: number | undefined,
+  highlight: string | undefined,
+  decorationsRef: React.MutableRefObject<monaco.editor.IEditorDecorationsCollection | null>,
+) {
+  if (!line) return
+  editor.revealLineInCenter(line)
+  if (highlight) {
+    const model = editor.getModel()
+    if (model) {
+      const lineContent = model.getLineContent(line)
+      const matchIndex = lineContent.toLowerCase().indexOf(highlight.toLowerCase())
+      if (matchIndex !== -1) {
+        const startColumn = matchIndex + 1
+        const endColumn = startColumn + highlight.length
+        editor.setSelection(new monaco.Range(line, startColumn, line, endColumn))
+        if (decorationsRef.current) {
+          decorationsRef.current.clear()
+        }
+        decorationsRef.current = editor.createDecorationsCollection([{
+          range: new monaco.Range(line, startColumn, line, endColumn),
+          options: { className: 'searchHighlight', isWholeLine: false }
+        }])
+      }
+    }
+  }
+}
+
 function MonacoViewerComponent({ filePath, content, onSave, onDirtyChange, scrollToLine, searchHighlight, reviewContext, onEditorReady, onOpenFile }: FileViewerComponentProps) {
   const language = getLanguageFromPath(filePath)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
@@ -178,36 +208,8 @@ function MonacoViewerComponent({ filePath, content, onSave, onDirtyChange, scrol
     onDirtyChange?.(false, content)
   }, [content, filePath])
 
-  // Shared function to scroll and highlight
   const applyScrollAndHighlight = useCallback((editor: monaco.editor.IStandaloneCodeEditor) => {
-    const line = scrollToLineRef.current
-    const highlight = searchHighlightRef.current
-    if (!line) return
-
-    editor.revealLineInCenter(line)
-
-    if (highlight) {
-      const model = editor.getModel()
-      if (model) {
-        const lineContent = model.getLineContent(line)
-        const matchIndex = lineContent.toLowerCase().indexOf(highlight.toLowerCase())
-        if (matchIndex !== -1) {
-          const startColumn = matchIndex + 1
-          const endColumn = startColumn + highlight.length
-          editor.setSelection(new monaco.Range(line, startColumn, line, endColumn))
-          if (decorationsRef.current) {
-            decorationsRef.current.clear()
-          }
-          decorationsRef.current = editor.createDecorationsCollection([{
-            range: new monaco.Range(line, startColumn, line, endColumn),
-            options: {
-              className: 'searchHighlight',
-              isWholeLine: false,
-            }
-          }])
-        }
-      }
-    }
+    scrollAndHighlight(editor, scrollToLineRef.current, searchHighlightRef.current, decorationsRef)
   }, [])
 
   // Scroll to line and highlight when props change (editor already mounted)
@@ -260,6 +262,10 @@ function MonacoViewerComponent({ filePath, content, onSave, onDirtyChange, scrol
       showOutline: () => {
         editor.focus()
         editor.trigger('keyboard', 'editor.action.quickOutline', {})
+      },
+      showFind: () => {
+        editor.focus()
+        editor.trigger('keyboard', 'actions.find', {})
       },
     })
   }
