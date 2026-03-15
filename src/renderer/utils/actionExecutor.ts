@@ -42,6 +42,13 @@ async function executeShellAction(
       ctx.onGitStatusRefresh?.()
       return { success: true }
     }
+    // Merge conflicts are a normal state, not an error — git status will
+    // show the conflicts and the "Resolve Conflicts" button will appear.
+    const output = `${result.stdout}\n${result.stderr}`
+    if (/CONFLICT|Merge conflict|fix conflicts/i.test(output)) {
+      ctx.onGitStatusRefresh?.()
+      return { success: true }
+    }
     return { success: false, error: result.stderr || `Command exited with code ${result.exitCode}` }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) }

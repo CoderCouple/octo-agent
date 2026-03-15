@@ -76,6 +76,25 @@ describe('executeAction - shell', () => {
     expect(result.error).toBe('No command specified')
   })
 
+  it('treats merge conflicts as success', async () => {
+    vi.mocked(window.shell.exec).mockResolvedValue({
+      success: false,
+      stdout: 'Auto-merging src/index.ts\nCONFLICT (content): Merge conflict in src/index.ts',
+      stderr: "Automatic merge failed; fix conflicts and then commit the result.",
+      exitCode: 1,
+    })
+    const onRefresh = vi.fn()
+
+    const action: ActionDefinition = {
+      id: 'sync-main', label: 'Get latest', type: 'shell',
+      command: 'git fetch origin main && git merge origin/main', showWhen: [],
+    }
+
+    const result = await executeAction(action, makeCtx({ onGitStatusRefresh: onRefresh }))
+    expect(result.success).toBe(true)
+    expect(onRefresh).toHaveBeenCalled()
+  })
+
   it('handles thrown errors', async () => {
     vi.mocked(window.shell.exec).mockRejectedValue(new Error('network error'))
 
