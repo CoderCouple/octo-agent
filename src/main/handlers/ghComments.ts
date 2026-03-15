@@ -25,13 +25,22 @@ async function fetchMyReviewStatus(repoDir: string, prNumber: number): Promise<'
     const login = userResult.stdout.trim()
     if (!slug || !login) return null
 
-    const { stdout } = await execFileAsync('gh', [
-      'api', `repos/${slug}/pulls/${prNumber}/requested_reviewers`, '--jq',
-      '[.users[].login, .teams[].slug] | join("\\n")',
-    ], { cwd: dir, encoding: 'utf-8', timeout: 10000 })
+    const [requestedResult, reviewsResult] = await Promise.all([
+      execFileAsync('gh', [
+        'api', `repos/${slug}/pulls/${prNumber}/requested_reviewers`, '--jq',
+        '[.users[].login] | join("\\n")',
+      ], { cwd: dir, encoding: 'utf-8', timeout: 10000 }),
+      execFileAsync('gh', [
+        'api', `repos/${slug}/pulls/${prNumber}/reviews`, '--jq',
+        `[.[] | select(.user.login == "${login}" and .state != "PENDING") | .state] | join("\\n")`,
+      ], { cwd: dir, encoding: 'utf-8', timeout: 10000 }),
+    ])
 
-    const reviewers = stdout.trim().split('\n').filter(Boolean)
-    return reviewers.includes(login) ? 'pending' : 'reviewed'
+    const requestedReviewers = requestedResult.stdout.trim().split('\n').filter(Boolean)
+    if (requestedReviewers.includes(login)) return 'pending'
+
+    const myReviews = reviewsResult.stdout.trim().split('\n').filter(Boolean)
+    return myReviews.length > 0 ? 'reviewed' : 'pending'
   } catch {
     return null
   }

@@ -326,22 +326,39 @@ describe('ghComments handlers', () => {
       expect(result).toBe('pending')
     })
 
-    it('returns reviewed when user is not in requested reviewers', async () => {
+    it('returns reviewed when user has submitted a review', async () => {
       vi.mocked(execFile)
         .mockReturnValueOnce({ stdout: 'user/repo\n', stderr: '' } as never)
         .mockReturnValueOnce({ stdout: 'octocat\n', stderr: '' } as never)
+        // requested_reviewers (not listed) and reviews (has APPROVED) run in parallel
         .mockReturnValueOnce({ stdout: '\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: 'APPROVED\n', stderr: '' } as never)
 
       const handlers = setupHandlers()
       const result = await handlers['gh:myReviewStatus'](null, '/repo', 42)
       expect(result).toBe('reviewed')
     })
 
+    it('returns pending when user has not submitted a review and is not requested', async () => {
+      vi.mocked(execFile)
+        .mockReturnValueOnce({ stdout: 'user/repo\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: 'octocat\n', stderr: '' } as never)
+        // requested_reviewers (not listed) and reviews (empty) run in parallel
+        .mockReturnValueOnce({ stdout: '\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: '\n', stderr: '' } as never)
+
+      const handlers = setupHandlers()
+      const result = await handlers['gh:myReviewStatus'](null, '/repo', 42)
+      expect(result).toBe('pending')
+    })
+
     it('returns pending when user is in requested reviewers', async () => {
       vi.mocked(execFile)
         .mockReturnValueOnce({ stdout: 'user/repo\n', stderr: '' } as never)
         .mockReturnValueOnce({ stdout: 'octocat\n', stderr: '' } as never)
+        // requested_reviewers (listed) and reviews run in parallel
         .mockReturnValueOnce({ stdout: 'octocat\n', stderr: '' } as never)
+        .mockReturnValueOnce({ stdout: '\n', stderr: '' } as never)
 
       const handlers = setupHandlers()
       const result = await handlers['gh:myReviewStatus'](null, '/repo', 42)
