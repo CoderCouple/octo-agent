@@ -113,7 +113,7 @@ export async function resetApp(opts?: ResetOptions): Promise<{ electronApp: Elec
   }
   await electronApp.evaluate((_electron, env) => {
     process.env.E2E_SCENARIO = env.sc
-    const setOrDelete = (key: string, val: string) => { if (val) process.env[key] = val; else delete process.env[key] }
+    const setOrDelete = (key: string, val: string) => { process.env[key] = val || '' }
     setOrDelete('E2E_MOCK_MERGE', env.mm)
     setOrDelete('E2E_MOCK_PR_STATE', env.prState)
     setOrDelete('E2E_MOCK_IS_MERGED', env.isMerged)

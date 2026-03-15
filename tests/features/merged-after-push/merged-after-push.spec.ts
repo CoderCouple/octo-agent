@@ -52,8 +52,7 @@ async function openSourceControl(p: Page): Promise<void> {
 async function setMockEnv(app: ElectronApplication, env: Record<string, string>): Promise<void> {
   await app.evaluate((_electron, envVars) => {
     for (const [key, val] of Object.entries(envVars)) {
-      if (val) process.env[key] = val
-      else delete process.env[key]
+      process.env[key] = val
     }
   }, env)
 }

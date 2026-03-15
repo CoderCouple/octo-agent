@@ -64,7 +64,7 @@ async function handleStatus(ctx: HandlerContext, repoPath: string) {
       base.files = []
       base.ahead = 0
       base.behind = 0
-      base.tracking = branch !== 'main' ? 'origin/' + branch : null
+      base.tracking = branch !== 'main' ? `origin/${branch}` : null
     }
     if (process.env.E2E_MOCK_GIT_AHEAD) {
       base.ahead = parseInt(process.env.E2E_MOCK_GIT_AHEAD, 10)
