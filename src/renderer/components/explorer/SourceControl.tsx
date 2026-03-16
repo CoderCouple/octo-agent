@@ -111,7 +111,7 @@ export function SourceControl({
       noDevcontainer,
       isReview,
     }),
-    [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.behindMainCount, issueNumber, noDevcontainer, isReview]
+    [gitStatus, syncStatus, branchStatus, data.prStatus, data.hasWriteAccess, data.currentRepo, data.checksStatus, data.behindMainCount, issueNumber, noDevcontainer, isReview]
   )
 
   // Hold the last settled snapshot until all sources are ready again
