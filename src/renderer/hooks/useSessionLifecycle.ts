@@ -123,9 +123,6 @@ export function useSessionLifecycle({
     return () => { cancelled = true }
   }, [activeSessionId])
 
-  // Branch changes are detected via .git/HEAD file watchers (useGitBranchWatcher)
-  // refreshAllBranches is called explicitly after push operations
-
   // Keyboard shortcut to copy terminal content + summary (Cmd+Shift+C)
   useEffect(() => {
     const handleCopyTerminal = (e: KeyboardEvent) => {

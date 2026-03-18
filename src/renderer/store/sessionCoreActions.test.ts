@@ -322,37 +322,4 @@ describe('sessionCoreActions', () => {
     })
   })
 
-  describe('updateSessionBranch', () => {
-    it('updates a session branch', async () => {
-      vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
-      await useSessionStore.getState().addSession('/test/repo', null)
-      const id = useSessionStore.getState().sessions[0].id
-
-      useSessionStore.getState().updateSessionBranch(id, 'feature/new')
-
-      expect(useSessionStore.getState().sessions[0].branch).toBe('feature/new')
-    })
-  })
-
-  describe('refreshAllBranches', () => {
-    it('refreshes branches for all sessions', async () => {
-      vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
-      await useSessionStore.getState().addSession('/test/repo', null)
-
-      vi.mocked(window.git.getBranch).mockResolvedValue('updated-branch')
-      await useSessionStore.getState().refreshAllBranches()
-
-      expect(useSessionStore.getState().sessions[0].branch).toBe('updated-branch')
-    })
-
-    it('skips update when branch unchanged', async () => {
-      vi.mocked(window.git.isGitRepo).mockResolvedValue(true)
-      vi.mocked(window.git.getBranch).mockResolvedValue('main')
-      await useSessionStore.getState().addSession('/test/repo', null)
-
-      await useSessionStore.getState().refreshAllBranches()
-      // Branch should remain 'main' — no redundant update
-      expect(useSessionStore.getState().sessions[0].branch).toBe('main')
-    })
-  })
 })
