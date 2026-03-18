@@ -72,6 +72,58 @@ describe('resolveNavigation', () => {
   })
 })
 
+describe('go-to-definition navigation', () => {
+  it('navigates when opener provides an absolute path to a different file', () => {
+    // Simulates the path that registerEditorOpener provides from Monaco's TS service
+    const result = resolveNavigation(
+      { filePath: '/Users/rob/project/src/utils.ts', openInDiffMode: false, scrollToLine: 15 },
+      '/Users/rob/project/src/index.ts',
+      false,
+    )
+    expect(result.action).toBe('navigate')
+    if (result.action === 'navigate') {
+      expect(result.filePath).toBe('/Users/rob/project/src/utils.ts')
+      expect(result.state.scrollToLine).toBe(15)
+      expect(result.state.openFileInDiffMode).toBe(false)
+    }
+  })
+
+  it('updates scroll when opener provides path to the current file', () => {
+    // Same-file definition jump (rare — Monaco usually handles this internally)
+    const result = resolveNavigation(
+      { filePath: '/Users/rob/project/src/index.ts', openInDiffMode: false, scrollToLine: 50 },
+      '/Users/rob/project/src/index.ts',
+      false,
+    )
+    expect(result.action).toBe('update-scroll')
+  })
+
+  it('queues pending navigation when file viewer is dirty', () => {
+    const result = resolveNavigation(
+      { filePath: '/Users/rob/project/src/utils.ts', openInDiffMode: false, scrollToLine: 15 },
+      '/Users/rob/project/src/index.ts',
+      true,
+    )
+    expect(result.action).toBe('pending')
+    if (result.action === 'pending') {
+      expect(result.target.filePath).toBe('/Users/rob/project/src/utils.ts')
+      expect(result.target.scrollToLine).toBe(15)
+    }
+  })
+
+  it('navigates when no file is currently open', () => {
+    const result = resolveNavigation(
+      { filePath: '/Users/rob/project/src/utils.ts', openInDiffMode: false, scrollToLine: 1 },
+      null,
+      false,
+    )
+    expect(result.action).toBe('navigate')
+    if (result.action === 'navigate') {
+      expect(result.filePath).toBe('/Users/rob/project/src/utils.ts')
+    }
+  })
+})
+
 describe('applyPendingNavigation', () => {
   it('converts pending target to navigation state', () => {
     const pending: NavigationTarget = {

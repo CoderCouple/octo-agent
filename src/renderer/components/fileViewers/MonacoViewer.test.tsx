@@ -477,7 +477,10 @@ describe('MonacoViewerComponent editor opener', () => {
     expect(mockRegisterEditorOpener).toHaveBeenCalled()
   })
 
-  it('editor opener calls onOpenFile with path and line', () => {
+  // Helper: flush queueMicrotask used by the deferred opener callback
+  const flushMicrotasks = () => new Promise<void>(resolve => queueMicrotask(resolve))
+
+  it('editor opener calls onOpenFile with path and line (deferred)', async () => {
     const onOpenFile = vi.fn()
     render(
       <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
@@ -490,10 +493,13 @@ describe('MonacoViewerComponent editor opener', () => {
       { startLineNumber: 42 },
     )
     expect(result).toBe(true)
+    // onOpenFile is deferred via queueMicrotask so Monaco can finish its event pipeline
+    expect(onOpenFile).not.toHaveBeenCalled()
+    await flushMicrotasks()
     expect(onOpenFile).toHaveBeenCalledWith('/test/other.ts', 42)
   })
 
-  it('editor opener handles position with lineNumber', () => {
+  it('editor opener handles position with lineNumber', async () => {
     const onOpenFile = vi.fn()
     render(
       <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
@@ -505,6 +511,7 @@ describe('MonacoViewerComponent editor opener', () => {
       { lineNumber: 10 },
     )
     expect(result).toBe(true)
+    await flushMicrotasks()
     expect(onOpenFile).toHaveBeenCalledWith('/test/other.ts', 10)
   })
 
@@ -518,19 +525,86 @@ describe('MonacoViewerComponent editor opener', () => {
       { path: '/test/other.ts' },
       null,
     )
-    // onOpenFile is undefined, so should still try to call it
-    // Actually it checks if onOpenFileRef.current exists
     expect(result).toBe(false)
   })
 
-  it('editor opener handles no selectionOrPosition', () => {
+  it('editor opener handles no selectionOrPosition', async () => {
     const onOpenFile = vi.fn()
     render(
       <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
     )
     const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
     openerArg.openCodeEditor(null, { path: '/test/other.ts' }, undefined)
+    await flushMicrotasks()
     expect(onOpenFile).toHaveBeenCalledWith('/test/other.ts', undefined)
+  })
+
+  it('editor opener returns false when resource has no path', () => {
+    const onOpenFile = vi.fn()
+    render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
+    )
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    const result = openerArg.openCodeEditor(null, { path: '' }, { lineNumber: 1 })
+    expect(result).toBe(false)
+    // No microtask queued — callback never fires
+    expect(onOpenFile).not.toHaveBeenCalled()
+  })
+
+  it('editor opener uses latest onOpenFile after re-render', async () => {
+    const onOpenFile1 = vi.fn()
+    const onOpenFile2 = vi.fn()
+    const { rerender } = render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile1} />
+    )
+    // Re-render with a different onOpenFile (simulates active session change)
+    rerender(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile2} />
+    )
+
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    openerArg.openCodeEditor(null, { path: '/test/other.ts' }, { lineNumber: 5 })
+    await flushMicrotasks()
+
+    // Should use the LATEST callback, not the one from initial render
+    expect(onOpenFile1).not.toHaveBeenCalled()
+    expect(onOpenFile2).toHaveBeenCalledWith('/test/other.ts', 5)
+  })
+
+  it('editor opener handles onOpenFile becoming undefined (session deactivated)', () => {
+    const onOpenFile = vi.fn()
+    const { rerender } = render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
+    )
+    // Session becomes inactive — onOpenFile is now undefined
+    rerender(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    const result = openerArg.openCodeEditor(null, { path: '/test/other.ts' }, { lineNumber: 1 })
+
+    // No callback → returns false, no microtask queued
+    expect(result).toBe(false)
+    expect(onOpenFile).not.toHaveBeenCalled()
+  })
+
+  it('editor opener handles onOpenFile becoming defined (session activated)', async () => {
+    const { rerender } = render(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" />
+    )
+    const onOpenFile = vi.fn()
+    // Session becomes active — onOpenFile is now defined
+    rerender(
+      <MonacoViewerComponent filePath="/test/file.ts" content="" onOpenFile={onOpenFile} />
+    )
+
+    const openerArg = mockRegisterEditorOpener.mock.calls[0][0]
+    const result = openerArg.openCodeEditor(null, { path: '/test/other.ts' }, { startLineNumber: 10 })
+
+    expect(result).toBe(true)
+    await flushMicrotasks()
+    expect(onOpenFile).toHaveBeenCalledWith('/test/other.ts', 10)
   })
 
   it('disposes editor opener on unmount', () => {

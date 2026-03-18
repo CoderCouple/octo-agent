@@ -270,7 +270,11 @@ function MonacoViewerComponent({ filePath, content, onSave, onDirtyChange, scrol
     })
   }
 
-  // Register editor opener for cmd-click go-to-definition across files
+  // Register editor opener for cmd-click go-to-definition across files.
+  // Navigation is deferred with queueMicrotask so the React state update
+  // (which swaps the Monaco model) happens after Monaco finishes its
+  // internal mouse-event / focus pipeline — otherwise Monaco throws when
+  // it tries to fire events on a model that was replaced mid-click.
   useEffect(() => {
     const disposable = monaco.editor.registerEditorOpener({
       openCodeEditor(_source, resource, selectionOrPosition) {
@@ -279,7 +283,8 @@ function MonacoViewerComponent({ filePath, content, onSave, onDirtyChange, scrol
           const line = selectionOrPosition
             ? ('startLineNumber' in selectionOrPosition ? selectionOrPosition.startLineNumber : selectionOrPosition.lineNumber)
             : undefined
-          onOpenFileRef.current(targetPath, line)
+          const callback = onOpenFileRef.current
+          queueMicrotask(() => callback(targetPath, line))
           return true
         }
         return false

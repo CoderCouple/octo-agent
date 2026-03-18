@@ -180,7 +180,10 @@ export async function loadMonacoProjectContext(projectRoot: string): Promise<voi
       model.setValue(model.getValue())
     }
   } catch {
-    // Silently ignore — project context is best-effort
+    // Reset so the next call retries instead of returning early with no
+    // extra libs loaded.  Without this, a transient failure (e.g. worker
+    // not ready yet) permanently breaks cross-file go-to-definition.
+    currentProjectRoot = null
   }
 }
 
