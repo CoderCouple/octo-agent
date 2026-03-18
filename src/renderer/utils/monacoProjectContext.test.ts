@@ -280,6 +280,40 @@ describe('monacoProjectContext', () => {
       await expect(loadMonacoProjectContext('/p')).resolves.toBeUndefined()
     })
 
+    it('retries after a failed load for the same project root', async () => {
+      // First call fails (e.g. worker not ready yet)
+      vi.mocked(window.ts.getProjectContext).mockRejectedValue(new Error('worker not ready'))
+      clearMonacoProjectContext()
+      await loadMonacoProjectContext('/project')
+      expect(tsDefaults.addExtraLib).not.toHaveBeenCalled()
+
+      // Second call with same root should retry (not return early)
+      vi.mocked(window.ts.getProjectContext).mockResolvedValue({
+        projectRoot: '/project',
+        compilerOptions: {},
+        files: [{ path: 'src/index.ts', content: 'export const x = 1' }],
+      })
+      await loadMonacoProjectContext('/project')
+
+      expect(window.ts.getProjectContext).toHaveBeenCalledTimes(2)
+      expect(tsDefaults.addExtraLib).toHaveBeenCalledWith('export const x = 1', '/project/src/index.ts')
+    })
+
+    it('does not retry after a successful load for the same project root', async () => {
+      vi.mocked(window.ts.getProjectContext).mockResolvedValue({
+        projectRoot: '/project',
+        compilerOptions: {},
+        files: [{ path: 'a.ts', content: '' }],
+      })
+
+      clearMonacoProjectContext()
+      await loadMonacoProjectContext('/project')
+      await loadMonacoProjectContext('/project')
+
+      // Only called once — second call returns early
+      expect(window.ts.getProjectContext).toHaveBeenCalledTimes(1)
+    })
+
     it('suppresses diagnostic codes for missing modules', async () => {
       clearMonacoProjectContext()
       await loadMonacoProjectContext('/project')

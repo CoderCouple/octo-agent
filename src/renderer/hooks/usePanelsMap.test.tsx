@@ -324,6 +324,39 @@ describe('usePanelsMap', () => {
       onOpenFile('/test/other.ts', 42)
       expect(navigateToFile).toHaveBeenCalledWith({ filePath: '/test/other.ts', openInDiffMode: false, scrollToLine: 42 })
     })
+
+    it('onOpenFile navigates with absolute paths (go-to-definition)', () => {
+      const navigateToFile = vi.fn()
+      const session = makeSession({ showFileViewer: true, directory: '/Users/rob/project' })
+      const config = makeConfig({ sessions: [session], activeSession: session, navigateToFile })
+      const { result } = renderHook(() => usePanelsMap(config))
+      const fvElement = result.current[PANEL_IDS.FILE_VIEWER]
+      if (fvElement) render(fvElement as React.ReactElement)
+      const onOpenFile = lastFileViewerProps.onOpenFile as (path: string, line?: number) => void
+      // Monaco's registerEditorOpener provides absolute paths from extra lib URIs
+      onOpenFile('/Users/rob/project/src/utils.ts', 15)
+      expect(navigateToFile).toHaveBeenCalledWith({
+        filePath: '/Users/rob/project/src/utils.ts',
+        openInDiffMode: false,
+        scrollToLine: 15,
+      })
+    })
+
+    it('onOpenFile works without a line number', () => {
+      const navigateToFile = vi.fn()
+      const session = makeSession({ showFileViewer: true })
+      const config = makeConfig({ sessions: [session], activeSession: session, navigateToFile })
+      const { result } = renderHook(() => usePanelsMap(config))
+      const fvElement = result.current[PANEL_IDS.FILE_VIEWER]
+      if (fvElement) render(fvElement as React.ReactElement)
+      const onOpenFile = lastFileViewerProps.onOpenFile as (path: string, line?: number) => void
+      onOpenFile('/test/other.ts')
+      expect(navigateToFile).toHaveBeenCalledWith({
+        filePath: '/test/other.ts',
+        openInDiffMode: false,
+        scrollToLine: undefined,
+      })
+    })
   })
 
   describe('settings panel callbacks', () => {
