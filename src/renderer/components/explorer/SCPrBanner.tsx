@@ -133,7 +133,9 @@ function PrStatusContent({
       <div className="flex items-center gap-2">
         <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-accent/20 text-accent">ISSUE</span>
         <button
-          onClick={() => window.shell.openExternal(issueUrl)}
+          onClick={() => onFileSelect
+            ? onFileSelect({ filePath: issueUrl, openInDiffMode: false })
+            : window.shell.openExternal(issueUrl)}
           className="text-xs text-accent hover:underline truncate flex-1 text-left"
         >
           #{issueNumber}{issueTitle ? `: ${issueTitle}` : ''}

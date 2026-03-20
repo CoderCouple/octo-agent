@@ -122,7 +122,23 @@ describe('SCPrBanner', () => {
     expect(screen.getByText('#42: Fix login bug')).toBeTruthy()
   })
 
-  it('opens issue URL when issue link is clicked', () => {
+  it('opens issue URL in file panel when onFileSelect is provided', () => {
+    const onFileSelect = vi.fn()
+    render(
+      <SCPrBanner
+        {...defaultProps}
+        issueNumber={42}
+        issueTitle="Fix login bug"
+        issueUrl="https://github.com/test/issues/42"
+        onFileSelect={onFileSelect}
+      />
+    )
+    fireEvent.click(screen.getByText('#42: Fix login bug'))
+    expect(onFileSelect).toHaveBeenCalledWith({ filePath: 'https://github.com/test/issues/42', openInDiffMode: false })
+    expect(window.shell.openExternal).not.toHaveBeenCalled()
+  })
+
+  it('falls back to external browser for issue link when onFileSelect is not provided', () => {
     render(
       <SCPrBanner
         {...defaultProps}
