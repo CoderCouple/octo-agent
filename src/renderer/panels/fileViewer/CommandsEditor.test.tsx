@@ -340,6 +340,64 @@ describe('CommandsEditor', () => {
     })
   })
 
+  describe('template vars hint', () => {
+    it('shows template variables hint when generic variant is expanded', async () => {
+      mockExistingConfig()
+      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByTestId('action-header-action-1'))
+      fireEvent.click(screen.getByTestId('variant-generic-action-1'))
+      const hints = screen.getAllByTestId('template-vars-hint')
+      expect(hints.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('shows popup with variable list when hint is clicked', async () => {
+      mockExistingConfig()
+      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByTestId('action-header-action-1'))
+      fireEvent.click(screen.getByTestId('variant-generic-action-1'))
+      const hint = screen.getAllByTestId('template-vars-hint')[0]
+      fireEvent.click(hint)
+      expect(screen.getByText('{main}')).toBeTruthy()
+      expect(screen.getByText('{branch}')).toBeTruthy()
+      expect(screen.getByText('{directory}')).toBeTruthy()
+      expect(screen.getByText('{issueNumber}')).toBeTruthy()
+    })
+
+    it('closes popup when clicking outside', async () => {
+      mockExistingConfig()
+      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('action-header-action-1')).toBeTruthy()
+      })
+      fireEvent.click(screen.getByTestId('action-header-action-1'))
+      fireEvent.click(screen.getByTestId('variant-generic-action-1'))
+      const hint = screen.getAllByTestId('template-vars-hint')[0]
+      fireEvent.click(hint)
+      expect(screen.getByText('{main}')).toBeTruthy()
+      // Click outside to close
+      fireEvent.mouseDown(document.body)
+      expect(screen.queryByText('{main}')).toBeNull()
+    })
+
+    it('shows hint for shell command field too', async () => {
+      mockExistingConfig()
+      render(<CommandsEditor directory="/test/repo" onClose={vi.fn()} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('action-header-action-2')).toBeTruthy()
+      })
+      // action-2 is type: shell
+      fireEvent.click(screen.getByTestId('action-header-action-2'))
+      const hints = screen.getAllByTestId('template-vars-hint')
+      expect(hints.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
   describe('switch tab', () => {
     it('shows switch tab dropdown when action is expanded', async () => {
       mockExistingConfig()

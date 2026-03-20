@@ -12,6 +12,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { normalizePath } from '../platform'
 import { E2EScenario } from './types'
+import DEFAULT_COMMANDS_CONFIG from '../../renderer/features/commands/defaultCommands.json'
 
 // ── Shared mock data (used by both scenarios or when not scenario-specific) ──
 
@@ -471,6 +472,9 @@ const DEFAULT: ScenarioData = {
     }
     if (filePath.endsWith('src/utils.ts')) {
       return 'export function add(a: number, b: number): number {\n  return a + b\n}\n\nexport function multiply(a: number, b: number): number {\n  return a * b\n}\n'
+    }
+    if (/\.broomy[/\\]commands\.json$/.exec(filePath)) {
+      return JSON.stringify(DEFAULT_COMMANDS_CONFIG)
     }
     // Default scenario markdown review data (dark mode theme)
     if (/\.broomy[/\\]output[/\\]review\.md$/.exec(filePath)) {

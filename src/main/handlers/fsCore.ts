@@ -108,6 +108,9 @@ async function handleExists(ctx: HandlerContext, filePath: string) {
     if (/\.broomy[/\\](output[/\\])?review\.md$/.exec(filePath)) {
       return true
     }
+    if (/\.broomy[/\\]commands\.json$/.exec(filePath)) {
+      return true
+    }
     // Fall through to real fs for other paths (e.g. .git directory checks)
   }
   try {

@@ -62,6 +62,7 @@ export function PromptVariants({
             placeholder="Enter a prompt for the agent..."
             data-testid={`action-prompt-${action.id}`}
           />
+          <TemplateVarsHint />
         </VariantCard>
 
         {/* Agent-specific overrides */}
@@ -82,6 +83,7 @@ export function PromptVariants({
               placeholder={`Override prompt for ${type}... (leave empty to use generic)`}
               data-testid={`variant-prompt-${type}-${action.id}`}
             />
+            <TemplateVarsHint />
           </VariantCard>
         ))}
 
@@ -142,6 +144,54 @@ function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) 
       }}
       style={{ minHeight: 120, ...props.style }}
     />
+  )
+}
+
+const TEMPLATE_VARS: { name: string; description: string }[] = [
+  { name: '{main}', description: 'The repo\'s default branch (e.g. main, master)' },
+  { name: '{branch}', description: 'The current branch name' },
+  { name: '{directory}', description: 'The repo\'s working directory path' },
+  { name: '{issueNumber}', description: 'The linked GitHub issue number (empty if none)' },
+]
+
+export function TemplateVarsHint() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  return (
+    <div className="relative mt-1" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="text-[11px] text-text-tertiary hover:text-accent transition-colors"
+        data-testid="template-vars-hint"
+      >
+        Template variables
+      </button>
+      {open && (
+        <div className="absolute left-0 bottom-full mb-1 z-10 border border-border rounded bg-bg-secondary shadow-lg p-2 min-w-[280px]">
+          <table className="text-xs w-full">
+            <tbody>
+              {TEMPLATE_VARS.map((v) => (
+                <tr key={v.name}>
+                  <td className="pr-3 py-0.5 font-mono text-accent whitespace-nowrap">{v.name}</td>
+                  <td className="py-0.5 text-text-secondary">{v.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
 

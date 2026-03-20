@@ -18,7 +18,7 @@ import {
 } from '../../features/commands/commandsConfig'
 import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 import { ShowWhenPicker } from '../../shared/components/ShowWhenPicker'
-import { PromptVariants } from '../../shared/components/PromptVariants'
+import { PromptVariants, TemplateVarsHint } from '../../shared/components/PromptVariants'
 import { useAgentStore } from '../../store/agents'
 
 const STYLE_OPTIONS = ['primary', 'secondary', 'accent', 'danger'] as const
@@ -377,6 +377,7 @@ function ActionCard({
                 placeholder="git pull && git push"
                 data-testid={`action-command-${action.id}`}
               />
+              <TemplateVarsHint />
             </Field>
           )}
 
