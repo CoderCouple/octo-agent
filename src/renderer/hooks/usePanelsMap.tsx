@@ -181,7 +181,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
             return (
               <div
                 key={session.id}
-                className={`absolute inset-0 ${isActive ? '' : 'hidden'}`}
+                className={`absolute inset-0 ${isActive ? '' : 'invisible pointer-events-none'}`}
               >
                 <CommandsEditor
                   directory={session.commandsEditorDirectory}
@@ -194,7 +194,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
           return (
             <div
               key={session.id}
-              className={`absolute inset-0 ${isActive ? '' : 'hidden'}`}
+              className={`absolute inset-0 ${isActive ? '' : 'invisible pointer-events-none'}`}
             >
               <FileViewer
                 filePath={session.selectedFilePath}

@@ -89,8 +89,9 @@ export function useFileViewer({
   }, [filePath])
 
   // Switch to Monaco code view when scrollToLine is set (e.g. from search results)
+  // Don't switch away from webview — URLs can't be shown in Monaco
   useEffect(() => {
-    if (scrollToLine && selectedViewerId !== 'monaco') {
+    if (scrollToLine && selectedViewerId !== 'monaco' && selectedViewerId !== 'webview') {
       const monacoAvailable = availableViewers.find(v => v.id === 'monaco')
       if (monacoAvailable) {
         setSelectedViewerId('monaco')
