@@ -373,6 +373,72 @@ describe('ReviewPrsView', () => {
     })
   })
 
+  describe('keyboard navigation', () => {
+    const prs = [
+      { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: [] },
+      { number: 102, title: 'Fix CI', author: 'bob', headRefName: 'fix-ci', baseRefName: 'main', url: '', labels: [] },
+      { number: 103, title: 'Refactor', author: 'carol', headRefName: 'refactor', baseRefName: 'main', url: '', labels: [] },
+    ]
+
+    it('highlights first PR by default', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue(prs)
+      render(<ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('Add tests')).toBeTruthy())
+
+      const firstButton = screen.getByText('Add tests').closest('button')!
+      expect(firstButton.className).toContain('ring-1')
+    })
+
+    it('ArrowDown moves focus to next PR', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue(prs)
+      render(<ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('Add tests')).toBeTruthy())
+
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+
+      const secondButton = screen.getByText('Fix CI').closest('button')!
+      expect(secondButton.className).toContain('ring-1')
+    })
+
+    it('ArrowUp moves focus to previous PR', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue(prs)
+      render(<ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('Add tests')).toBeTruthy())
+
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'ArrowUp' })
+
+      const secondButton = screen.getByText('Fix CI').closest('button')!
+      expect(secondButton.className).toContain('ring-1')
+    })
+
+    it('Enter selects the focused PR', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue(prs)
+      render(<ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('Add tests')).toBeTruthy())
+
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(screen.getByText('Review PR')).toBeTruthy()
+        expect(screen.getByText('PR #102 by bob')).toBeTruthy()
+      })
+    })
+
+    it('mouse hover updates focused index', async () => {
+      vi.mocked(window.gh.prsToReview).mockResolvedValue(prs)
+      render(<ReviewPrsView repo={mockRepo} onBack={vi.fn()} onComplete={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('Refactor')).toBeTruthy())
+
+      const thirdButton = screen.getByText('Refactor').closest('button')!
+      fireEvent.mouseEnter(thirdButton)
+
+      expect(thirdButton.className).toContain('ring-1')
+    })
+  })
+
   it('shows labels on PR items in the list', async () => {
     vi.mocked(window.gh.prsToReview).mockResolvedValue([
       { number: 101, title: 'Add tests', author: 'alice', headRefName: 'add-tests', baseRefName: 'main', url: '', labels: ['bug', 'urgent'] },

@@ -883,6 +883,50 @@ describe('useLayoutKeyboard', () => {
       expect(document.activeElement).toBe(btn2)
     })
 
+    it('does not handle arrow keys inside aria-modal dialog', () => {
+      const dialog = document.createElement('div')
+      dialog.setAttribute('role', 'dialog')
+      dialog.setAttribute('aria-modal', 'true')
+      const btn1 = document.createElement('button')
+      const btn2 = document.createElement('button')
+      dialog.appendChild(btn1)
+      dialog.appendChild(btn2)
+      document.body.appendChild(dialog)
+      btn1.focus()
+
+      renderHook(() => useLayoutKeyboard(defaultProps))
+
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'ArrowDown', bubbles: true,
+        }))
+      })
+
+      // Focus should NOT move — the modal dialog handles its own keyboard events
+      expect(document.activeElement).toBe(btn1)
+    })
+
+    it('still allows global shortcuts inside aria-modal dialog', () => {
+      const dialog = document.createElement('div')
+      dialog.setAttribute('role', 'dialog')
+      dialog.setAttribute('aria-modal', 'true')
+      const btn = document.createElement('button')
+      dialog.appendChild(btn)
+      document.body.appendChild(dialog)
+      btn.focus()
+
+      renderHook(() => useLayoutKeyboard(defaultProps))
+
+      act(() => {
+        // Cmd+N is an app-wide shortcut — should still work inside modal
+        window.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'n', metaKey: true, bubbles: true,
+        }))
+      })
+
+      expect(onNewSession).toHaveBeenCalled()
+    })
+
     it('works within role="menu" containers', () => {
       const menu = document.createElement('div')
       menu.setAttribute('role', 'menu')

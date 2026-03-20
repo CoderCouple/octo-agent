@@ -60,7 +60,8 @@ async function switchToSession(sessionId: string) {
     const session = state.sessions.find((s: { id: string }) => s.id === id)
     if (session) state.setActiveSession(session.id)
   }, sessionId)
-  await page.waitForTimeout(500)
+  // Wait for terminal to appear after session switch
+  await page.locator('.xterm-screen').first().waitFor({ state: 'visible' })
 }
 
 test.beforeAll(async () => {
@@ -95,7 +96,8 @@ test.describe.serial('Feature: Merge PR Button Fix', () => {
     // Session 2 (backend-api) is on feature/auth with an open PR in E2E mock data
     await switchToSession('2')
     await openSourceControl()
-    await page.waitForTimeout(2000)
+    // Wait for source control panel to fully render
+    await page.locator('[data-panel-id="explorer"]').waitFor({ state: 'visible' })
 
     // With uncommitted changes, Merge PR should NOT be visible
     const mergePrButton = page.locator('button:has-text("Merge PR to main")')
@@ -174,7 +176,8 @@ test.describe.serial('Feature: Merge PR Button Fix', () => {
     // even with clean git status, because there's no open PR on main
     await switchToSession('1')
     await openSourceControl()
-    await page.waitForTimeout(3000)
+    // Wait for source control panel to fully render
+    await page.locator('[data-panel-id="explorer"]').waitFor({ state: 'visible' })
 
     const mergePrButton = page.locator('button:has-text("Merge PR to main")')
     await expect(mergePrButton).not.toBeVisible()

@@ -94,12 +94,12 @@ export function HomeView({
       if (e.metaKey || e.ctrlKey || e.altKey) return
 
       const key = e.key.toLowerCase()
-      if (key === 'escape') { e.preventDefault(); onCancel(); return }
-      if (e.key === 'ArrowDown' && repos.length > 0) { e.preventDefault(); setFocusedRepoIndex((i) => Math.min(i + 1, repos.length - 1)); return }
-      if (e.key === 'ArrowUp' && repos.length > 0) { e.preventDefault(); setFocusedRepoIndex((i) => Math.max(i - 1, 0)); return }
+      if (key === 'escape') { e.preventDefault(); e.stopImmediatePropagation(); onCancel(); return }
+      if (e.key === 'ArrowDown' && repos.length > 0) { e.preventDefault(); e.stopImmediatePropagation(); setFocusedRepoIndex((i) => Math.min(i + 1, repos.length - 1)); return }
+      if (e.key === 'ArrowUp' && repos.length > 0) { e.preventDefault(); e.stopImmediatePropagation(); setFocusedRepoIndex((i) => Math.max(i - 1, 0)); return }
 
       const globalAction = globalKeys.get(key)
-      if (globalAction) { e.preventDefault(); globalAction(); return }
+      if (globalAction) { e.preventDefault(); e.stopImmediatePropagation(); globalAction(); return }
 
       if (repos.length === 0) return
       const repo = repos[focusedRepoIndex]
@@ -108,7 +108,7 @@ export function HomeView({
         ...(ghAvailable ? [['i', () => onIssues(repo)] as const, ['r', () => onReviewPrs(repo)] as const] : []),
       ])
       const repoAction = repoKeys.get(key)
-      if (repoAction) { e.preventDefault(); repoAction() }
+      if (repoAction) { e.preventDefault(); e.stopImmediatePropagation(); repoAction() }
     }
 
     window.addEventListener('keydown', handleKeyDown, true)
