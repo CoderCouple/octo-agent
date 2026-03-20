@@ -2,7 +2,7 @@
  * Core session store actions for creating, selecting, removing, and updating sessions.
  */
 import { basename } from 'path-browserify'
-import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/types'
+import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/system/types'
 import type { Session, PanelVisibility, TerminalTabsState, PrState } from './sessions'
 import {
   debouncedSave,
@@ -16,7 +16,7 @@ import {
   EXPLORER_MIN, EXPLORER_MAX,
   FILE_VIEWER_MIN_HEIGHT,
   TUTORIAL_MIN, TUTORIAL_MAX,
-} from '../hooks/useDividerResize'
+} from '../shared/hooks/useDividerResize'
 
 export const DEFAULT_SIDEBAR_WIDTH = 224 // 14rem = 224px
 

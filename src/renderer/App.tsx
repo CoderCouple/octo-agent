@@ -8,32 +8,32 @@
  * The outer App component wraps AppContent in the PanelProvider context.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import Layout from './components/Layout'
-import NewSessionDialog from './components/NewSessionDialog'
-import PanelPicker from './components/PanelPicker'
-import ProfileChip from './components/ProfileChip'
-import HelpModal from './components/HelpModal'
-import ShortcutsModal from './components/ShortcutsModal'
+import Layout from './layout/Layout'
+import NewSessionDialog from './features/sessions/NewSessionDialog'
+import PanelPicker from './shared/components/PanelPicker'
+import ProfileChip from './features/profiles/ProfileChip'
+import HelpModal from './shared/components/HelpModal'
+import ShortcutsModal from './shared/components/ShortcutsModal'
 import { useSessionStore, type Session, type SessionStatus, type LayoutSizes } from './store/sessions'
-import { useUpdateStore } from './hooks/useUpdateState'
+import { useUpdateStore } from './shared/hooks/useUpdateState'
 import { useAgentStore } from './store/agents'
 import { useRepoStore } from './store/repos'
 import { useProfileStore } from './store/profiles'
 import { PanelProvider, PANEL_IDS } from './panels'
-import ErrorBoundary from './components/ErrorBoundary'
-import ErrorDetailModal from './components/ErrorDetailModal'
-import { useGitPolling } from './hooks/useGitPolling'
-import { useFileNavigation } from './hooks/useFileNavigation'
-import { useSessionLifecycle } from './hooks/useSessionLifecycle'
-import { useAppCallbacks } from './hooks/useAppCallbacks'
+import ErrorBoundary from './shared/components/ErrorBoundary'
+import ErrorDetailModal from './shared/components/ErrorDetailModal'
+import { useGitPolling } from './features/git/hooks/useGitPolling'
+import { useFileNavigation } from './panels/fileViewer/hooks/useFileNavigation'
+import { useSessionLifecycle } from './features/sessions/hooks/useSessionLifecycle'
+import { useAppCallbacks } from './shared/hooks/useAppCallbacks'
 import { usePanelsMap } from './hooks/usePanelsMap'
-import { useHelpMenu } from './hooks/useHelpMenu'
-import { useSessionKeyboardCallbacks } from './hooks/useSessionKeyboardCallbacks'
-import { focusSearchInput } from './utils/focusHelpers'
-import { useMenuButton } from './hooks/useMenuButton'
-import CrashRecoveryBanner from './components/CrashRecoveryBanner'
-import { DialogErrorBanner } from './components/ErrorBanner'
-import ExperimentalPlatformModal from './components/ExperimentalPlatformModal'
+import { useHelpMenu } from './shared/hooks/useHelpMenu'
+import { useSessionKeyboardCallbacks } from './shared/hooks/useSessionKeyboardCallbacks'
+import { focusSearchInput } from './shared/utils/focusHelpers'
+import { useMenuButton } from './shared/hooks/useMenuButton'
+import CrashRecoveryBanner from './shared/components/CrashRecoveryBanner'
+import { DialogErrorBanner } from './shared/components/ErrorBanner'
+import ExperimentalPlatformModal from './shared/components/ExperimentalPlatformModal'
 
 // Re-export types for backwards compatibility
 export type { Session, SessionStatus }
@@ -135,7 +135,7 @@ function usePrAutoRefresh({ isLoading, sessions, refreshPrStatus, updatePrState 
   isLoading: boolean
   sessions: Session[]
   refreshPrStatus: () => Promise<void>
-  updatePrState: (sessionId: string, prState: import('./utils/branchStatus').PrState, prNumber?: number, prUrl?: string) => void
+  updatePrState: (sessionId: string, prState: import('./features/git/branchStatus').PrState, prNumber?: number, prUrl?: string) => void
 }) {
   const hasRefreshedOnStartup = useRef(false)
   useEffect(() => {

@@ -45,10 +45,25 @@ Broomy is an Electron + React desktop app for managing multiple AI coding agent 
 
 ### Key Renderer Organization
 
-- **Stores** (`store/`): Four Zustand stores -- `sessions.ts` (session state, panel visibility, layout sizes, agent monitoring), `agents.ts` (agent definitions), `repos.ts` (managed repositories), `profiles.ts` (multi-window profiles), `errors.ts` (error tracking).
-- **Components** (`components/`): `Layout.tsx` (main layout with drag-to-resize), `Terminal.tsx` (xterm.js wrapper), `Explorer.tsx` (file tree + source control), `FileViewer.tsx` (Monaco editor + diff), `SessionList.tsx`, `TabbedTerminal.tsx`, `NewSessionDialog.tsx`, `AgentSettings.tsx`, `ProfileChip.tsx`.
-- **Panel system** (`panels/`): Registry-based modular panel system. Panel IDs defined in `types.ts`, registered in `builtinPanels.tsx`, accessed via React context in `PanelContext.tsx`. Five built-in panels: sidebar, explorer, fileViewer, tutorial, settings. The terminal area (agent + user tabs) is always visible and not part of the panel toggle system.
-- **Utils** (`utils/`): `stripAnsi.ts` (ANSI escape removal), `explorerHelpers.ts` (git status display), `terminalBufferRegistry.ts` (cross-component terminal access), `slugify.ts` (issue-to-branch names), `textDetection.ts` (binary vs text), `branchStatus.ts` (branch status computation).
+- **Panels** (`panels/`): Each UI panel is a self-contained module owning its components, hooks, and utils. See `panels/README.md` for conventions.
+  - `panels/system/` -- Panel registry infrastructure (types, registry, context)
+  - `panels/sidebar/` -- Session list sidebar (SessionList, SessionCard)
+  - `panels/explorer/` -- Explorer with tabbed sub-panels (`tabs/files`, `tabs/source-control`, `tabs/search`, `tabs/recent`, `tabs/review`)
+  - `panels/fileViewer/` -- File viewer with plugin-based `viewers/` registry (Monaco, Image, Markdown, Webview, diff viewers) and `hooks/` for file loading/watching/navigation
+  - `panels/agent/` -- Terminal emulator (`Terminal.tsx`, `TabbedTerminal.tsx`) with `hooks/` (PTY setup, keyboard) and `utils/` (stripAnsi, activity detection, buffer registry). **Never unmounts on session switch.**
+  - `panels/settings/` -- Agent and repo configuration overlay
+  - `panels/tutorial/` -- Getting-started guide
+- **Features** (`features/`): Cross-cutting domain logic used by multiple panels.
+  - `features/git/` -- Branch status, git status normalization, explorer helpers, git polling, plan detection
+  - `features/sessions/` -- New session dialog wizard, session lifecycle hooks
+  - `features/profiles/` -- Profile chip and dropdown
+  - `features/commands/` -- Commands config loading, condition evaluation, action execution
+- **Shared** (`shared/`): Generic components, hooks, and utils used by 2+ panels/features.
+  - `shared/components/` -- ErrorBoundary, PanelErrorBoundary, ErrorBanner, ActionButtons, modals
+  - `shared/hooks/` -- Layout keyboard/resize, app callbacks, session keyboard, update state
+  - `shared/utils/` -- File navigation, focus helpers, slugify, text detection, markdown components
+- **Layout** (`layout/`): Top-level layout shell -- Layout, LayoutContentArea, LayoutToolbar, Divider, VersionIndicator
+- **Stores** (`store/`): Zustand stores -- `sessions.ts`, `agents.ts`, `repos.ts`, `profiles.ts`, `errors.ts`, `tutorial.ts`. Session store actions split into `sessionCoreActions.ts`, `sessionPanelActions.ts`, `sessionBranchActions.ts`, `sessionTerminalTabs.ts`.
 
 ### Agent Activity Detection
 

@@ -1,7 +1,7 @@
 /**
  * Helpers for persisting session state to disk and migrating legacy panel visibility fields.
  */
-import { PANEL_IDS } from '../panels/types'
+import { PANEL_IDS } from '../panels/system/types'
 import type { Session, PanelVisibility } from './sessions'
 import { scheduleSave } from './configPersistence'
 

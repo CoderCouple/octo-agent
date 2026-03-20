@@ -1,7 +1,7 @@
 import React from 'react'
 import type { Decorator } from '@storybook/react'
-import { PanelProvider } from '../src/renderer/panels/PanelContext'
-import { DEFAULT_TOOLBAR_PANELS } from '../src/renderer/panels/types'
+import { PanelProvider } from '../src/renderer/panels/system/PanelContext'
+import { DEFAULT_TOOLBAR_PANELS } from '../src/renderer/panels/system/types'
 import { useSessionStore } from '../src/renderer/store/sessions'
 
 /**

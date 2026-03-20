@@ -66,3 +66,4 @@ storybook-static/
 
 # Broomy review data
 .broomy/
+*.tsbuildinfo

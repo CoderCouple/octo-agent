@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { useSessionStore } from './sessions'
-import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/types'
+import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/system/types'
 import { getLoadedSessionCount } from './sessionPersistence'
 import { setLoadedCounts } from './configPersistence'
 import { allowConsoleError, allowConsoleWarn } from '../../test/console-guard'

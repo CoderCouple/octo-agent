@@ -10,8 +10,8 @@
  * to disk.
  */
 import { create } from 'zustand'
-import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/types'
-import type { BranchStatus, PrState } from '../utils/branchStatus'
+import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/system/types'
+import type { BranchStatus, PrState } from '../features/git/branchStatus'
 import {
   debouncedSave,
   syncLegacyFields,

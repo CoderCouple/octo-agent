@@ -7,7 +7,7 @@
  * debounces and assembles the complete config from all Zustand stores before
  * sending one atomic config.save() IPC call.
  */
-import { PANEL_IDS } from '../panels/types'
+import { PANEL_IDS } from '../panels/system/types'
 
 // These imports form a circular chain (sessions → sessionPersistence → configPersistence → sessions)
 // but it's safe because we only access the stores inside doSave(), which runs asynchronously

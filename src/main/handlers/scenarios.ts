@@ -12,7 +12,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { normalizePath } from '../platform'
 import { E2EScenario } from './types'
-import DEFAULT_COMMANDS_CONFIG from '../../renderer/utils/defaultCommands.json'
+import DEFAULT_COMMANDS_CONFIG from '../../renderer/features/commands/defaultCommands.json'
 
 // ── Shared mock data (used by both scenarios or when not scenario-specific) ──
 

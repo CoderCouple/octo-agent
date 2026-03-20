@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import '../../test/setup'
 import { useSessionStore } from '../store/sessions'
-import { PANEL_IDS } from '../panels/types'
+import { PANEL_IDS } from '../panels/system/types'
 
 beforeEach(() => {
   vi.clearAllMocks()
