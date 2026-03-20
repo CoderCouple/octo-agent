@@ -8,7 +8,7 @@ import type { AgentConfig } from '../../store/agents'
 import type { PrState } from '../../utils/branchStatus'
 import type { DuplicateSessionResult } from '../../store/sessionCoreActions'
 import { restoreSessionFocus } from '../utils/focusHelpers'
-import { useBackgroundInit } from '../../hooks/useBackgroundInit'
+import { useBackgroundInit } from '../../panels/settings/useBackgroundInit'
 
 
 interface AppCallbacksDeps {

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
-import { IsolationSettings } from '../IsolationSettings'
+import { IsolationSettings } from '../../panels/settings/IsolationSettings'
 import type { DevcontainerStatus } from '../../../preload/index'
 
 async function validateWorktreeFolder(folder: string): Promise<{ worktrees: { path: string; branch: string }[]; error?: string }> {

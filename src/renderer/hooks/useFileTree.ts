@@ -3,7 +3,7 @@
  */
 import { useState, useCallback, useMemo } from 'react'
 import type { GitFileStatus } from '../../preload/index'
-import type { TreeNode } from '../components/explorer/types'
+import type { TreeNode } from '../panels/explorer/types'
 
 interface UseFileTreeParams {
   directory?: string

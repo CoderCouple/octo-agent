@@ -4,7 +4,7 @@
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react'
 import type { Session } from '../store/sessions'
 import type { ProfileData } from '../store/profiles'
-import { terminalBufferRegistry } from '../utils/terminalBufferRegistry'
+import { terminalBufferRegistry } from '../panels/agent/utils/terminalBufferRegistry'
 import { loadMonacoProjectContext } from '../shared/utils/monacoProjectContext'
 import { restoreSessionFocus } from '../shared/utils/focusHelpers'
 

@@ -2,7 +2,7 @@
  * Detects plan file paths matching `/.claude-personal/plans/*.md` in terminal output using a rolling buffer.
  */
 import { useRef, useCallback } from 'react'
-import { stripAnsi } from '../utils/stripAnsi'
+import { stripAnsi } from '../panels/agent/utils/stripAnsi'
 
 /**
  * Rolling buffer plan file detection from terminal output.

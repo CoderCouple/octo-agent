@@ -11,14 +11,14 @@ let lastExplorerProps: Record<string, unknown> = {}
 let lastFileViewerProps: Record<string, unknown> = {}
 let lastAgentSettingsProps: Record<string, unknown> = {}
 
-vi.mock('../components/Terminal', () => ({ default: () => null }))
-vi.mock('../components/TabbedTerminal', () => ({ default: () => null }))
-vi.mock('../components/explorer', () => ({ default: (props: Record<string, unknown>) => { lastExplorerProps = props; return null } }))
-vi.mock('../components/FileViewer', () => ({ default: (props: Record<string, unknown>) => { lastFileViewerProps = props; return null } }))
-vi.mock('../components/AgentSettings', () => ({ default: (props: Record<string, unknown>) => { lastAgentSettingsProps = props; return null } }))
-vi.mock('../components/SessionList', () => ({ default: () => null }))
-vi.mock('../components/WelcomeScreen', () => ({ default: () => null }))
-vi.mock('../components/TutorialPanel', () => ({ default: () => null }))
+vi.mock('../panels/agent/Terminal', () => ({ default: () => null }))
+vi.mock('../panels/agent/TabbedTerminal', () => ({ default: () => null }))
+vi.mock('../panels/explorer/ExplorerPanel', () => ({ default: (props: Record<string, unknown>) => { lastExplorerProps = props; return null } }))
+vi.mock('../panels/fileViewer/FileViewer', () => ({ default: (props: Record<string, unknown>) => { lastFileViewerProps = props; return null } }))
+vi.mock('../panels/settings/AgentSettings', () => ({ default: (props: Record<string, unknown>) => { lastAgentSettingsProps = props; return null } }))
+vi.mock('../panels/sidebar/SessionList', () => ({ default: () => null }))
+vi.mock('../panels/agent/WelcomeScreen', () => ({ default: () => null }))
+vi.mock('../panels/tutorial/TutorialPanel', () => ({ default: () => null }))
 
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {

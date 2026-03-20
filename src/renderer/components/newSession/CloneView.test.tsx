@@ -7,7 +7,7 @@ import { useRepoStore } from '../../store/repos'
 import { CloneView } from './CloneView'
 
 // Mock AuthTerminal to avoid xterm.js in jsdom
-vi.mock('../AuthTerminal', () => ({
+vi.mock('../../panels/settings/AuthTerminal', () => ({
   AuthTerminal: ({ ptyId, onDone }: { ptyId: string; onDone: () => void }) => (
     <div data-testid="auth-terminal" data-pty-id={ptyId}>
       <button onClick={onDone}>Done</button>

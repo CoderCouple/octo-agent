@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import type { ManagedRepo, DevcontainerStatus } from '../../../preload/index'
-import { IsolationSettings } from '../IsolationSettings'
+import { IsolationSettings } from '../../panels/settings/IsolationSettings'
 
 export function RepoSettingsView({
   repo,
