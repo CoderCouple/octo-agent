@@ -1,8 +1,8 @@
 /**
  * Session store actions for toggling panels, managing layout sizes, and toolbar configuration.
  */
-import { PANEL_IDS } from '../panels/types'
-import { BUILTIN_PANELS } from '../panels/builtinPanels'
+import { PANEL_IDS } from '../panels/system/types'
+import { BUILTIN_PANELS } from '../panels/system/builtinPanels'
 import type { Session, PanelVisibility } from './sessions'
 import { debouncedSave, syncLegacyFields } from './sessionPersistence'
 

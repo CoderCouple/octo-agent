@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { allowConsoleError } from '../../test/console-guard'
+import { allowConsoleError } from '../../../test/console-guard'
 import { PanelProvider, usePanelRegistry, usePanelContext, usePanelVisibility, usePanelToggle, useToolbarPanels } from './PanelContext'
 
 // Suppress jsdom printing thrown errors to stderr

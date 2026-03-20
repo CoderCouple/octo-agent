@@ -2,7 +2,7 @@
  * Core session store actions for creating, selecting, removing, and updating sessions.
  */
 import { basename } from 'path-browserify'
-import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/types'
+import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/system/types'
 import type { Session, PanelVisibility, TerminalTabsState, PrState } from './sessions'
 import {
   debouncedSave,

@@ -12,7 +12,7 @@ import type { EnvVarEditorRef } from './EnvVarEditor'
 import { AgentSettingsAgentTab } from './AgentSettingsAgentTab'
 import { SettingsRootScreen } from './SettingsRootScreen'
 import { SettingsRepoScreen } from './SettingsRepoScreen'
-import { PANEL_IDS } from '../panels/types'
+import { PANEL_IDS } from '../panels/system/types'
 import type { ShellOption } from '../../preload/apis/types'
 
 type SettingsScreen =

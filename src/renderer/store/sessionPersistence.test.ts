@@ -8,7 +8,7 @@ import {
   setLoadedSessionCount,
   getLoadedSessionCount,
 } from './sessionPersistence'
-import { PANEL_IDS } from '../panels/types'
+import { PANEL_IDS } from '../panels/system/types'
 import type { Session, PanelVisibility } from './sessions'
 
 describe('sessionPersistence', () => {
