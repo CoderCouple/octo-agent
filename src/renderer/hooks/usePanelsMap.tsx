@@ -239,10 +239,13 @@ export function usePanelsMap(config: PanelsMapConfig) {
   } = config
 
   // Derive a stable key from only the session fields the terminal cares about.
-  // Status, lastMessage, isUnread etc. are excluded — they don't affect terminal rendering.
+  // Runtime fields (status, lastMessage, isUnread) are excluded — they change
+  // constantly during agent activity and don't affect terminal rendering.
+  // Only the initializing/error states matter (they render a spinner/error
+  // instead of SessionTerminal).
   const terminalSessionKey = useMemo(() =>
     sessions.filter(s => !s.isArchived)
-      .map(s => `${s.id}|${s.directory}|${s.isRestored}|${s.agentId}|${s.repoId}|${s.status}`)
+      .map(s => `${s.id}|${s.directory}|${s.isRestored}|${s.agentId}|${s.repoId}|${s.status === 'initializing'}|${s.initError ?? ''}`)
       .join(','),
     [sessions]
   )
