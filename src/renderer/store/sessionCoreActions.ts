@@ -207,13 +207,6 @@ export function createInstantSetupActions(get: StoreGet, set: StoreSet) {
 }
 
 export function createCoreActions(get: StoreGet, set: StoreSet) {
-  const updateSessionBranch = (id: string, branch: string) => {
-    const { sessions } = get()
-    set({
-      sessions: sessions.map((s) => (s.id === id ? { ...s, branch } : s)),
-    })
-  }
-
   return {
     loadSessions: async (profileId?: string) => {
       if (profileId !== undefined) {
@@ -410,22 +403,6 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
       set({ activeSessionId: id })
     },
 
-    updateSessionBranch,
-
     ...createInstantSetupActions(get, set),
-
-    refreshAllBranches: async () => {
-      const { sessions } = get()
-      await Promise.all(sessions.map(async (session) => {
-        try {
-          const branch = await window.git.getBranch(session.directory)
-          if (branch !== session.branch) {
-            updateSessionBranch(session.id, branch)
-          }
-        } catch {
-          // Ignore errors for individual sessions (e.g. deleted directories)
-        }
-      }))
-    },
   }
 }

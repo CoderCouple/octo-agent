@@ -28,7 +28,6 @@ import { useSessionLifecycle } from './hooks/useSessionLifecycle'
 import { useAppCallbacks } from './hooks/useAppCallbacks'
 import { usePanelsMap } from './hooks/usePanelsMap'
 import { useHelpMenu } from './hooks/useHelpMenu'
-import { useGitBranchWatcher } from './hooks/useGitBranchWatcher'
 import { useSessionKeyboardCallbacks } from './hooks/useSessionKeyboardCallbacks'
 import { focusSearchInput } from './utils/focusHelpers'
 import { useMenuButton } from './hooks/useMenuButton'
@@ -144,10 +143,8 @@ function AppContent() {
     setActiveSession, togglePanel, toggleGlobalPanel, setSidebarWidth, setToolbarPanels,
     selectFile, setExplorerFilter, setFileViewerPosition, updateLayoutSize, markSessionRead,
     markHasHadCommits, clearHasHadCommits, updateBranchStatus, updatePrState, updateReviewStatus, archiveSession,
-    unarchiveSession, setPanelVisibility, updateSessionBranch, closeCommandsEditor,
+    unarchiveSession, setPanelVisibility, closeCommandsEditor,
   } = useMemo(() => useSessionStore.getState(), [])
-
-  useGitBranchWatcher({ sessions, activeSessionId, updateSessionBranch })
   const { agents, loadAgents } = useAgentStore()
   const { repos, loadRepos, loadError: repoLoadError, checkGhAvailability, checkGitAvailability } = useRepoStore()
   const { currentProfileId, profiles, loadProfiles, switchProfile } = useProfileStore()
