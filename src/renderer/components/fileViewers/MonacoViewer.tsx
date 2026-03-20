@@ -391,7 +391,7 @@ function MonacoViewerComponent({ filePath, content, onSave, onDirtyChange, scrol
 }
 
 // Re-export from utility module for backwards compatibility
-export { isTextContent } from '../../utils/textDetection'
+export { isTextContent } from '../../shared/utils/textDetection'
 
 export const MonacoViewer: FileViewerPlugin = {
   id: 'monaco',

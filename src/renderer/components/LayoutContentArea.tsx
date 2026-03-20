@@ -4,8 +4,8 @@
 import { ReactNode, RefObject } from 'react'
 import type { LayoutSizes, FileViewerPosition } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
-import type { DividerType } from '../hooks/useDividerResize'
-import PanelErrorBoundary from './PanelErrorBoundary'
+import type { DividerType } from '../shared/hooks/useDividerResize'
+import PanelErrorBoundary from '../shared/components/PanelErrorBoundary'
 import { Divider } from './Divider'
 
 function FlashOverlay({ panelId, flashedPanel }: { panelId: string; flashedPanel: string | null }) {

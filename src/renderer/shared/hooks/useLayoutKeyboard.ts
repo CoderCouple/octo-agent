@@ -2,7 +2,7 @@
  * Registers global keyboard shortcuts for panel toggling, session navigation, file search, and other layout actions.
  */
 import { ReactNode, useEffect, useState, useCallback, useRef } from 'react'
-import { PANEL_IDS, MAX_SHORTCUT_PANELS } from '../panels'
+import { PANEL_IDS, MAX_SHORTCUT_PANELS } from '../../panels'
 import { focusPanel, focusAdjacentPanel, setLastFocusedPanel } from '../utils/focusHelpers'
 
 interface UseLayoutKeyboardParams {

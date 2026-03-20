@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useSessionStore } from '../../store/sessions'
 import type { ManagedRepo, GitHubPrForReview, AgentData } from '../../../preload/index'
-import { DialogErrorBanner } from '../ErrorBanner'
+import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 import { useListKeyboardNav } from './useListKeyboardNav'
 
 async function createReviewWorktree(repo: ManagedRepo, pr: GitHubPrForReview): Promise<{ worktreePath: string; error?: string }> {

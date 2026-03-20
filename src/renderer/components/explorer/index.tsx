@@ -10,8 +10,8 @@ import { SearchPanel } from './SearchPanel'
 import { RecentFiles } from './RecentFiles'
 import ReviewPanel from '../review'
 import { IssuePlanChip } from './IssuePlanChip'
-import { focusSearchInput } from '../../utils/focusHelpers'
-import PanelErrorBoundary from '../PanelErrorBoundary'
+import { focusSearchInput } from '../../shared/utils/focusHelpers'
+import PanelErrorBoundary from '../../shared/components/PanelErrorBoundary'
 import { useSessionStore } from '../../store/sessions'
 
 export default function Explorer({

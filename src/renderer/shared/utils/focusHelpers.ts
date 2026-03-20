@@ -2,8 +2,8 @@
  * Utilities for programmatically focusing terminal inputs and explorer search,
  * and tracking per-session focused panel for restoration on session switch.
  */
-import { useSessionStore } from '../store/sessions'
-import { PANEL_IDS } from '../panels'
+import { useSessionStore } from '../../store/sessions'
+import { PANEL_IDS } from '../../panels'
 
 const AGENT_TAB_ID = '__agent__'
 

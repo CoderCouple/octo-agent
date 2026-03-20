@@ -2,8 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAppCallbacks } from './useAppCallbacks'
-import { useErrorStore } from '../store/errors'
-import { allowConsoleError } from '../../test/console-guard'
+import { useErrorStore } from '../../store/errors'
+import { allowConsoleError } from '../../../test/console-guard'
 
 // Build a default deps object with fresh mocks for every test
 function makeDeps(overrides: Partial<Parameters<typeof useAppCallbacks>[0]> = {}) {

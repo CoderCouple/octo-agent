@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import '../../test/react-setup'
+import '../../../test/react-setup'
 import { useMenuButton } from './useMenuButton'
 
 beforeEach(() => {
@@ -62,7 +62,7 @@ describe('useMenuButton', () => {
     const { result } = renderHook(() => useMenuButton(deps))
     await act(async () => { await result.current.handleMenuButtonClick() })
     // Tutorial store resetProgress was called — verify via store state
-    const { useTutorialStore } = await import('../store/tutorial')
+    const { useTutorialStore } = await import('../../store/tutorial')
     expect(useTutorialStore.getState()).toBeDefined()
   })
 

@@ -2,7 +2,7 @@
  * Manages file navigation state including diff mode, scroll-to-line, search highlights, and dirty-file save coordination across sessions.
  */
 import { useState, useCallback, useRef } from 'react'
-import { resolveNavigation, applyPendingNavigation, type NavigationTarget } from '../utils/fileNavigation'
+import { resolveNavigation, applyPendingNavigation, type NavigationTarget } from '../shared/utils/fileNavigation'
 
 export function useFileNavigation({
   activeSessionId,

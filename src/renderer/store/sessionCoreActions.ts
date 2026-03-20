@@ -16,7 +16,7 @@ import {
   EXPLORER_MIN, EXPLORER_MAX,
   FILE_VIEWER_MIN_HEIGHT,
   TUTORIAL_MIN, TUTORIAL_MAX,
-} from '../hooks/useDividerResize'
+} from '../shared/hooks/useDividerResize'
 
 export const DEFAULT_SIDEBAR_WIDTH = 224 // 14rem = 224px
 

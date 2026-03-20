@@ -3,7 +3,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ManagedRepo, GitHubIssue } from '../../../preload/index'
-import { DialogErrorBanner } from '../ErrorBanner'
+import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 import { useListKeyboardNav } from './useListKeyboardNav'
 
 export function IssuesView({

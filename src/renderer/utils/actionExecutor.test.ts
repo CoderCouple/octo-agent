@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import '../../test/react-setup'
 
-vi.mock('./focusHelpers', () => ({
+vi.mock('../shared/utils/focusHelpers', () => ({
   sendAgentPrompt: vi.fn().mockResolvedValue(undefined),
   focusAgentTerminal: vi.fn(),
 }))
@@ -123,7 +123,7 @@ describe('executeAction - shell', () => {
 
 describe('executeAction - agent', () => {
   it('sends prompt to agent terminal', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent',
@@ -165,7 +165,7 @@ describe('executeAction - agent', () => {
   })
 
   it('uses agent-specific prompt override', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent',
@@ -178,7 +178,7 @@ describe('executeAction - agent', () => {
   })
 
   it('falls back to default prompt when agent type has no override', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent',
@@ -192,7 +192,7 @@ describe('executeAction - agent', () => {
   })
 
   it('falls back to label when no prompt is set', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent', showWhen: [],
@@ -203,7 +203,7 @@ describe('executeAction - agent', () => {
   })
 
   it('uses aider override when current agent is aider', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent',
@@ -220,7 +220,7 @@ describe('executeAction - agent', () => {
   })
 
   it('falls back to base prompt when override prompt is empty', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent',
@@ -233,7 +233,7 @@ describe('executeAction - agent', () => {
   })
 
   it('resolves template vars in agent override prompt', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'pr', label: 'Create PR', type: 'agent',
@@ -246,7 +246,7 @@ describe('executeAction - agent', () => {
   })
 
   it('uses base prompt when agentId is null', async () => {
-    const { sendAgentPrompt } = await import('./focusHelpers')
+    const { sendAgentPrompt } = await import('../shared/utils/focusHelpers')
 
     const action: ActionDefinition = {
       id: 'commit', label: 'Commit', type: 'agent',

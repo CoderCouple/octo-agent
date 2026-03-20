@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
-import '../../test/react-setup'
+import '../../../test/react-setup'
 import CrashRecoveryBanner from './CrashRecoveryBanner'
-import type { CrashReport } from '../../preload/apis/types'
+import type { CrashReport } from '../../../preload/apis/types'
 
 const mockCrashReport: CrashReport = {
   timestamp: '2026-01-01T00:00:00.000Z',

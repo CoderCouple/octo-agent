@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import VersionIndicator from './VersionIndicator'
-import { useUpdateStore } from '../hooks/useUpdateState'
+import { useUpdateStore } from '../shared/hooks/useUpdateState'
 import type { Decorator } from '@storybook/react'
 
 const withUpdateAvailable: Decorator = (Story) => {

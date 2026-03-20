@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import type { ManagedRepo } from '../../../preload/index'
 import type { BranchInfo } from './types'
-import { DialogErrorBanner } from '../ErrorBanner'
+import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 
 async function fetchBranchList(repo: ManagedRepo): Promise<{ branches: BranchInfo[]; error?: string }> {
   try {

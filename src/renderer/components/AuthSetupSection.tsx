@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { AuthTerminal } from './AuthTerminal'
 import { GitIdentitySetup, isGitConfigError } from './GitIdentitySetup'
-import { DialogErrorBanner } from './ErrorBanner'
+import { DialogErrorBanner } from '../shared/components/ErrorBanner'
 
 export const AUTH_ERROR_MARKERS = [
   'could not authenticate',

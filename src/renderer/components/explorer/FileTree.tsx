@@ -4,11 +4,11 @@
 import React, { useEffect, useRef, useCallback, memo } from 'react'
 import type { GitFileStatus } from '../../../preload/index'
 import type { TreeNode } from './types'
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 import { StatusBadge } from './icons'
 import { statusLabel, getStatusColor } from '../../utils/explorerHelpers'
 import { useFileTree, navigateTreeItem } from '../../hooks/useFileTree'
-import { DialogErrorBanner } from '../ErrorBanner'
+import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 
 function handleTreeKeyDown(
   e: React.KeyboardEvent<HTMLDivElement>,

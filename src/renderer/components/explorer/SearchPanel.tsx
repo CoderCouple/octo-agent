@@ -4,8 +4,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import type { SearchResult } from '../../../preload/index'
 import type { SearchTreeNode } from './types'
-import type { NavigationTarget } from '../../utils/fileNavigation'
-import { DialogErrorBanner } from '../ErrorBanner'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
+import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 import { useSessionStore } from '../../store/sessions'
 
 interface SearchPanelProps {

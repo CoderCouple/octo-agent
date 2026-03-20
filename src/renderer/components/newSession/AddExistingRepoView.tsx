@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
-import { DialogErrorBanner } from '../ErrorBanner'
+import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 import { IsolationSettings } from '../IsolationSettings'
 import type { DevcontainerStatus } from '../../../preload/index'
 

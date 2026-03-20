@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '../../store/agents'
-import { getAgentInstallUrl } from '../../utils/agentInstallUrls'
+import { getAgentInstallUrl } from '../../shared/utils/agentInstallUrls'
 
 export function AgentPickerView({
   directory,

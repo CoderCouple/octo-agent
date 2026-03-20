@@ -3,7 +3,7 @@
  * Uses a ResizeObserver on the main content area to detect size changes.
  */
 import { useEffect, RefObject } from 'react'
-import type { LayoutSizes } from '../store/sessions'
+import type { LayoutSizes } from '../../store/sessions'
 import {
   SIDEBAR_MIN,
   EXPLORER_MIN,

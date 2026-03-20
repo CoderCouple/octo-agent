@@ -6,8 +6,8 @@ import { useAgentStore } from '../../store/agents'
 import { useRepoStore } from '../../store/repos'
 import { useSessionStore } from '../../store/sessions'
 import type { ManagedRepo, GitHubIssue } from '../../../preload/index'
-import { issueToBranchName } from '../../utils/slugify'
-import { DialogErrorBanner } from '../ErrorBanner'
+import { issueToBranchName } from '../../shared/utils/slugify'
+import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 import { AuthSetupSection } from '../AuthSetupSection'
 
 export function NewBranchView({

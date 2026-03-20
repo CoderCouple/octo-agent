@@ -20,7 +20,7 @@ vi.mock('../hooks/useTerminalSetup', () => ({
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}))
 
 // Mock agentInstallUrls
-vi.mock('../utils/agentInstallUrls', () => ({
+vi.mock('../shared/utils/agentInstallUrls', () => ({
   getAgentInstallUrl: (cmd: string) => {
     if (cmd === 'claude') return 'https://docs.anthropic.com/en/docs/claude-code/overview'
     return null

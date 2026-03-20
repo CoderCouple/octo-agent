@@ -5,7 +5,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus, PrState } from '../../store/sessions'
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 import { useSourceControlData } from './useSourceControlData'
 import { useSourceControlActions } from './useSourceControlActions'
 import { SCViewToggle } from './SCViewToggle'

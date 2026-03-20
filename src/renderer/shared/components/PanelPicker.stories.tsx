@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import PanelPicker from './PanelPicker'
-import { withPanelProvider } from '../../../.storybook/decorators'
-import { DEFAULT_TOOLBAR_PANELS } from '../panels/system/types'
+import { withPanelProvider } from '../../../../.storybook/decorators'
+import { DEFAULT_TOOLBAR_PANELS } from '../../panels/system/types'
 
 const meta: Meta<typeof PanelPicker> = {
   title: 'UI/PanelPicker',

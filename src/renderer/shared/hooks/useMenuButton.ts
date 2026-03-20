@@ -3,7 +3,7 @@
  * Calls window.menu.appMenuPopup() and dispatches results to the appropriate handlers.
  */
 import { useEffect, useState, useCallback } from 'react'
-import { useTutorialStore } from '../store/tutorial'
+import { useTutorialStore } from '../../store/tutorial'
 
 export function useMenuButton(deps: {
   setShowPanelPicker: (v: boolean) => void

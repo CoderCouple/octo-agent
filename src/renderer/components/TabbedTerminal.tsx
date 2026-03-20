@@ -11,7 +11,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import Terminal from './Terminal'
 import TerminalTabBar from './TerminalTabBar'
 import ContainerInfoPanel from './ContainerInfoPanel'
-import PanelErrorBoundary from './PanelErrorBoundary'
+import PanelErrorBoundary from '../shared/components/PanelErrorBoundary'
 import { useSessionStore } from '../store/sessions'
 import type { TerminalTab } from '../store/sessions'
 

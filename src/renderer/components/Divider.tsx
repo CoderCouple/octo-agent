@@ -3,7 +3,7 @@
  *
  * Renders a 1px visible line with a wider invisible hit area for easier grabbing.
  */
-import type { DividerType } from '../hooks/useDividerResize'
+import type { DividerType } from '../shared/hooks/useDividerResize'
 
 interface DividerProps {
   type: NonNullable<DividerType>

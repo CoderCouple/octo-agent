@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import '../../test/react-setup'
+import '../../../test/react-setup'
 import { sendAgentPrompt, focusAgentTerminal, focusActiveTerminal, focusSearchInput, setLastFocusedPanel, getLastFocusedPanel, clearLastFocusedPanel, focusPanel, focusAdjacentPanel, restoreSessionFocus } from './focusHelpers'
-import { useSessionStore } from '../store/sessions'
+import { useSessionStore } from '../../store/sessions'
 
 beforeEach(() => {
   vi.clearAllMocks()

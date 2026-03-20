@@ -1,7 +1,7 @@
 /**
  * Banner showing app update availability, download progress, and install readiness.
  */
-import { useUpdateState } from '../../hooks/useUpdateState'
+import { useUpdateState } from '../../shared/hooks/useUpdateState'
 
 export default function UpdateBanner() {
   const { updateState, handleDownload, setPopoverOpen } = useUpdateState()

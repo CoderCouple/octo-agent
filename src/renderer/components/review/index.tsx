@@ -12,13 +12,13 @@ import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus } from '../../store/sessions'
 import type { FetchingStatus } from './useReviewData'
 import { CollapsibleSection } from './CollapsibleSection'
-import { createMarkdownComponents } from '../../utils/markdownComponents'
+import { createMarkdownComponents } from '../../shared/utils/markdownComponents'
 import { useReviewData } from './useReviewData'
 import { useReviewActions } from './useReviewActions'
 import { useCommandsConfig } from '../../hooks/useCommandsConfig'
 import { computeConditionState } from '../../utils/conditionState'
 import type { TemplateVars } from '../../utils/commandsConfig'
-import { ActionButtons } from '../explorer/ActionButtons'
+import { ActionButtons } from '../../shared/components/ActionButtons'
 
 /** Split markdown into sections by `## ` headings (skipping headings inside fenced code blocks) */
 function splitMarkdownSections(markdown: string): { title: string; body: string }[] {

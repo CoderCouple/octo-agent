@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import ErrorDetailModal from './ErrorDetailModal'
-import { useErrorStore } from '../store/errors'
+import { useErrorStore } from '../../store/errors'
 import type { Decorator } from '@storybook/react'
 
 const withErrorDetail: Decorator = (Story) => {

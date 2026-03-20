@@ -11,7 +11,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { FileViewerPlugin, FileViewerComponentProps } from './types'
 import { matchesExtensions } from './types'
-import { createMarkdownComponents } from '../../utils/markdownComponents'
+import { createMarkdownComponents } from '../../shared/utils/markdownComponents'
 import FindBar from './FindBar'
 
 const MARKDOWN_EXTENSIONS = ['md', 'markdown', 'mdx']

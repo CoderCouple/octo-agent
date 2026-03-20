@@ -2,9 +2,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import VersionIndicator from './VersionIndicator'
-import { useUpdateState } from '../hooks/useUpdateState'
+import { useUpdateState } from '../shared/hooks/useUpdateState'
 
-vi.mock('../hooks/useUpdateState', () => ({
+vi.mock('../shared/hooks/useUpdateState', () => ({
   useUpdateState: vi.fn(),
 }))
 

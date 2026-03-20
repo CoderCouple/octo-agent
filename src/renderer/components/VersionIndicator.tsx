@@ -1,7 +1,7 @@
 /**
  * Compact version badge with a popover for downloading and installing app updates.
  */
-import { useUpdateState } from '../hooks/useUpdateState'
+import { useUpdateState } from '../shared/hooks/useUpdateState'
 
 export default function VersionIndicator() {
   const {

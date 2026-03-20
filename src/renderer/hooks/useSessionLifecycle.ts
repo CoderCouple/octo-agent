@@ -5,8 +5,8 @@ import { useEffect, useCallback, useState, useMemo, useRef } from 'react'
 import type { Session } from '../store/sessions'
 import type { ProfileData } from '../store/profiles'
 import { terminalBufferRegistry } from '../utils/terminalBufferRegistry'
-import { loadMonacoProjectContext } from '../utils/monacoProjectContext'
-import { restoreSessionFocus } from '../utils/focusHelpers'
+import { loadMonacoProjectContext } from '../shared/utils/monacoProjectContext'
+import { restoreSessionFocus } from '../shared/utils/focusHelpers'
 
 export function useSessionLifecycle({
   sessions,

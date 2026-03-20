@@ -4,13 +4,13 @@ import { renderHook, act } from '@testing-library/react'
 import { useFileNavigation } from './useFileNavigation'
 
 // Mock the fileNavigation utility module
-vi.mock('../utils/fileNavigation', () => ({
+vi.mock('../shared/utils/fileNavigation', () => ({
   resolveNavigation: vi.fn(),
   applyPendingNavigation: vi.fn(),
 }))
 
-import { resolveNavigation, applyPendingNavigation } from '../utils/fileNavigation'
-import type { NavigationTarget, NavigationState } from '../utils/fileNavigation'
+import { resolveNavigation, applyPendingNavigation } from '../shared/utils/fileNavigation'
+import type { NavigationTarget, NavigationState } from '../shared/utils/fileNavigation'
 
 function makeParams(overrides: Partial<Parameters<typeof useFileNavigation>[0]> = {}) {
   return {

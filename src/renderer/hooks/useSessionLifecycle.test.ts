@@ -17,7 +17,7 @@ vi.mock('../utils/terminalBufferRegistry', () => ({
 }))
 
 // Mock monacoProjectContext
-vi.mock('../utils/monacoProjectContext', () => ({
+vi.mock('../shared/utils/monacoProjectContext', () => ({
   loadMonacoProjectContext: vi.fn().mockResolvedValue(undefined),
 }))
 
@@ -376,7 +376,7 @@ describe('useSessionLifecycle', () => {
 
   describe('Monaco project context loading', () => {
     it('loads Monaco project context when active session directory changes', async () => {
-      const { loadMonacoProjectContext } = await import('../utils/monacoProjectContext')
+      const { loadMonacoProjectContext } = await import('../shared/utils/monacoProjectContext')
       const params = makeHookParams()
       renderLifecycleHook(params)
 
@@ -384,7 +384,7 @@ describe('useSessionLifecycle', () => {
     })
 
     it('does not load Monaco context when activeSession has no directory', async () => {
-      const { loadMonacoProjectContext } = await import('../utils/monacoProjectContext')
+      const { loadMonacoProjectContext } = await import('../shared/utils/monacoProjectContext')
       vi.mocked(loadMonacoProjectContext).mockClear()
 
       const params = makeHookParams({

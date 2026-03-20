@@ -6,7 +6,7 @@
  */
 import type { ActionDefinition, TemplateVars } from './commandsConfig'
 import { resolveTemplateVars, detectAgentType } from './commandsConfig'
-import { sendAgentPrompt } from './focusHelpers'
+import { sendAgentPrompt } from '../shared/utils/focusHelpers'
 import { useAgentStore, type AgentConfig } from '../store/agents'
 
 export interface ActionExecutionContext {

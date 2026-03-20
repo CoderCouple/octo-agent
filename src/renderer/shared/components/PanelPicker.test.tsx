@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import '../../test/react-setup'
+import '../../../test/react-setup'
 import PanelPicker from './PanelPicker'
-import { PanelProvider, DEFAULT_TOOLBAR_PANELS, PANEL_IDS } from '../panels'
+import { PanelProvider, DEFAULT_TOOLBAR_PANELS, PANEL_IDS } from '../../panels'
 
 afterEach(() => {
   cleanup()

@@ -7,8 +7,8 @@
  * Changes are persisted immediately via the onToolbarPanelsChange callback.
  */
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { usePanelRegistry, MAX_SHORTCUT_PANELS } from '../panels'
-import type { PanelDefinition } from '../panels'
+import { usePanelRegistry, MAX_SHORTCUT_PANELS } from '../../panels'
+import type { PanelDefinition } from '../../panels'
 
 interface PanelPickerProps {
   toolbarPanels: string[]

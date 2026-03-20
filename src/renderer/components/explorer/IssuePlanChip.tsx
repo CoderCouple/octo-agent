@@ -2,7 +2,7 @@
  * Chip component that displays a link to view the issue plan when one exists.
  * The "plan issue" action is now handled by the action system in commands.json.
  */
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 
 const ClipboardIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

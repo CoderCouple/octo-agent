@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import '../../test/react-setup'
+import '../../../test/react-setup'
 import ErrorDetailModal from './ErrorDetailModal'
-import { useErrorStore, type AppError } from '../store/errors'
+import { useErrorStore, type AppError } from '../../store/errors'
 
 afterEach(() => {
   cleanup()

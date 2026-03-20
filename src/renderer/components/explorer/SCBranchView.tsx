@@ -1,7 +1,7 @@
 /**
  * Source control view showing all files changed on the current branch relative to its base.
  */
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 import { StatusBadge } from './icons'
 import { statusLabel, getStatusColor } from '../../utils/explorerHelpers'
 

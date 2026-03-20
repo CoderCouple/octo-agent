@@ -2,8 +2,8 @@
  * Handles help menu events from the main process and manages visibility state for help and keyboard shortcuts modals.
  */
 import { useState, useEffect } from 'react'
-import type { HelpMenuEvent } from '../../preload/index'
-import { useTutorialStore } from '../store/tutorial'
+import type { HelpMenuEvent } from '../../../preload/index'
+import { useTutorialStore } from '../../store/tutorial'
 
 export function useHelpMenu(currentProfileId: string | undefined) {
   const { loadTutorial, resetProgress: resetTutorial } = useTutorialStore()

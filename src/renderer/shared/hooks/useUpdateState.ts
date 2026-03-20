@@ -3,7 +3,7 @@
  */
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import type { UpdateCheckResult } from '../../preload/apis/shell'
+import type { UpdateCheckResult } from '../../../preload/apis/shell'
 
 export type UpdateState =
   | { status: 'idle' }

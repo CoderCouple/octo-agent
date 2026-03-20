@@ -3,7 +3,7 @@
  */
 import type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRepo } from '../../../preload/index'
 import type { ExplorerFilter, BranchStatus, PrState, Session } from '../../store/sessions'
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 
 export interface ExplorerProps {
   directory?: string

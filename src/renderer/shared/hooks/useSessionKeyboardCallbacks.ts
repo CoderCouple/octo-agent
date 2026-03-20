@@ -2,8 +2,8 @@
  * Provides memoized keyboard callback handlers for session navigation, panel toggling, archiving, and terminal tab switching.
  */
 import { useCallback } from 'react'
-import { PANEL_IDS } from '../panels'
-import type { Session } from '../store/sessions'
+import { PANEL_IDS } from '../../panels'
+import type { Session } from '../../store/sessions'
 
 const AGENT_TAB_ID = '__agent__'
 

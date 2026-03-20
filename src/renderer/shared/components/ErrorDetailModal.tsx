@@ -5,7 +5,7 @@
  * in a scrollable monospace box (if different from the display message).
  * Follows existing modal patterns (fixed overlay, z-50, centered card).
  */
-import { useErrorStore } from '../store/errors'
+import { useErrorStore } from '../../store/errors'
 
 export default function ErrorDetailModal() {
   const { detailError, hideErrorDetail } = useErrorStore()

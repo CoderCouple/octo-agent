@@ -7,12 +7,12 @@
 import { useState, useCallback, memo } from 'react'
 import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus } from '../../store/sessions'
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 import type { ActionDefinition, ConditionState, TemplateVars } from '../../utils/commandsConfig'
 import { StatusBadge, BranchStatusCard } from './icons'
 import { statusLabel, getStatusColor } from '../../utils/explorerHelpers'
 import { CommitMessageDialog } from './CommitMessageDialog'
-import { ActionButtons } from './ActionButtons'
+import { ActionButtons } from '../../shared/components/ActionButtons'
 
 export interface SCWorkingViewProps {
   directory: string

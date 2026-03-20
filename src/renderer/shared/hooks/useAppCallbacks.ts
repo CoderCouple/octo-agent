@@ -2,13 +2,13 @@
  * Provides memoized callback functions for top-level app actions such as session management, panel toggling, and layout updates.
  */
 import { useCallback } from 'react'
-import { type Session, type LayoutSizes } from '../store/sessions'
-import { PANEL_IDS } from '../panels'
-import type { AgentConfig } from '../store/agents'
-import type { PrState } from '../utils/branchStatus'
-import type { DuplicateSessionResult } from '../store/sessionCoreActions'
+import { type Session, type LayoutSizes } from '../../store/sessions'
+import { PANEL_IDS } from '../../panels'
+import type { AgentConfig } from '../../store/agents'
+import type { PrState } from '../../utils/branchStatus'
+import type { DuplicateSessionResult } from '../../store/sessionCoreActions'
 import { restoreSessionFocus } from '../utils/focusHelpers'
-import { useBackgroundInit } from './useBackgroundInit'
+import { useBackgroundInit } from '../../hooks/useBackgroundInit'
 
 
 interface AppCallbacksDeps {

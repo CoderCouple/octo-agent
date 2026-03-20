@@ -13,8 +13,8 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useTerminalSetup } from '../hooks/useTerminalSetup'
 import type { TerminalConfig, ExitInfo } from '../hooks/useTerminalSetup'
 import { useErrorStore } from '../store/errors'
-import { getAgentInstallUrl } from '../utils/agentInstallUrls'
-import { sendAgentPrompt } from '../utils/focusHelpers'
+import { getAgentInstallUrl } from '../shared/utils/agentInstallUrls'
+import { sendAgentPrompt } from '../shared/utils/focusHelpers'
 import '@xterm/xterm/css/xterm.css'
 
 interface TerminalProps {

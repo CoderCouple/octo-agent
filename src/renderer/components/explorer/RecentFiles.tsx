@@ -1,7 +1,7 @@
 /**
  * Displays a list of recently opened files with keyboard navigation support.
  */
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 
 export function RecentFiles({
   recentFiles,

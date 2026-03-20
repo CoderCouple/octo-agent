@@ -3,7 +3,7 @@
  */
 import { useMemo, useState, useEffect, useCallback, memo } from 'react'
 import TabbedTerminal from '../components/TabbedTerminal'
-import PanelErrorBoundary from '../components/PanelErrorBoundary'
+import PanelErrorBoundary from '../shared/components/PanelErrorBoundary'
 import Explorer from '../components/explorer'
 import FileViewer from '../components/FileViewer'
 import { CommandsEditor } from '../components/CommandsEditor'
@@ -17,7 +17,7 @@ import { useIssuePlanDetection } from './useIssuePlanDetection'
 import type { FileStatus, ViewMode } from '../components/FileViewer'
 import type { GitFileStatus, GitStatusResult, ManagedRepo } from '../../preload/index'
 import type { ExplorerFilter, PrState } from '../store/sessions'
-import type { NavigationTarget } from '../utils/fileNavigation'
+import type { NavigationTarget } from '../shared/utils/fileNavigation'
 
 /** Wrapper that subscribes each session terminal to its own visibility from the store. */
 const SessionTerminal = memo(function SessionTerminal({

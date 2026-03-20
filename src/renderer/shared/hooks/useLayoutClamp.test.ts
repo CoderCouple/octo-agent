@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useLayoutClamp } from './useLayoutClamp'
 import { SIDEBAR_MIN, EXPLORER_MIN, TUTORIAL_MIN, AGENT_MIN_WIDTH } from './useDividerResize'
-import type { LayoutSizes } from '../store/sessions'
+import type { LayoutSizes } from '../../store/sessions'
 
 type ResizeCallback = () => void
 

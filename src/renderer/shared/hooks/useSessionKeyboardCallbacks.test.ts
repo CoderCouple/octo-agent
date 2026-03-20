@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSessionKeyboardCallbacks } from './useSessionKeyboardCallbacks'
-import type { Session } from '../store/sessions'
+import type { Session } from '../../store/sessions'
 
 function makeSession(overrides: Partial<Session> = {}): Session {
   return {

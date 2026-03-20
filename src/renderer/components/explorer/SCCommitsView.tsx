@@ -2,7 +2,7 @@
  * Source control view listing branch commits with expandable per-commit file diffs.
  */
 import type { GitCommitInfo } from '../../../preload/index'
-import type { NavigationTarget } from '../../utils/fileNavigation'
+import type { NavigationTarget } from '../../shared/utils/fileNavigation'
 import { StatusBadge } from './icons'
 import { statusLabel, getStatusColor } from '../../utils/explorerHelpers'
 

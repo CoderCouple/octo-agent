@@ -5,7 +5,7 @@ import { renderHook, act } from '@testing-library/react'
 import { useLayoutKeyboard } from './useLayoutKeyboard'
 
 // Mock the panels module
-vi.mock('../panels', () => ({
+vi.mock('../../panels', () => ({
   PANEL_IDS: {
     SIDEBAR: 'sidebar',
     EXPLORER: 'explorer',

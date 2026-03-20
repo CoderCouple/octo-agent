@@ -2,11 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useHelpMenu } from './useHelpMenu'
-import { useTutorialStore } from '../store/tutorial'
-import type { HelpMenuEvent } from '../../preload/index'
+import { useTutorialStore } from '../../store/tutorial'
+import type { HelpMenuEvent } from '../../../preload/index'
 
 // Mock the tutorial store
-vi.mock('../store/tutorial', () => ({
+vi.mock('../../store/tutorial', () => ({
   useTutorialStore: vi.fn(),
 }))
 

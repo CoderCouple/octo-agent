@@ -5,7 +5,7 @@
  * humanizeError, and renders a styled banner. Clicking the message opens the
  * ErrorDetailModal for the full raw error text.
  */
-import { useErrorStore } from '../store/errors'
+import { useErrorStore } from '../../store/errors'
 import { humanizeError } from '../utils/knownErrors'
 
 interface DialogErrorBannerProps {
