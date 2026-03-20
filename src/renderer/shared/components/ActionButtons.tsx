@@ -3,9 +3,9 @@
  * Falls back to the default action set when no commands.json exists.
  */
 import { useState, useCallback } from 'react'
-import type { ActionDefinition, ConditionState, TemplateVars } from '../../utils/commandsConfig'
-import { evaluateShowWhen, resolveTemplateVars, getDefaultCommandsConfig, matchesSurface } from '../../utils/commandsConfig'
-import { executeAction, type ActionExecutionContext } from '../../utils/actionExecutor'
+import type { ActionDefinition, ConditionState, TemplateVars } from '../../features/commands/commandsConfig'
+import { evaluateShowWhen, resolveTemplateVars, getDefaultCommandsConfig, matchesSurface } from '../../features/commands/commandsConfig'
+import { executeAction, type ActionExecutionContext } from '../../features/commands/actionExecutor'
 
 interface ActionButtonsProps {
   actions: ActionDefinition[] | null // null = use defaults

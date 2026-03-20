@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import '../../../../../test/react-setup'
 
-vi.mock('../../../../utils/commandsConfig', async () => {
-  const actual = await vi.importActual('../../../../utils/commandsConfig')
+vi.mock('../../../../features/commands/commandsConfig', async () => {
+  const actual = await vi.importActual('../../../../features/commands/commandsConfig')
   return {
     ...actual,
     checkLegacyBroomyGitignore: vi.fn().mockResolvedValue(false),
@@ -62,7 +62,7 @@ describe('CommandsSetupDialog', () => {
   })
 
   it('shows legacy gitignore warning when detected', async () => {
-    const mod = await import('../../../../utils/commandsConfig')
+    const mod = await import('../../../../features/commands/commandsConfig')
     vi.mocked(mod.checkLegacyBroomyGitignore).mockResolvedValue(true)
 
     const { unmount } = render(<CommandsSetupDialog directory="/repo" onClose={vi.fn()} onCreated={vi.fn()} />)

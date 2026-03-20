@@ -2,7 +2,7 @@
  * SVG icon components and status badges used throughout the explorer panel.
  */
 import type { BranchStatus } from '../../store/sessions'
-import { statusLabel, statusBadgeColor } from '../../utils/explorerHelpers'
+import { statusLabel, statusBadgeColor } from '../../features/git/explorerHelpers'
 
 // Inline SVG icons
 export const FileTreeIcon = ({ className }: { className?: string }) => (

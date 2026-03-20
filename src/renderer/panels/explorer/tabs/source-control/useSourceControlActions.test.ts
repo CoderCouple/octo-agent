@@ -6,7 +6,7 @@ import { useSourceControlActions } from './useSourceControlActions'
 import type { SourceControlData } from './useSourceControlData'
 import { useSessionStore } from '../../../../store/sessions'
 
-vi.mock('../../../../utils/gitOperationProgress', () => ({
+vi.mock('../../../../features/git/gitOperationProgress', () => ({
   withGitProgress: vi.fn((_sessionId: string | null, fn: () => Promise<unknown>) => fn()),
 }))
 
@@ -743,7 +743,7 @@ describe('useSourceControlActions', () => {
 
   describe('withGitProgress integration', () => {
     it('wraps handleSync with progress tracking', async () => {
-      const { withGitProgress } = await import('../../../../utils/gitOperationProgress')
+      const { withGitProgress } = await import('../../../../features/git/gitOperationProgress')
       vi.mocked(window.git.pull).mockResolvedValue({ success: true })
       vi.mocked(window.git.push).mockResolvedValue({ success: true })
       const data = makeData()
@@ -760,7 +760,7 @@ describe('useSourceControlActions', () => {
     })
 
     it('wraps handleCommitMerge with progress tracking', async () => {
-      const { withGitProgress } = await import('../../../../utils/gitOperationProgress')
+      const { withGitProgress } = await import('../../../../features/git/gitOperationProgress')
       vi.mocked(window.git.commitMerge).mockResolvedValue({ success: true })
       const data = makeData()
 
@@ -776,7 +776,7 @@ describe('useSourceControlActions', () => {
     })
 
     it('wraps handleSyncWithMain with progress tracking', async () => {
-      const { withGitProgress } = await import('../../../../utils/gitOperationProgress')
+      const { withGitProgress } = await import('../../../../features/git/gitOperationProgress')
       vi.mocked(window.git.pullOriginMain).mockResolvedValue({ success: true })
       const data = makeData()
 

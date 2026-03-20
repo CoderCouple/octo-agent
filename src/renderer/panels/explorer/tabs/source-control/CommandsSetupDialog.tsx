@@ -9,7 +9,7 @@ import {
   ensureOutputGitignore,
   checkLegacyBroomyGitignore,
   removeLegacyBroomyGitignore,
-} from '../../../../utils/commandsConfig'
+} from '../../../../features/commands/commandsConfig'
 
 interface CommandsSetupDialogProps {
   directory: string

@@ -15,9 +15,9 @@ import { SCBranchView } from './SCBranchView'
 import { SCWorkingView } from './SCWorkingView'
 import { CommandsSetupBanner } from './CommandsSetupBanner'
 import { CommandsSetupDialog } from './CommandsSetupDialog'
-import { useCommandsConfig } from '../../../../hooks/useCommandsConfig'
-import { computeConditionState } from '../../../../utils/conditionState'
-import type { TemplateVars } from '../../../../utils/commandsConfig'
+import { useCommandsConfig } from '../../../../features/commands/hooks/useCommandsConfig'
+import { computeConditionState } from '../../../../features/commands/conditionState'
+import type { TemplateVars } from '../../../../features/commands/commandsConfig'
 
 interface SourceControlProps {
   directory?: string

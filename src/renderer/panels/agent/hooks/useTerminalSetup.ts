@@ -10,7 +10,7 @@ import { useSessionStore } from '../../../store/sessions'
 import { useRepoStore } from '../../../store/repos'
 import { terminalBufferRegistry } from '../utils/terminalBufferRegistry'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
-import { usePlanDetection } from '../../../hooks/usePlanDetection'
+import { usePlanDetection } from '../../../features/git/hooks/usePlanDetection'
 import { createPtyDataHandler } from './ptyDataHandler'
 
 export interface TerminalConfig {

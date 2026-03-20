@@ -4,7 +4,7 @@
 import type { GitFileStatus, GitStatusResult, GitHubPrStatus } from '../../../../../preload/index'
 import type { BranchStatus } from '../../../../store/sessions'
 import type { NavigationTarget } from '../../../../shared/utils/fileNavigation'
-import { prStateBadgeClass } from '../../../../utils/explorerHelpers'
+import { prStateBadgeClass } from '../../../../features/git/explorerHelpers'
 import { DialogErrorBanner } from '../../../../shared/components/ErrorBanner'
 import { useRepoStore } from '../../../../store/repos'
 import { AuthSetupSection, isAuthError } from '../../../../panels/settings/AuthSetupSection'

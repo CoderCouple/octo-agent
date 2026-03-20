@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import '../../../../../test/react-setup'
 import { SCWorkingView } from './SCWorkingView'
-import type { ConditionState, TemplateVars } from '../../../../utils/commandsConfig'
+import type { ConditionState, TemplateVars } from '../../../../features/commands/commandsConfig'
 
 afterEach(() => {
   cleanup()

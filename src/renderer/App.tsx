@@ -9,9 +9,9 @@
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Layout from './layout/Layout'
-import NewSessionDialog from './components/NewSessionDialog'
+import NewSessionDialog from './features/sessions/NewSessionDialog'
 import PanelPicker from './shared/components/PanelPicker'
-import ProfileChip from './components/ProfileChip'
+import ProfileChip from './features/profiles/ProfileChip'
 import HelpModal from './shared/components/HelpModal'
 import ShortcutsModal from './shared/components/ShortcutsModal'
 import { useSessionStore, type Session, type SessionStatus, type LayoutSizes } from './store/sessions'
@@ -22,9 +22,9 @@ import { useProfileStore } from './store/profiles'
 import { PanelProvider, PANEL_IDS } from './panels'
 import ErrorBoundary from './shared/components/ErrorBoundary'
 import ErrorDetailModal from './shared/components/ErrorDetailModal'
-import { useGitPolling } from './hooks/useGitPolling'
+import { useGitPolling } from './features/git/hooks/useGitPolling'
 import { useFileNavigation } from './panels/fileViewer/hooks/useFileNavigation'
-import { useSessionLifecycle } from './hooks/useSessionLifecycle'
+import { useSessionLifecycle } from './features/sessions/hooks/useSessionLifecycle'
 import { useAppCallbacks } from './shared/hooks/useAppCallbacks'
 import { usePanelsMap } from './hooks/usePanelsMap'
 import { useHelpMenu } from './shared/hooks/useHelpMenu'
@@ -135,7 +135,7 @@ function usePrAutoRefresh({ isLoading, sessions, refreshPrStatus, updatePrState 
   isLoading: boolean
   sessions: Session[]
   refreshPrStatus: () => Promise<void>
-  updatePrState: (sessionId: string, prState: import('./utils/branchStatus').PrState, prNumber?: number, prUrl?: string) => void
+  updatePrState: (sessionId: string, prState: import('./features/git/branchStatus').PrState, prNumber?: number, prUrl?: string) => void
 }) {
   const hasRefreshedOnStartup = useRef(false)
   useEffect(() => {

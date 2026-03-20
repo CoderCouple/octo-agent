@@ -5,7 +5,7 @@
  * agent-specific overrides that can be added/removed.
  */
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { ActionDefinition } from '../../utils/commandsConfig'
+import type { ActionDefinition } from '../../features/commands/commandsConfig'
 
 export function PromptVariants({
   action,

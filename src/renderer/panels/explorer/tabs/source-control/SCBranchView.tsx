@@ -3,7 +3,7 @@
  */
 import type { NavigationTarget } from '../../../../shared/utils/fileNavigation'
 import { StatusBadge } from '../../icons'
-import { statusLabel, getStatusColor } from '../../../../utils/explorerHelpers'
+import { statusLabel, getStatusColor } from '../../../../features/git/explorerHelpers'
 
 interface SCBranchViewProps {
   directory: string

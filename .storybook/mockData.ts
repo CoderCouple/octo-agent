@@ -1,5 +1,5 @@
 import type { Session, TerminalTabsState, LayoutSizes, ExplorerFilter, SessionStatus, FileViewerPosition } from '../src/renderer/store/sessions'
-import type { BranchStatus, PrState } from '../src/renderer/utils/branchStatus'
+import type { BranchStatus, PrState } from '../src/renderer/features/git/branchStatus'
 
 let counter = 0
 function nextId(prefix: string) {

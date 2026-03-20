@@ -15,9 +15,9 @@ import { CollapsibleSection } from './CollapsibleSection'
 import { createMarkdownComponents } from '../../../../shared/utils/markdownComponents'
 import { useReviewData } from './useReviewData'
 import { useReviewActions } from './useReviewActions'
-import { useCommandsConfig } from '../../../../hooks/useCommandsConfig'
-import { computeConditionState } from '../../../../utils/conditionState'
-import type { TemplateVars } from '../../../../utils/commandsConfig'
+import { useCommandsConfig } from '../../../../features/commands/hooks/useCommandsConfig'
+import { computeConditionState } from '../../../../features/commands/conditionState'
+import type { TemplateVars } from '../../../../features/commands/commandsConfig'
 import { ActionButtons } from '../../../../shared/components/ActionButtons'
 
 /** Split markdown into sections by `## ` headings (skipping headings inside fenced code blocks) */

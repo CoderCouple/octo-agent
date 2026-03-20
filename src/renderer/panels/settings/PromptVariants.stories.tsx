@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { PromptVariants } from './PromptVariants'
-import type { ActionDefinition } from '../../utils/commandsConfig'
+import type { ActionDefinition } from '../../features/commands/commandsConfig'
 import { useState } from 'react'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

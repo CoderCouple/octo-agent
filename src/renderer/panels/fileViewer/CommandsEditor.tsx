@@ -15,7 +15,7 @@ import {
   checkLegacyBroomyGitignore,
   removeLegacyBroomyGitignore,
   type ActionDefinition,
-} from '../../utils/commandsConfig'
+} from '../../features/commands/commandsConfig'
 import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
 import { ShowWhenPicker } from '../settings/ShowWhenPicker'
 import { PromptVariants } from '../settings/PromptVariants'

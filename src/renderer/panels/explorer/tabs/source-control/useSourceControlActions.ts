@@ -5,7 +5,7 @@
  * are now handled by the modular commands.json system via ActionButtons.
  */
 import type { SourceControlData } from './useSourceControlData'
-import { withGitProgress } from '../../../../utils/gitOperationProgress'
+import { withGitProgress } from '../../../../features/git/gitOperationProgress'
 import { useSessionStore } from '../../../../store/sessions'
 
 export interface SourceControlActionsProps {

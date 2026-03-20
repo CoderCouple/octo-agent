@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import '../../test/setup'
-import { computeBranchStatus } from '../utils/branchStatus'
-import type { BranchStatusInput } from '../utils/branchStatus'
+import { computeBranchStatus } from '../features/git/branchStatus'
+import type { BranchStatusInput } from '../features/git/branchStatus'
 
 function makeInput(overrides: Partial<BranchStatusInput> = {}): BranchStatusInput {
   return {

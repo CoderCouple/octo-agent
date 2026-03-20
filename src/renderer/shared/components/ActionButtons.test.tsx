@@ -3,13 +3,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import '../../../test/react-setup'
 
-vi.mock('../../utils/actionExecutor', () => ({
+vi.mock('../../features/commands/actionExecutor', () => ({
   executeAction: vi.fn().mockResolvedValue({ success: true }),
 }))
 
 import { ActionButtons } from './ActionButtons'
-import { executeAction } from '../../utils/actionExecutor'
-import type { ActionDefinition, ConditionState, TemplateVars } from '../../utils/commandsConfig'
+import { executeAction } from '../../features/commands/actionExecutor'
+import type { ActionDefinition, ConditionState, TemplateVars } from '../../features/commands/commandsConfig'
 
 beforeEach(() => { vi.clearAllMocks() })
 afterEach(() => { cleanup() })
