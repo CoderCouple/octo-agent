@@ -117,12 +117,15 @@ function usePrEffects(config: PrEffectsConfig) {
     setHasPrLoadedOnce(false)
   }
 
+  const refreshPr = () => setPrRefreshKey(k => k + 1)
+
   return {
     prStatus, isPrLoading,
     hasWriteAccess,
     checksStatus,
     hasPrLoadedOnce,
     resetPr,
+    refreshPr,
   }
 }
 

@@ -51,6 +51,7 @@ function makeData(overrides: Partial<SourceControlData> = {}): SourceControlData
     checksStatus: 'none' as const,
     hasPrLoadedOnce: true,
     resetPr: vi.fn(),
+    refreshPr: vi.fn(),
     currentRepo: undefined,
     gitStatus: [],
     isInitialLoading: false,
