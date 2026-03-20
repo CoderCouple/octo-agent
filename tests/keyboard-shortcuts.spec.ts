@@ -53,9 +53,10 @@ test.describe('Keyboard Shortcuts - Panel Toggles', () => {
     await page.keyboard.press('Meta+2')
     await expect(explorer).toBeVisible()
 
-    // Focus-or-toggle: press twice to ensure focus then hide
-    // (first press may focus if rAF hasn't completed, second hides)
-    await page.keyboard.press('Meta+2')
+    // Click the explorer to guarantee focus is there
+    await explorer.click()
+
+    // Hide explorer (visible+focused → hide)
     await page.keyboard.press('Meta+2')
     await expect(explorer).not.toBeVisible()
   })

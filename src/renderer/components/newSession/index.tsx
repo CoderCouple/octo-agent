@@ -1,7 +1,7 @@
 /**
  * Multi-step new session dialog that routes between repo selection, branch, clone, and agent picker views.
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { View, NewSessionDialogProps } from './types'
 import { HomeView } from './HomeView'
 import { CloneView } from './CloneView'
@@ -35,11 +35,47 @@ export function NewSessionDialog({ onComplete, onCancel, onStartBranch, onStartE
     return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [view.type])
 
+  // Trap Tab focus within the dialog
+  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Stop ALL key events from propagating to the terminal behind the dialog
+    e.stopPropagation()
+    e.nativeEvent.stopImmediatePropagation()
+
+    if (e.key === 'Tab') {
+      const dialog = dialogRef.current
+      if (!dialog) return
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ))
+      if (focusable.length === 0) return
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const activeIndex = focusable.indexOf(document.activeElement as HTMLElement)
+      const isAtEdgeOrOutside = activeIndex === -1
+
+      if (e.shiftKey) {
+        if (activeIndex === 0 || isAtEdgeOrOutside) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (activeIndex === focusable.length - 1 || isAtEdgeOrOutside) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+  }, [])
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         tabIndex={-1}
+        onKeyDown={handleDialogKeyDown}
         className="bg-bg-secondary rounded-lg shadow-xl border border-border w-full max-w-lg mx-4 outline-none"
       >
         {view.type === 'home' && (

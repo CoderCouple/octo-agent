@@ -135,8 +135,6 @@ interface SessionStore {
   addSession: (directory: string, agentId: string | null, extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string; sessionType?: 'default' | 'review'; prNumber?: number; prTitle?: string; prUrl?: string; prBaseBranch?: string; lastKnownPrState?: PrState }) => Promise<import('./sessionCoreActions').DuplicateSessionResult | undefined>
   removeSession: (id: string) => void
   setActiveSession: (id: string | null) => void
-  updateSessionBranch: (id: string, branch: string) => void
-  refreshAllBranches: () => Promise<void>
   // Generic panel actions
   togglePanel: (sessionId: string, panelId: string) => void
   toggleGlobalPanel: (panelId: string) => void

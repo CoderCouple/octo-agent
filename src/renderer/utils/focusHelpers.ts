@@ -3,6 +3,7 @@
  * and tracking per-session focused panel for restoration on session switch.
  */
 import { useSessionStore } from '../store/sessions'
+import { PANEL_IDS } from '../panels'
 
 const AGENT_TAB_ID = '__agent__'
 
@@ -16,9 +17,9 @@ export function setLastFocusedPanel(sessionId: string, panelId: string): void {
   lastFocusedPanelBySession.set(sessionId, panelId)
 }
 
-/** Get the last focused panel for a session (defaults to 'terminal'). */
+/** Get the last focused panel for a session (defaults to agent panel). */
 export function getLastFocusedPanel(sessionId: string): string {
-  return lastFocusedPanelBySession.get(sessionId) ?? 'terminal'
+  return lastFocusedPanelBySession.get(sessionId) ?? PANEL_IDS.AGENT
 }
 
 /** Remove tracking for a deleted session. */
@@ -68,7 +69,7 @@ export function focusAgentTerminal(): void {
   // from the agent tab) before we try to focus the textarea inside it.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      const container = document.querySelector('[data-panel-id="terminal"]')
+      const container = document.querySelector(`[data-panel-id="${PANEL_IDS.AGENT}"]`)
       if (!container) return
       const textarea = container.querySelector<HTMLElement>('.xterm-helper-textarea')
       textarea?.focus()
@@ -98,7 +99,7 @@ export async function sendAgentPrompt(agentPtyId: string, prompt: string): Promi
 export function focusActiveTerminal(): void {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      focusPanel('terminal')
+      focusPanel(PANEL_IDS.AGENT)
     })
   })
 }

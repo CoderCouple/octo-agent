@@ -32,7 +32,6 @@ export function useSourceControlActions({
   } = data
 
   const activeSessionId = useSessionStore((s) => s.activeSessionId)
-  const refreshBranches = () => { void useSessionStore.getState().refreshAllBranches() }
 
   const handleSync = async () => {
     if (!directory) return
@@ -57,7 +56,6 @@ export function useSourceControlActions({
           return
         }
         onGitStatusRefresh?.()
-        refreshBranches()
       })
     } catch (err) {
       setGitOpError({ operation: 'Sync', message: String(err) })

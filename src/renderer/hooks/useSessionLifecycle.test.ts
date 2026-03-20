@@ -286,8 +286,6 @@ describe('useSessionLifecycle', () => {
     })
   })
 
-  // Branch refresh polling was removed in favor of .git/HEAD file watchers (useGitBranchWatcher)
-
   describe('handleSwitchProfile', () => {
     it('calls switchProfile with the given profileId', async () => {
       const params = makeHookParams()

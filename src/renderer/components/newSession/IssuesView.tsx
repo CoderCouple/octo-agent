@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ManagedRepo, GitHubIssue } from '../../../preload/index'
 import { DialogErrorBanner } from '../ErrorBanner'
+import { useListKeyboardNav } from './useListKeyboardNav'
 
 export function IssuesView({
   repo,
@@ -78,6 +79,17 @@ export function IssuesView({
   const displayedIssues = isSearching ? searchResults : issues
   const isLoading = isSearching ? searchLoading : loading
 
+  const { focusedIndex, setFocusedIndex, listRef } = useListKeyboardNav({
+    items: displayedIssues,
+    onSelect: onSelectIssue,
+    dataAttribute: 'data-issue-row',
+  })
+
+  // Reset focus when switching between search and default list
+  useEffect(() => {
+    setFocusedIndex(0)
+  }, [isSearching, setFocusedIndex])
+
   return (
     <>
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
@@ -124,12 +136,16 @@ export function IssuesView({
         )}
 
         {!isLoading && displayedIssues.length > 0 && (
-          <div className="space-y-1">
-            {displayedIssues.map((issue) => (
+          <div className="space-y-1" ref={listRef}>
+            {displayedIssues.map((issue, index) => (
               <button
                 key={issue.number}
+                data-issue-row
                 onClick={() => onSelectIssue(issue)}
-                className="w-full flex items-start gap-3 p-2 rounded border border-border bg-bg-primary hover:bg-bg-tertiary hover:border-accent transition-colors text-left"
+                onMouseEnter={() => setFocusedIndex(index)}
+                className={`w-full flex items-start gap-3 p-2 rounded border transition-colors text-left ${
+                  index === focusedIndex ? 'bg-bg-tertiary border-accent ring-1 ring-accent/50' : 'border-border bg-bg-primary hover:bg-bg-tertiary hover:border-accent'
+                }`}
               >
                 <span className="text-accent font-mono text-xs mt-0.5 flex-shrink-0">#{issue.number}</span>
                 <div className="flex-1 min-w-0">

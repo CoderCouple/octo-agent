@@ -22,8 +22,8 @@ describe('DEFAULT_TOOLBAR_PANELS', () => {
       'sidebar',
       'explorer',
       'fileViewer',
-      'agent',
       'tutorial',
+      'agent',
       'settings',
     ])
   })

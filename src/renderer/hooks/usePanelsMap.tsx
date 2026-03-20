@@ -181,7 +181,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
             return (
               <div
                 key={session.id}
-                className={`absolute inset-0 ${isActive ? '' : 'hidden'}`}
+                className={`absolute inset-0 ${isActive ? '' : 'invisible pointer-events-none'}`}
               >
                 <CommandsEditor
                   directory={session.commandsEditorDirectory}
@@ -194,7 +194,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
           return (
             <div
               key={session.id}
-              className={`absolute inset-0 ${isActive ? '' : 'hidden'}`}
+              className={`absolute inset-0 ${isActive ? '' : 'invisible pointer-events-none'}`}
             >
               <FileViewer
                 filePath={session.selectedFilePath}
@@ -314,7 +314,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
 
   const panelsMap = useMemo(() => ({
     [PANEL_IDS.SIDEBAR]: sidebarPanel,
-    terminal: terminalPanel,
+    [PANEL_IDS.AGENT]: terminalPanel,
     [PANEL_IDS.EXPLORER]: explorerPanel,
     [PANEL_IDS.FILE_VIEWER]: fileViewerPanel,
     [PANEL_IDS.SETTINGS]: globalPanelVisibility[PANEL_IDS.SETTINGS] ? (
