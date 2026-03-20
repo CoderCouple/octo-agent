@@ -121,7 +121,7 @@ describe('per-session focus tracking', () => {
     clearLastFocusedPanel('s2')
   })
 
-  it('defaults to terminal when no panel has been tracked', () => {
+  it('defaults to agent when no panel has been tracked', () => {
     expect(getLastFocusedPanel('unknown')).toBe('agent')
   })
 
