@@ -20,7 +20,7 @@ function renderLayout(overrides: Record<string, unknown> = {}) {
       [PANEL_IDS.SIDEBAR]: <div data-testid="sidebar-content">Sidebar</div>,
       [PANEL_IDS.EXPLORER]: <div data-testid="explorer-content">Explorer</div>,
       [PANEL_IDS.FILE_VIEWER]: <div data-testid="fileviewer-content">FileViewer</div>,
-      terminal: <div data-testid="terminal-content">Terminal</div>,
+      [PANEL_IDS.AGENT]: <div data-testid="terminal-content">Terminal</div>,
       [PANEL_IDS.SETTINGS]: <div data-testid="settings-content">Settings</div>,
     },
     panelVisibility: {

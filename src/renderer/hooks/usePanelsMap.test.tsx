@@ -118,7 +118,7 @@ describe('usePanelsMap', () => {
     const { result } = renderHook(() => usePanelsMap(config))
 
     expect(result.current).toHaveProperty(PANEL_IDS.SIDEBAR)
-    expect(result.current).toHaveProperty('terminal')
+    expect(result.current).toHaveProperty(PANEL_IDS.AGENT)
     expect(result.current).toHaveProperty(PANEL_IDS.EXPLORER)
     expect(result.current).toHaveProperty(PANEL_IDS.FILE_VIEWER)
     expect(result.current).toHaveProperty(PANEL_IDS.SETTINGS)
@@ -197,14 +197,14 @@ describe('usePanelsMap', () => {
     const { result } = renderHook(() => usePanelsMap(config))
 
     // The terminal panel should still be defined (not null)
-    expect(result.current.terminal).not.toBeNull()
+    expect(result.current[PANEL_IDS.AGENT]).not.toBeNull()
   })
 
   it('returns terminal panel element', () => {
     const config = makeConfig()
     const { result } = renderHook(() => usePanelsMap(config))
 
-    expect(result.current.terminal).not.toBeNull()
+    expect(result.current[PANEL_IDS.AGENT]).not.toBeNull()
   })
 
   it('renders file viewer with review context for review sessions', () => {
@@ -233,7 +233,7 @@ describe('usePanelsMap', () => {
     })
     const { result } = renderHook(() => usePanelsMap(config))
 
-    expect(result.current.terminal).not.toBeNull()
+    expect(result.current[PANEL_IDS.AGENT]).not.toBeNull()
   })
 
   describe('initializing sessions', () => {
@@ -243,7 +243,7 @@ describe('usePanelsMap', () => {
       const { result } = renderHook(() => usePanelsMap(config))
 
       // Terminal panel should exist
-      expect(result.current.terminal).not.toBeNull()
+      expect(result.current[PANEL_IDS.AGENT]).not.toBeNull()
     })
 
     it('returns null for explorer when session is initializing', () => {

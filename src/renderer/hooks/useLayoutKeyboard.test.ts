@@ -10,6 +10,7 @@ vi.mock('../panels', () => ({
     SIDEBAR: 'sidebar',
     EXPLORER: 'explorer',
     FILE_VIEWER: 'fileViewer',
+    AGENT: 'agent',
     SETTINGS: 'settings',
     TUTORIAL: 'tutorial',
   },
@@ -571,47 +572,45 @@ describe('useLayoutKeyboard', () => {
     })
   })
 
-  describe('panel cycling includes terminal', () => {
-    it('includes terminal in the cycling list when panels.terminal is set', () => {
+  describe('panel cycling includes agent', () => {
+    it('includes agent in the cycling list when visible and in toolbarPanels', () => {
       // Create DOM elements so focusPanel and getCurrentPanel work
       const sidebarDiv = document.createElement('div')
       sidebarDiv.setAttribute('data-panel-id', 'sidebar')
       sidebarDiv.tabIndex = -1
       document.body.appendChild(sidebarDiv)
 
-      const terminalDiv = document.createElement('div')
-      terminalDiv.setAttribute('data-panel-id', 'terminal')
-      terminalDiv.tabIndex = -1
-      document.body.appendChild(terminalDiv)
+      const agentDiv = document.createElement('div')
+      agentDiv.setAttribute('data-panel-id', 'agent')
+      agentDiv.tabIndex = -1
+      document.body.appendChild(agentDiv)
 
       // Focus sidebar first so cycling moves to the next panel
       sidebarDiv.focus()
 
-      const propsWithTerminal = {
+      const propsWithAgent = {
         ...defaultProps,
+        toolbarPanels: ['sidebar', 'explorer', 'fileViewer', 'tutorial', 'agent', 'settings'],
         panels: {
           ...defaultProps.panels,
-          terminal: 'terminal-content' as ReactNode,
+          agent: 'terminal-content' as ReactNode,
         },
       }
 
-      renderHook(() => useLayoutKeyboard(propsWithTerminal))
+      renderHook(() => useLayoutKeyboard(propsWithAgent))
 
-      // Cycle forward from sidebar: sidebar → explorer → fileViewer → terminal → tutorial
-      // Repeated cycling should eventually reach terminal
-      for (let i = 0; i < 3; i++) {
+      // Cycle forward from sidebar: sidebar → explorer → fileViewer → tutorial → agent
+      for (let i = 0; i < 4; i++) {
         act(() => {
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', ctrlKey: true, bubbles: true }))
         })
       }
 
-      // After 3 cycles from sidebar (index 0), we should be at fileViewer (index 2)
-      // or beyond. The key point is that it doesn't throw and terminal is in the list.
-      // We verify by checking that terminal's DOM element could be focused
-      // (it has data-panel-id="terminal" which is a valid cycle target)
+      // After 4 cycles from sidebar we should reach the agent panel
+      // (it has data-panel-id="agent" which is a valid cycle target)
 
       document.body.removeChild(sidebarDiv)
-      document.body.removeChild(terminalDiv)
+      document.body.removeChild(agentDiv)
     })
   })
 
@@ -950,7 +949,7 @@ describe('useLayoutKeyboard', () => {
     it('does not intercept arrows in xterm', () => {
       const xterm = document.createElement('div')
       xterm.classList.add('xterm')
-      xterm.setAttribute('data-panel-id', 'terminal')
+      xterm.setAttribute('data-panel-id', 'agent')
       const textarea = document.createElement('textarea')
       xterm.appendChild(textarea)
       document.body.appendChild(xterm)

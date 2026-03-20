@@ -184,21 +184,13 @@ export function useLayoutKeyboard({
 
   const lastCyclePanelRef = useRef<string | null>(null)
 
-  /** Build the ordered list of currently visible panels (including terminal). */
+  /** Build the ordered list of currently visible panels for cycling. */
   const getVisiblePanels = useCallback(() => {
-    const result = toolbarPanels.filter(id => {
+    return toolbarPanels.filter(id => {
       if (!isPanelVisible(id)) return false
       if (id === PANEL_IDS.SETTINGS) return false
       return !!panels[id]
     })
-
-    // Terminal is always visible but not in toolbarPanels — insert after file viewer
-    if (panels.terminal) {
-      const insertAfter = result.indexOf(PANEL_IDS.FILE_VIEWER)
-      result.splice(insertAfter !== -1 ? insertAfter + 1 : result.length, 0, 'terminal')
-    }
-
-    return result
   }, [toolbarPanels, isPanelVisible, panels])
 
   const flashPanel = useCallback((panelId: string) => {

@@ -53,7 +53,7 @@ describe('focusAgentTerminal', () => {
 
     // Create the DOM elements
     const panel = document.createElement('div')
-    panel.setAttribute('data-panel-id', 'terminal')
+    panel.setAttribute('data-panel-id', 'agent')
     const textarea = document.createElement('textarea')
     textarea.className = 'xterm-helper-textarea'
     panel.appendChild(textarea)
@@ -121,8 +121,8 @@ describe('per-session focus tracking', () => {
     clearLastFocusedPanel('s2')
   })
 
-  it('defaults to terminal when no panel has been tracked', () => {
-    expect(getLastFocusedPanel('unknown')).toBe('terminal')
+  it('defaults to agent when no panel has been tracked', () => {
+    expect(getLastFocusedPanel('unknown')).toBe('agent')
   })
 
   it('stores and retrieves last focused panel per session', () => {
@@ -135,7 +135,7 @@ describe('per-session focus tracking', () => {
   it('clears tracking for a session', () => {
     setLastFocusedPanel('s1', 'explorer')
     clearLastFocusedPanel('s1')
-    expect(getLastFocusedPanel('s1')).toBe('terminal')
+    expect(getLastFocusedPanel('s1')).toBe('agent')
   })
 })
 
@@ -151,19 +151,19 @@ describe('focusPanel', () => {
 
   it('focuses xterm textarea when focus succeeds', () => {
     const panel = document.createElement('div')
-    panel.setAttribute('data-panel-id', 'terminal')
+    panel.setAttribute('data-panel-id', 'agent')
     const textarea = document.createElement('textarea')
     textarea.className = 'xterm-helper-textarea'
     panel.appendChild(textarea)
     document.body.appendChild(panel)
 
-    focusPanel('terminal')
+    focusPanel('agent')
     expect(document.activeElement).toBe(textarea)
   })
 
   it('skips xterm textareas that reject focus and falls through to Monaco', () => {
     const panel = document.createElement('div')
-    panel.setAttribute('data-panel-id', 'terminal')
+    panel.setAttribute('data-panel-id', 'agent')
     // Xterm textarea that rejects focus (simulate visibility:hidden behavior)
     const hiddenTa = document.createElement('textarea')
     hiddenTa.className = 'xterm-helper-textarea'
@@ -177,7 +177,7 @@ describe('focusPanel', () => {
     panel.appendChild(monacoTa)
     document.body.appendChild(panel)
 
-    focusPanel('terminal')
+    focusPanel('agent')
     expect(document.activeElement).toBe(monacoTa)
   })
 
