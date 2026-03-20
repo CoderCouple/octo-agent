@@ -10,6 +10,7 @@ vi.mock('../panels', () => ({
     SIDEBAR: 'sidebar',
     EXPLORER: 'explorer',
     FILE_VIEWER: 'fileViewer',
+    AGENT: 'agent',
     SETTINGS: 'settings',
     TUTORIAL: 'tutorial',
   },
@@ -572,7 +573,7 @@ describe('useLayoutKeyboard', () => {
   })
 
   describe('panel cycling includes terminal', () => {
-    it('includes terminal in the cycling list when panels.terminal is set', () => {
+    it('includes agent in the cycling list when panels.agent is set', () => {
       // Create DOM elements so focusPanel and getCurrentPanel work
       const sidebarDiv = document.createElement('div')
       sidebarDiv.setAttribute('data-panel-id', 'sidebar')
@@ -580,7 +581,7 @@ describe('useLayoutKeyboard', () => {
       document.body.appendChild(sidebarDiv)
 
       const terminalDiv = document.createElement('div')
-      terminalDiv.setAttribute('data-panel-id', 'terminal')
+      terminalDiv.setAttribute('data-panel-id', 'agent')
       terminalDiv.tabIndex = -1
       document.body.appendChild(terminalDiv)
 
@@ -591,7 +592,7 @@ describe('useLayoutKeyboard', () => {
         ...defaultProps,
         panels: {
           ...defaultProps.panels,
-          terminal: 'terminal-content' as ReactNode,
+          agent: 'terminal-content' as ReactNode,
         },
       }
 
@@ -608,7 +609,7 @@ describe('useLayoutKeyboard', () => {
       // After 3 cycles from sidebar (index 0), we should be at fileViewer (index 2)
       // or beyond. The key point is that it doesn't throw and terminal is in the list.
       // We verify by checking that terminal's DOM element could be focused
-      // (it has data-panel-id="terminal" which is a valid cycle target)
+      // (it has data-panel-id="agent" which is a valid cycle target)
 
       document.body.removeChild(sidebarDiv)
       document.body.removeChild(terminalDiv)
@@ -950,7 +951,7 @@ describe('useLayoutKeyboard', () => {
     it('does not intercept arrows in xterm', () => {
       const xterm = document.createElement('div')
       xterm.classList.add('xterm')
-      xterm.setAttribute('data-panel-id', 'terminal')
+      xterm.setAttribute('data-panel-id', 'agent')
       const textarea = document.createElement('textarea')
       xterm.appendChild(textarea)
       document.body.appendChild(xterm)

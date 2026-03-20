@@ -243,7 +243,7 @@ export default function Layout({
               errorMessage={errorMessage}
               settingsPanel={panels[PANEL_IDS.SETTINGS]}
               fileViewer={panels[PANEL_IDS.FILE_VIEWER]}
-              terminal={panels.terminal}
+              terminal={panels[PANEL_IDS.AGENT]}
               flashedPanel={flashedPanel}
               draggingDivider={draggingDivider}
               onMouseDown={handleMouseDown}

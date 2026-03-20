@@ -192,10 +192,10 @@ export function useLayoutKeyboard({
       return !!panels[id]
     })
 
-    // Terminal is always visible but not in toolbarPanels — insert after file viewer
-    if (panels.terminal) {
+    // Agent/terminal is always visible but not in toolbarPanels — insert after file viewer
+    if (panels[PANEL_IDS.AGENT]) {
       const insertAfter = result.indexOf(PANEL_IDS.FILE_VIEWER)
-      result.splice(insertAfter !== -1 ? insertAfter + 1 : result.length, 0, 'terminal')
+      result.splice(insertAfter !== -1 ? insertAfter + 1 : result.length, 0, PANEL_IDS.AGENT)
     }
 
     return result

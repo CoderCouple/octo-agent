@@ -95,7 +95,7 @@ export default function LayoutContentArea({
 
         {/* Combined terminal area — hidden when agent panel toggled off */}
         <div
-          data-panel-id="terminal"
+          data-panel-id={PANEL_IDS.AGENT}
           tabIndex={-1}
           className={`relative flex-1 min-w-0 min-h-0 bg-bg-primary outline-none ${showAgent ? '' : 'hidden'}`}
         >

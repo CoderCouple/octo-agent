@@ -79,13 +79,13 @@ describe('LayoutContentArea', () => {
     expect(outerDiv.className).toContain('hidden')
   })
 
-  it('shows flash overlay when flashedPanel matches terminal', () => {
-    const { container } = renderContentArea({ flashedPanel: 'terminal' })
-    // Terminal panel doesn't use FlashOverlay in LayoutContentArea,
+  it('shows flash overlay when flashedPanel matches agent', () => {
+    const { container } = renderContentArea({ flashedPanel: 'agent' })
+    // Agent panel doesn't use FlashOverlay in LayoutContentArea,
     // but file viewer does. Check that no flash overlay appears for unknown panel
     // The flash overlay is only on FILE_VIEWER in LayoutContentArea
     const flashOverlay = container.querySelector('.bg-white\\/10')
-    // Terminal doesn't have its own flash overlay in LayoutContentArea
+    // Agent doesn't have its own flash overlay in LayoutContentArea
     expect(flashOverlay).toBeNull()
   })
 
