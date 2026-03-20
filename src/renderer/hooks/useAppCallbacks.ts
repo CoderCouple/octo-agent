@@ -76,18 +76,14 @@ export function useAppCallbacks({
   }, [setShowNewSessionDialog])
 
   const refreshPrStatus = useCallback(async () => {
-    for (const session of sessions) {
-      try {
-        const prResult = await window.gh.prStatus(session.directory)
-        if (prResult) {
-          updatePrState(session.id, prResult.state, prResult.number, prResult.url)
-        } else {
-          updatePrState(session.id, null)
-        }
-      } catch {
-        // Ignore errors for individual sessions
+    await Promise.allSettled(sessions.map(async (session) => {
+      const prResult = await window.gh.prStatus(session.directory)
+      if (prResult) {
+        updatePrState(session.id, prResult.state, prResult.number, prResult.url)
+      } else {
+        updatePrState(session.id, null)
       }
-    }
+    }))
   }, [sessions, updatePrState])
 
   const getAgentCommand = useCallback((session: Session) => {

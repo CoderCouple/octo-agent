@@ -7,7 +7,7 @@
  * manages file navigation with unsaved-changes guards and global keyboard shortcuts.
  * The outer App component wraps AppContent in the PanelProvider context.
  */
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Layout from './components/Layout'
 import NewSessionDialog from './components/NewSessionDialog'
 import PanelPicker from './components/PanelPicker'
@@ -130,6 +130,43 @@ function TopBanners({ configLoadError, repoLoadError, appError, onDismissAppErro
   )
 }
 
+/** Refresh PR status on startup (once) and whenever an agent finishes work (working → idle). */
+function usePrAutoRefresh({ isLoading, sessions, refreshPrStatus, updatePrState }: {
+  isLoading: boolean
+  sessions: Session[]
+  refreshPrStatus: () => Promise<void>
+  updatePrState: (sessionId: string, prState: import('./utils/branchStatus').PrState, prNumber?: number, prUrl?: string) => void
+}) {
+  const hasRefreshedOnStartup = useRef(false)
+  useEffect(() => {
+    if (!isLoading && sessions.length > 0 && !hasRefreshedOnStartup.current) {
+      hasRefreshedOnStartup.current = true
+      void refreshPrStatus()
+    }
+  }, [isLoading, sessions.length, refreshPrStatus])
+
+  // Derive a stable key from session unread states to avoid running on unrelated session changes
+  const unreadKey = useMemo(() => sessions.map(s => `${s.id}:${s.isUnread}`).join(','), [sessions])
+  const sessionsRef = useRef(sessions)
+  sessionsRef.current = sessions
+  const prevUnread = useRef<Record<string, boolean>>({})
+  useEffect(() => {
+    for (const session of sessionsRef.current) {
+      const wasUnread = prevUnread.current[session.id] ?? false
+      if (session.isUnread && !wasUnread) {
+        void window.gh.prStatus(session.directory).then((prResult) => {
+          if (prResult) {
+            updatePrState(session.id, prResult.state, prResult.number, prResult.url)
+          } else {
+            updatePrState(session.id, null)
+          }
+        }).catch(() => { /* ignore */ })
+      }
+      prevUnread.current[session.id] = session.isUnread
+    }
+  }, [unreadKey, updatePrState])
+}
+
 function AppContent() {
   const sessions = useSessionStore(s => s.sessions)
   const activeSessionId = useSessionStore(s => s.activeSessionId)
@@ -242,6 +279,9 @@ function AppContent() {
     updatePrState,
     setPanelVisibility, setToolbarPanels, closeCommandsEditor, repos,
   })
+
+  // Refresh PR status on startup and when agents finish work
+  usePrAutoRefresh({ isLoading, sessions, refreshPrStatus, updatePrState })
 
   if (isLoading) {
     return (

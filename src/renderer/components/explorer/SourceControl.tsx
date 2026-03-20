@@ -166,6 +166,8 @@ export function SourceControl({
         issueUrl={issueUrl}
         onRetryGitOp={actions.handleSync}
         onFileSelect={onFileSelect}
+        onRefresh={data.refreshPr}
+        isRefreshing={data.isPrLoading}
       />
     </>
   )
