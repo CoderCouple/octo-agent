@@ -311,6 +311,28 @@ describe('useFileWatcher', () => {
 
       expect(result.current.fileChangedOnDisk).toBe(true)
     })
+
+    it('does not set up watcher for URL paths', () => {
+      renderHook(() => useFileWatcher({ ...defaultParams, filePath: 'https://github.com/org/repo', enabled: true }))
+
+      expect(window.fs.watch).not.toHaveBeenCalled()
+      expect(window.fs.onChange).not.toHaveBeenCalled()
+    })
+
+    it('does not check for external changes on re-enable for URL paths', async () => {
+      const { rerender } = renderHook(
+        ({ enabled }) => useFileWatcher({ ...defaultParams, filePath: 'https://github.com/org/repo', enabled }),
+        { initialProps: { enabled: false } }
+      )
+
+      rerender({ enabled: true })
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+
+      expect(window.fs.readFile).not.toHaveBeenCalled()
+    })
   })
 
   describe('checkForExternalChanges', () => {

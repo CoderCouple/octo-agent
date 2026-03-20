@@ -348,6 +348,32 @@ describe('useFileViewer', () => {
       // which gets set to 'monaco' by the scrollToLine effect
       // This verifies the integration
     })
+
+    it('does not switch away from webview when scrollToLine is set', () => {
+      const webviewViewer = makeViewer({ id: 'webview', name: 'Web Page', priority: 100 })
+      const monacoViewer = makeViewer({ id: 'monaco', name: 'Code', priority: 1 })
+
+      vi.mocked(useFileLoading).mockReturnValue({
+        content: '',
+        setContent: vi.fn(),
+        isLoading: false,
+        error: null,
+        availableViewers: [webviewViewer, monacoViewer],
+      })
+
+      // First render without scrollToLine, then manually select webview
+      const { result, rerender } = renderHook(
+        ({ scrollToLine }) => useFileViewer({ filePath: 'https://example.com', scrollToLine }),
+        { initialProps: { scrollToLine: undefined as number | undefined } },
+      )
+
+      act(() => { result.current.setSelectedViewerId('webview') })
+      expect(result.current.selectedViewerId).toBe('webview')
+
+      // Now set scrollToLine — should NOT switch to monaco
+      rerender({ scrollToLine: 10 })
+      expect(result.current.selectedViewerId).toBe('webview')
+    })
   })
 
   describe('selectedViewer', () => {

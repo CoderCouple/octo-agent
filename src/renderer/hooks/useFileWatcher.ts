@@ -44,7 +44,7 @@ export function useFileWatcher({
 
   // Watch the file directly for external changes
   useEffect(() => {
-    if (!filePath || !enabled) return
+    if (!filePath || !enabled || filePath.startsWith('https://')) return
 
     const watcherId = `fileviewer-${filePath}`
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -83,7 +83,7 @@ export function useFileWatcher({
   // When transitioning from disabled to enabled, check for external changes
   const wasEnabledRef = useRef(enabled)
   useEffect(() => {
-    if (enabled && !wasEnabledRef.current && filePath) {
+    if (enabled && !wasEnabledRef.current && filePath && !filePath.startsWith('https://')) {
       void checkForExternalChanges()
     }
     wasEnabledRef.current = enabled
