@@ -38,7 +38,7 @@ const mockUseFileTree = {
   setExpandedPaths: vi.fn(),
 }
 
-vi.mock('../../../../hooks/useFileTree', () => ({
+vi.mock('../../hooks/useFileTree', () => ({
   useFileTree: () => mockUseFileTree,
   navigateTreeItem: (...args: unknown[]) => mockNavigateTreeItem(...args),
 }))

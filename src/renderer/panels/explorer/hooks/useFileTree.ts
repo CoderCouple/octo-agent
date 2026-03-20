@@ -2,8 +2,8 @@
  * Manages the file explorer tree state including directory loading, node expansion, inline creation and rename inputs, and drag-and-drop operations.
  */
 import { useState, useCallback, useMemo } from 'react'
-import type { GitFileStatus } from '../../preload/index'
-import type { TreeNode } from '../panels/explorer/types'
+import type { GitFileStatus } from '../../../../preload/index'
+import type { TreeNode } from '../types'
 
 interface UseFileTreeParams {
   directory?: string

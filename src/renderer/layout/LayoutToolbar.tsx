@@ -2,7 +2,7 @@
  * Top toolbar with panel toggle buttons, error indicator, and version display.
  */
 import { ReactNode } from 'react'
-import VersionIndicator from '../components/VersionIndicator'
+import VersionIndicator from './VersionIndicator'
 import type { PanelDefinition } from '../panels'
 
 // Detect platform for keyboard shortcut display

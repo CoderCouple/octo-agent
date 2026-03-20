@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useFileTree, updateTreeNode, findNode, navigateTreeItem } from './useFileTree'
-import type { GitFileStatus } from '../../preload/index'
+import type { GitFileStatus } from '../../../../preload/index'
 
 describe('useFileTree', () => {
   beforeEach(() => {

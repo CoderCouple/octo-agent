@@ -7,7 +7,7 @@ import type { TreeNode } from '../../types'
 import type { NavigationTarget } from '../../../../shared/utils/fileNavigation'
 import { StatusBadge } from '../../icons'
 import { statusLabel, getStatusColor } from '../../../../features/git/explorerHelpers'
-import { useFileTree, navigateTreeItem } from '../../../../hooks/useFileTree'
+import { useFileTree, navigateTreeItem } from '../../hooks/useFileTree'
 import { DialogErrorBanner } from '../../../../shared/components/ErrorBanner'
 
 function handleTreeKeyDown(
