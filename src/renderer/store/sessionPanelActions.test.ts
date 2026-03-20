@@ -62,6 +62,37 @@ describe('sessionPanelActions', () => {
     return session
   }
 
+  describe('getEffectiveVisibility fallback', () => {
+    it('togglePanel falls back to builtin default when panelId is not in panelVisibility', () => {
+      // explorer has defaultVisible: false in BUILTIN_PANELS, not in panelVisibility
+      const session = {
+        ...addTestSession(),
+        panelVisibility: {},  // empty — no key for explorer
+        showExplorer: false,
+        showFileViewer: false,
+      }
+      useSessionStore.setState({ sessions: [session], activeSessionId: 'test-session' })
+
+      // Explorer's BUILTIN_PANELS defaultVisible is false, so toggling it should set it to true
+      useSessionStore.getState().togglePanel('test-session', PANEL_IDS.EXPLORER)
+      const updated = useSessionStore.getState().sessions[0]
+      // The toggle flips from the builtin default (false) to true
+      expect(updated.panelVisibility[PANEL_IDS.EXPLORER]).toBe(true)
+    })
+
+    it('togglePanel uses false when panelId has no builtin default', () => {
+      const session = {
+        ...addTestSession(),
+        panelVisibility: {},
+      }
+      useSessionStore.setState({ sessions: [session], activeSessionId: 'test-session' })
+
+      // A completely unknown panel ID should default to false, so toggling makes it true
+      useSessionStore.getState().togglePanel('test-session', 'unknown-panel-xyz')
+      expect(useSessionStore.getState().sessions[0].panelVisibility['unknown-panel-xyz']).toBe(true)
+    })
+  })
+
   describe('togglePanel', () => {
     it('toggles a panel from hidden to visible', () => {
       addTestSession()

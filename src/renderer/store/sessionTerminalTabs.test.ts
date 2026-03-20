@@ -196,6 +196,90 @@ describe('sessionTerminalTabs', () => {
     })
   })
 
+  describe('multi-session isolation', () => {
+    function addSecondSession(id = 'other-session') {
+      const current = useSessionStore.getState().sessions
+      const session = {
+        id,
+        name: 'other',
+        directory: '/other',
+        branch: 'main',
+        status: 'idle' as const,
+        agentId: null,
+        panelVisibility: { [PANEL_IDS.EXPLORER]: false, [PANEL_IDS.FILE_VIEWER]: false },
+        showExplorer: false,
+        showFileViewer: false,
+        showDiff: false,
+        selectedFilePath: null,
+        planFilePath: null,
+        fileViewerPosition: 'top' as const,
+        layoutSizes: { explorerWidth: 256, fileViewerSize: 300, userTerminalHeight: 192, diffPanelWidth: 320, tutorialPanelWidth: 320 },
+        explorerFilter: 'files' as const,
+        lastMessage: null,
+        lastMessageTime: null,
+        isUnread: false,
+        workingStartTime: null,
+        recentFiles: [],
+        searchHistory: [],
+        terminalTabs: {
+          tabs: [{ id: 'other-tab', name: 'Terminal' }],
+          activeTabId: 'other-tab',
+        },
+        branchStatus: 'in-progress' as const,
+        isArchived: false,
+        isRestored: false,
+      }
+      useSessionStore.setState({ sessions: [...current, session] })
+      return session
+    }
+
+    it('addTerminalTab does not affect other sessions', () => {
+      addTestSession()
+      addSecondSession()
+      useSessionStore.getState().addTerminalTab('test-session')
+      expect(useSessionStore.getState().sessions[1].terminalTabs.tabs).toHaveLength(1)
+    })
+
+    it('removeTerminalTab does not affect other sessions', () => {
+      addTestSession()
+      const tab2 = useSessionStore.getState().addTerminalTab('test-session')
+      addSecondSession()
+      useSessionStore.getState().removeTerminalTab('test-session', tab2)
+      expect(useSessionStore.getState().sessions[1].terminalTabs.tabs).toHaveLength(1)
+    })
+
+    it('renameTerminalTab does not affect other sessions', () => {
+      addTestSession()
+      addSecondSession()
+      useSessionStore.getState().renameTerminalTab('test-session', 'tab-1', 'Renamed')
+      expect(useSessionStore.getState().sessions[1].terminalTabs.tabs[0].name).toBe('Terminal')
+    })
+
+    it('reorderTerminalTabs does not affect other sessions', () => {
+      addTestSession()
+      addSecondSession()
+      const tabs = useSessionStore.getState().sessions[0].terminalTabs.tabs
+      useSessionStore.getState().reorderTerminalTabs('test-session', [...tabs].reverse())
+      expect(useSessionStore.getState().sessions[1].terminalTabs.tabs[0].id).toBe('other-tab')
+    })
+
+    it('closeOtherTerminalTabs does not affect other sessions', () => {
+      addTestSession()
+      useSessionStore.getState().addTerminalTab('test-session', 'Tab 2')
+      addSecondSession()
+      useSessionStore.getState().closeOtherTerminalTabs('test-session', 'tab-1')
+      expect(useSessionStore.getState().sessions[1].terminalTabs.tabs).toHaveLength(1)
+    })
+
+    it('closeTerminalTabsToRight does not affect other sessions', () => {
+      addTestSession()
+      useSessionStore.getState().addTerminalTab('test-session', 'Tab 2')
+      addSecondSession()
+      useSessionStore.getState().closeTerminalTabsToRight('test-session', 'tab-1')
+      expect(useSessionStore.getState().sessions[1].terminalTabs.tabs).toHaveLength(1)
+    })
+  })
+
   describe('closeTerminalTabsToRight', () => {
     it('removes tabs to the right of the specified tab', () => {
       addTestSession()

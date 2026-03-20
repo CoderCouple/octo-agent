@@ -222,13 +222,11 @@ export function SourceControl({
         gitStatus={gitStatus}
         syncStatus={syncStatus}
         branchStatus={branchStatus}
-        branchBaseName={data.branchBaseName}
         stagedFiles={data.stagedFiles}
         unstagedFiles={data.unstagedFiles}
         isMerging={syncStatus?.isMerging ?? false}
         hasConflicts={syncStatus?.hasConflicts ?? false}
         isCommitting={data.isCommitting}
-        onCommit={actions.handleCommit}
         onCommitMerge={actions.handleCommitMerge}
         onStage={actions.handleStage}
         onStageAll={actions.handleStageAll}

@@ -126,6 +126,15 @@ describe('useTutorialStore', () => {
     })
   })
 
+  describe('saveTutorial', () => {
+    it('triggers a debounced save with current completed steps', async () => {
+      useTutorialStore.setState({ completedSteps: ['created-session'], isLoaded: true })
+      await useTutorialStore.getState().saveTutorial()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(window.config.save).toHaveBeenCalled()
+    })
+  })
+
   describe('resetProgress', () => {
     it('clears all completed steps', () => {
       useTutorialStore.setState({

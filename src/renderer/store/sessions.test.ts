@@ -952,6 +952,73 @@ describe('useSessionStore', () => {
     })
   })
 
+  describe('search history', () => {
+    it('addSearchHistory prepends query to history', () => {
+      const s1 = createTestSession({ id: 's1' })
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().addSearchHistory('s1', 'hello world')
+      const session = useSessionStore.getState().sessions[0]
+      expect(session.searchHistory[0]).toBe('hello world')
+    })
+
+    it('addSearchHistory deduplicates by moving existing entry to front', () => {
+      const s1 = { ...createTestSession({ id: 's1' }), searchHistory: ['foo', 'bar'] }
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().addSearchHistory('s1', 'bar')
+      const session = useSessionStore.getState().sessions[0]
+      expect(session.searchHistory[0]).toBe('bar')
+      expect(session.searchHistory).toHaveLength(2)
+    })
+
+    it('addSearchHistory caps history at 50 entries', () => {
+      const history = Array.from({ length: 50 }, (_, i) => `query-${i}`)
+      const s1 = { ...createTestSession({ id: 's1' }), searchHistory: history }
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().addSearchHistory('s1', 'new-query')
+      const session = useSessionStore.getState().sessions[0]
+      expect(session.searchHistory).toHaveLength(50)
+      expect(session.searchHistory[0]).toBe('new-query')
+    })
+
+    it('addSearchHistory does not affect other sessions', () => {
+      const s1 = createTestSession({ id: 's1' })
+      const s2 = createTestSession({ id: 's2' })
+      useSessionStore.setState({ sessions: [s1, s2], isLoading: false })
+
+      useSessionStore.getState().addSearchHistory('s1', 'term')
+      expect(useSessionStore.getState().sessions[1].searchHistory).toHaveLength(0)
+    })
+
+    it('removeSearchHistoryItem removes the specified query', () => {
+      const s1 = { ...createTestSession({ id: 's1' }), searchHistory: ['foo', 'bar', 'baz'] }
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().removeSearchHistoryItem('s1', 'bar')
+      const session = useSessionStore.getState().sessions[0]
+      expect(session.searchHistory).toEqual(['foo', 'baz'])
+    })
+
+    it('removeSearchHistoryItem is a no-op for non-existent query', () => {
+      const s1 = { ...createTestSession({ id: 's1' }), searchHistory: ['foo'] }
+      useSessionStore.setState({ sessions: [s1], isLoading: false })
+
+      useSessionStore.getState().removeSearchHistoryItem('s1', 'nonexistent')
+      expect(useSessionStore.getState().sessions[0].searchHistory).toEqual(['foo'])
+    })
+
+    it('removeSearchHistoryItem does not affect other sessions', () => {
+      const s1 = { ...createTestSession({ id: 's1' }), searchHistory: ['foo'] }
+      const s2 = { ...createTestSession({ id: 's2' }), searchHistory: ['foo'] }
+      useSessionStore.setState({ sessions: [s1, s2], isLoading: false })
+
+      useSessionStore.getState().removeSearchHistoryItem('s1', 'foo')
+      expect(useSessionStore.getState().sessions[1].searchHistory).toEqual(['foo'])
+    })
+  })
+
   describe('debouncedSave', () => {
     it('saves after debounce timeout', async () => {
       const s1 = createTestSession({ id: 's1' })

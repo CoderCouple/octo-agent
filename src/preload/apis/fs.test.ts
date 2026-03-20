@@ -61,6 +61,11 @@ describe('preload fs API', () => {
     expect(mockInvoke).toHaveBeenCalledWith('fs:rm', '/test/file')
   })
 
+  it('rename invokes fs:rename', async () => {
+    await fsApi.rename('/test/old.txt', '/test/new.txt')
+    expect(mockInvoke).toHaveBeenCalledWith('fs:rename', '/test/old.txt', '/test/new.txt')
+  })
+
   it('createFile invokes fs:createFile', async () => {
     await fsApi.createFile('/test/new.txt')
     expect(mockInvoke).toHaveBeenCalledWith('fs:createFile', '/test/new.txt')

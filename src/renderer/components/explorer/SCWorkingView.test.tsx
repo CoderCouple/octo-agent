@@ -18,13 +18,11 @@ const defaultProps = {
   gitStatus: [],
   syncStatus: { current: 'feature/test', tracking: 'origin/feature/test', ahead: 0, behind: 0, files: [] },
   branchStatus: 'in-progress' as const,
-  branchBaseName: 'main',
   stagedFiles: [],
   unstagedFiles: [],
   isMerging: false,
   hasConflicts: false,
   isCommitting: false,
-  onCommit: vi.fn(),
   onCommitMerge: vi.fn(),
   onStage: vi.fn(),
   onStageAll: vi.fn(),
@@ -83,23 +81,6 @@ describe('SCWorkingView', () => {
       stagedFiles: [{ path: 'src/app.ts', status: 'added' as const, staged: true, indexStatus: 'A', workingDirStatus: ' ' }],
       unstagedFiles: [{ path: 'src/index.ts', status: 'modified' as const, staged: false, indexStatus: ' ', workingDirStatus: 'M' }],
     }
-
-    it('shows Commit button', () => {
-      render(<SCWorkingView {...changesProps} />)
-      expect(screen.getByText('Commit')).toBeTruthy()
-    })
-
-    it('opens commit message dialog when Commit button is clicked', () => {
-      render(<SCWorkingView {...changesProps} />)
-      fireEvent.click(screen.getByText('Commit'))
-      expect(screen.getByText('Commit Message')).toBeTruthy()
-      expect(screen.getByPlaceholderText('Enter commit message...')).toBeTruthy()
-    })
-
-    it('shows Committing... on Commit button when isCommitting', () => {
-      render(<SCWorkingView {...changesProps} isCommitting={true} />)
-      expect(screen.getByText('Committing...')).toBeTruthy()
-    })
 
     it('shows staged and unstaged file sections', () => {
       render(<SCWorkingView {...changesProps} />)
@@ -187,10 +168,10 @@ describe('SCWorkingView', () => {
       expect(screen.getByText('Committing...')).toBeTruthy()
     })
 
-    it('shows Commit button when not merging', () => {
+    it('does not show merge UI when not merging', () => {
       render(<SCWorkingView {...changesProps} isMerging={false} />)
-      expect(screen.getByText('Commit')).toBeTruthy()
       expect(screen.queryByText('Commit Merge')).toBeNull()
+      expect(screen.queryByText('Merge in progress')).toBeNull()
     })
 
     it('shows merge in progress banner when merging with conflicts', () => {

@@ -436,6 +436,154 @@ describe('shell handlers', () => {
       const result = await handlers['menu:appMenuPopup'](mockEvent)
       expect(result).toBe('configure-toolbar')
     })
+
+    it('resolves about when About Broomy is clicked', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      let capturedTemplate: { label?: string; click?: () => void }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: () => {
+            const aboutItem = capturedTemplate.find(item => item.label === 'About Broomy')
+            aboutItem?.click?.()
+          },
+        }
+      })
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBe('about')
+    })
+
+    it('resolves help:shortcuts when Keyboard Shortcuts is clicked', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      let capturedTemplate: { label?: string; submenu?: { label?: string; click?: () => void }[] }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: () => {
+            const helpMenu = capturedTemplate.find(item => item.label === 'Help')
+            const item = helpMenu?.submenu?.find(i => i.label === 'Keyboard Shortcuts')
+            item?.click?.()
+          },
+        }
+      })
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBe('help:shortcuts')
+    })
+
+    it('resolves help:reset-tutorial when Reset Tutorial is clicked', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      let capturedTemplate: { label?: string; submenu?: { label?: string; click?: () => void }[] }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: () => {
+            const helpMenu = capturedTemplate.find(item => item.label === 'Help')
+            const item = helpMenu?.submenu?.find(i => i.label === 'Reset Tutorial Progress')
+            item?.click?.()
+          },
+        }
+      })
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBe('help:reset-tutorial')
+    })
+
+    it('resolves check-for-updates when Check for Updates is clicked', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      let capturedTemplate: { label?: string; submenu?: { label?: string; click?: () => void }[] }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: () => {
+            const helpMenu = capturedTemplate.find(item => item.label === 'Help')
+            const item = helpMenu?.submenu?.find(i => i.label === 'Check for Updates...')
+            item?.click?.()
+          },
+        }
+      })
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(result).toBe('check-for-updates')
+    })
+
+    it('opens GitHub issues URL when Report Issue is clicked', async () => {
+      const { register } = await import('./shell')
+      const mockWindow = { id: 1, webContents: { send: vi.fn() } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+      mockShellOpenExternal.mockResolvedValue(undefined)
+
+      let capturedTemplate: { label?: string; submenu?: { label?: string; click?: () => void }[] }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: () => {
+            const helpMenu = capturedTemplate.find(item => item.label === 'Help')
+            const item = helpMenu?.submenu?.find(i => i.label === 'Report Issue...')
+            item?.click?.()
+          },
+        }
+      })
+
+      const result = await handlers['menu:appMenuPopup'](mockEvent)
+      expect(mockShellOpenExternal).toHaveBeenCalledWith('https://github.com/Broomy-AI/broomy/issues')
+      expect(result).toBeNull()
+    })
+
+    it('triggers select-all via Edit > Select All click', async () => {
+      const { register } = await import('./shell')
+      const mockSend = vi.fn()
+      const mockWindow = { id: 1, webContents: { send: mockSend } }
+      const ctx = createCtx({ mainWindow: mockWindow as never })
+      register(mockIpcMain as never, ctx)
+
+      mockBrowserWindowFromWebContents.mockReturnValue(mockWindow)
+
+      type SubItem = { label?: string; role?: string; click?: () => void; accelerator?: string }
+      let capturedTemplate: { label?: string; submenu?: SubItem[] }[] = []
+      mockMenuBuildFromTemplate.mockImplementation((template: typeof capturedTemplate) => {
+        capturedTemplate = template
+        return {
+          popup: ({ callback }: { callback: () => void }) => {
+            const editMenu = capturedTemplate.find(item => item.label === 'Edit')
+            const selectAll = editMenu?.submenu?.find(i => i.label === 'Select All')
+            selectAll?.click?.()
+            callback()
+          },
+        }
+      })
+
+      await handlers['menu:appMenuPopup'](mockEvent)
+      expect(mockSend).toHaveBeenCalledWith('menu:select-all')
+    })
   })
 
   describe('menu:popup', () => {

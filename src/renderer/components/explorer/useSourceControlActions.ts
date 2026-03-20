@@ -1,8 +1,8 @@
 /**
- * Hook providing git infrastructure action handlers (commit, stage, sync).
+ * Hook providing git infrastructure action handlers (merge commit, stage, sync).
  *
- * Agent-dispatching actions (commit with AI, create PR, merge PR, resolve conflicts, review)
- * are now handled by the modular commands.json system via ActionButtons.
+ * Agent-dispatching actions (commit, create PR, merge PR, resolve conflicts, review)
+ * are handled by the modular commands.json system via ActionButtons.
  */
 import type { SourceControlData } from './useSourceControlData'
 import { withGitProgress } from '../../utils/gitOperationProgress'
@@ -25,7 +25,7 @@ export function useSourceControlActions({
     setIsCommitting, setCommitError,
     setGitOpError, setAgentMergeMessage,
     setIsSyncing, setIsSyncingWithMain,
-    branchBaseName: _branchBaseName, gitStatus,
+    gitStatus,
     expandedCommits, setExpandedCommits,
     commitFilesByHash, setCommitFilesByHash,
     setLoadingCommitFiles,
@@ -152,33 +152,6 @@ export function useSourceControlActions({
     }
   }
 
-  const handleCommit = async (message: string, stageAll?: boolean) => {
-    if (!directory) return
-    setIsCommitting(true)
-    setGitOpError(null)
-    try {
-      await withGitProgress(activeSessionId, async () => {
-        if (stageAll) {
-          const stageResult = await window.git.stageAll(directory)
-          if (!stageResult.success) {
-            setGitOpError({ operation: 'Stage All', message: stageResult.error || 'Failed to stage changes' })
-            return
-          }
-        }
-        const result = await window.git.commit(directory, message)
-        if (result.success) {
-          onGitStatusRefresh?.()
-        } else {
-          setGitOpError({ operation: 'Commit', message: result.error || 'Commit failed' })
-        }
-      })
-    } catch (err) {
-      setGitOpError({ operation: 'Commit', message: String(err) })
-    } finally {
-      setIsCommitting(false)
-    }
-  }
-
   const handleToggleCommit = async (commitHash: string) => {
     const newExpanded = new Set(expandedCommits)
     if (newExpanded.has(commitHash)) {
@@ -207,7 +180,6 @@ export function useSourceControlActions({
     handleStage,
     handleStageAll,
     handleUnstage,
-    handleCommit,
     handleCommitMerge,
     handleSync,
     handleSyncWithMain,

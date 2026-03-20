@@ -21,6 +21,11 @@ describe('preload menu API', () => {
       await menuApi.popup(items)
       expect(mockInvoke).toHaveBeenCalledWith('menu:popup', items)
     })
+
+    it('appMenuPopup invokes menu:appMenuPopup', async () => {
+      await menuApi.appMenuPopup()
+      expect(mockInvoke).toHaveBeenCalledWith('menu:appMenuPopup')
+    })
   })
 
   describe('tsApi', () => {

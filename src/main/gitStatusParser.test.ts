@@ -22,6 +22,10 @@ describe('statusFromChar', () => {
     expect(statusFromChar('?')).toBe('untracked')
   })
 
+  it('maps U to conflict', () => {
+    expect(statusFromChar('U')).toBe('conflict')
+  })
+
   it('defaults to modified for unknown chars', () => {
     expect(statusFromChar('X')).toBe('modified')
     expect(statusFromChar(' ')).toBe('modified')

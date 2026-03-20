@@ -1,17 +1,16 @@
 /**
  * Source control view for uncommitted changes with staging, committing, and modular action buttons.
  *
- * Built-in actions (manual commit, commit merge) are always available.
- * All other actions come from commands.json via ActionButtons.
+ * Built-in actions (commit merge) are always available.
+ * All other actions (including commit) come from commands.json via ActionButtons.
  */
-import { useState, useCallback, memo } from 'react'
+import { useCallback, memo } from 'react'
 import type { GitFileStatus, GitStatusResult } from '../../../preload/index'
 import type { BranchStatus } from '../../store/sessions'
 import type { NavigationTarget } from '../../utils/fileNavigation'
 import type { ActionDefinition, ConditionState, TemplateVars } from '../../utils/commandsConfig'
 import { StatusBadge, BranchStatusCard } from './icons'
 import { statusLabel, getStatusColor } from '../../utils/explorerHelpers'
-import { CommitMessageDialog } from './CommitMessageDialog'
 import { ActionButtons } from './ActionButtons'
 
 export interface SCWorkingViewProps {
@@ -19,13 +18,11 @@ export interface SCWorkingViewProps {
   gitStatus: GitFileStatus[]
   syncStatus?: GitStatusResult | null
   branchStatus?: BranchStatus
-  branchBaseName: string
   stagedFiles: GitFileStatus[]
   unstagedFiles: GitFileStatus[]
   isMerging: boolean
   hasConflicts: boolean
   isCommitting: boolean
-  onCommit: (message: string, stageAll?: boolean) => void
   onCommitMerge: () => void
   onStage: (filePath: string) => void
   onStageAll: () => void
@@ -95,51 +92,27 @@ function StatusInfo({ syncStatus, branchStatus }: { syncStatus?: GitStatusResult
   )
 }
 
-function BuiltInCommitArea({ isMerging, hasConflicts, isCommitting, onCommit, onCommitMerge, hasStagedFiles }: {
-  isMerging: boolean
+function MergeCommitArea({ hasConflicts, isCommitting, onCommitMerge }: {
   hasConflicts: boolean
   isCommitting: boolean
-  onCommit: (message: string, stageAll?: boolean) => void
   onCommitMerge: () => void
-  hasStagedFiles: boolean
 }) {
-  const [showCommitDialog, setShowCommitDialog] = useState(false)
-
-  // Only show built-in commit UI when there are uncommitted changes
-  // The "Commit with AI" and "Resolve Conflicts" buttons are now in commands.json
   return (
     <div className="px-3 py-2 border-b border-border">
-      {isMerging ? (
-        <div className="flex flex-col gap-1.5">
-          <div className={`text-xs font-medium ${hasConflicts ? 'text-yellow-400' : 'text-green-400'}`}>
-            {hasConflicts ? 'Merge in progress' : 'Merge conflicts resolved'}
-          </div>
-          {!hasConflicts && (
-            <button
-              onClick={onCommitMerge}
-              disabled={isCommitting}
-              className="w-full px-2 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/80 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isCommitting ? 'Committing...' : 'Commit Merge'}
-            </button>
-          )}
+      <div className="flex flex-col gap-1.5">
+        <div className={`text-xs font-medium ${hasConflicts ? 'text-yellow-400' : 'text-green-400'}`}>
+          {hasConflicts ? 'Merge in progress' : 'Merge conflicts resolved'}
         </div>
-      ) : (
-        <button
-          onClick={() => setShowCommitDialog(true)}
-          disabled={isCommitting}
-          className="w-full px-2 py-1.5 text-xs rounded border border-border text-text-primary hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isCommitting ? 'Committing...' : 'Commit'}
-        </button>
-      )}
-      {showCommitDialog && (
-        <CommitMessageDialog
-          onCommit={onCommit}
-          onClose={() => setShowCommitDialog(false)}
-          hasStagedFiles={hasStagedFiles}
-        />
-      )}
+        {!hasConflicts && (
+          <button
+            onClick={onCommitMerge}
+            disabled={isCommitting}
+            className="w-full px-2 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/80 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCommitting ? 'Committing...' : 'Commit Merge'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -240,13 +213,11 @@ export function SCWorkingView({
   gitStatus,
   syncStatus,
   branchStatus,
-  branchBaseName: _branchBaseName,
   stagedFiles,
   unstagedFiles,
   isMerging,
   hasConflicts,
   isCommitting,
-  onCommit,
   onCommitMerge,
   onStage,
   onStageAll,
@@ -268,15 +239,12 @@ export function SCWorkingView({
       {/* Status info (tracking, ahead/behind, branch status card) */}
       <StatusInfo syncStatus={syncStatus} branchStatus={branchStatus} />
 
-      {/* Built-in commit UI (manual commit, commit merge) */}
-      {hasChanges && (
-        <BuiltInCommitArea
-          isMerging={isMerging}
+      {/* Merge commit UI */}
+      {isMerging && (
+        <MergeCommitArea
           hasConflicts={hasConflicts}
           isCommitting={isCommitting}
-          onCommit={onCommit}
           onCommitMerge={onCommitMerge}
-          hasStagedFiles={stagedFiles.length > 0}
         />
       )}
 

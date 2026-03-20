@@ -159,6 +159,41 @@ describe('gitBasic handlers', () => {
       expect(result.ahead).toBe(0)
     })
 
+    it('applies E2E_MOCK_GIT_CLEAN override in E2E mode', async () => {
+      process.env.E2E_MOCK_GIT_CLEAN = 'true'
+      try {
+        const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+        const result = await handlers['git:status'](null, '/repo')
+        expect(result.files).toHaveLength(0)
+        expect(result.ahead).toBe(0)
+        expect(result.behind).toBe(0)
+      } finally {
+        delete process.env.E2E_MOCK_GIT_CLEAN
+      }
+    })
+
+    it('applies E2E_MOCK_GIT_AHEAD override in E2E mode', async () => {
+      process.env.E2E_MOCK_GIT_AHEAD = '5'
+      try {
+        const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+        const result = await handlers['git:status'](null, '/repo')
+        expect(result.ahead).toBe(5)
+      } finally {
+        delete process.env.E2E_MOCK_GIT_AHEAD
+      }
+    })
+
+    it('applies E2E_MOCK_GIT_TRACKING override in E2E mode', async () => {
+      process.env.E2E_MOCK_GIT_TRACKING = 'origin/feature'
+      try {
+        const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+        const result = await handlers['git:status'](null, '/repo')
+        expect(result.tracking).toBe('origin/feature')
+      } finally {
+        delete process.env.E2E_MOCK_GIT_TRACKING
+      }
+    })
+
     it('returns screenshot mode status with more files', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true, e2eScenario: E2EScenario.Marketing }))
       const result = await handlers['git:status'](null, '/repo')
@@ -369,6 +404,13 @@ describe('gitBasic handlers', () => {
       const result = await handlers['git:stageAll'](null, '/repo')
       expect(result).toEqual({ success: true })
       expect(mockGitInstance.add).toHaveBeenCalledWith('.')
+    })
+
+    it('returns error on stageAll failure', async () => {
+      mockGitInstance.add.mockRejectedValue(new Error('stageAll error'))
+      const handlers = setupHandlers()
+      const result = await handlers['git:stageAll'](null, '/repo')
+      expect(result).toEqual({ success: false, error: expect.stringContaining('stageAll error') })
     })
   })
 
@@ -588,6 +630,19 @@ describe('gitBasic handlers', () => {
       mockGitInstance.raw.mockRejectedValue(new Error('fail'))
       const handlers = setupHandlers()
       expect(await handlers['git:show'](null, '/repo', 'file.ts')).toBe('')
+    })
+  })
+
+  describe('git:showBase64', () => {
+    it('is registered as a handler', () => {
+      const handlers = setupHandlers()
+      expect(handlers['git:showBase64']).toBeDefined()
+    })
+
+    it('returns empty string in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      const result = await handlers['git:showBase64'](null, '/repo', 'image.png')
+      expect(result).toBe('')
     })
   })
 })

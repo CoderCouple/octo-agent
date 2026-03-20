@@ -65,6 +65,7 @@ describe('gitSync handlers', () => {
       expect(handlers['git:isBehindMain']).toBeDefined()
       expect(handlers['git:getConfig']).toBeDefined()
       expect(handlers['git:setConfig']).toBeDefined()
+      expect(handlers['git:setGlobalConfig']).toBeDefined()
       expect(handlers['git:branchChanges']).toBeDefined()
       expect(handlers['git:branchCommits']).toBeDefined()
       expect(handlers['git:commitFiles']).toBeDefined()
@@ -225,16 +226,17 @@ describe('gitSync handlers', () => {
     it('parses diff output in normal mode', async () => {
       mockGitInstance.raw
         .mockResolvedValueOnce('refs/remotes/origin/main\n') // symbolic-ref
-        .mockResolvedValueOnce('M\tfile1.ts\nA\tfile2.ts\nD\tfile3.ts\nR100\told.ts\tnew.ts\n') // diff --name-status
+        .mockResolvedValueOnce('M\tfile1.ts\nA\tfile2.ts\nD\tfile3.ts\nR100\told.ts\tnew.ts\nC100\tbase.ts\tcopy.ts\n') // diff --name-status
         .mockResolvedValueOnce('abc123\n') // merge-base
 
       const handlers = setupHandlers()
       const result = await handlers['git:branchChanges'](null, '/repo')
-      expect(result.files).toHaveLength(4)
+      expect(result.files).toHaveLength(5)
       expect(result.files[0]).toEqual({ path: 'file1.ts', status: 'modified' })
       expect(result.files[1]).toEqual({ path: 'file2.ts', status: 'added' })
       expect(result.files[2]).toEqual({ path: 'file3.ts', status: 'deleted' })
       expect(result.files[3]).toEqual({ path: 'new.ts', status: 'renamed' })
+      expect(result.files[4]).toEqual({ path: 'copy.ts', status: 'added' }) // C = copy/added
     })
 
     it('uses provided baseBranch', async () => {
@@ -312,6 +314,28 @@ describe('gitSync handlers', () => {
     })
   })
 
+  describe('git:setGlobalConfig', () => {
+    it('returns success in E2E mode', async () => {
+      const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
+      expect(await handlers['git:setGlobalConfig'](null, 'user.name', 'John')).toEqual({ success: true })
+    })
+
+    it('sets global config value in production mode', async () => {
+      mockGitInstance.raw.mockResolvedValue('')
+      const handlers = setupHandlers()
+      const result = await handlers['git:setGlobalConfig'](null, 'user.name', 'John')
+      expect(result).toEqual({ success: true })
+      expect(mockGitInstance.raw).toHaveBeenCalledWith(['config', '--global', 'user.name', 'John'])
+    })
+
+    it('returns error on failure in production mode', async () => {
+      mockGitInstance.raw.mockRejectedValue(new Error('config error'))
+      const handlers = setupHandlers()
+      const result = await handlers['git:setGlobalConfig'](null, 'user.name', 'John')
+      expect(result).toEqual({ success: false, error: expect.stringContaining('config error') })
+    })
+  })
+
   describe('git:commitFiles', () => {
     it('returns mock files in E2E mode', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true }))
@@ -321,15 +345,16 @@ describe('gitSync handlers', () => {
     })
 
     it('parses diff-tree output in normal mode', async () => {
-      mockGitInstance.raw.mockResolvedValue('M\tfile1.ts\nA\tfile2.ts\nD\tfile3.ts\nC100\tsrc.ts\tdest.ts\n')
+      mockGitInstance.raw.mockResolvedValue('M\tfile1.ts\nA\tfile2.ts\nD\tfile3.ts\nC100\tsrc.ts\tdest.ts\nR100\told.ts\tnew.ts\n')
 
       const handlers = setupHandlers()
       const result = await handlers['git:commitFiles'](null, '/repo', 'abc123')
-      expect(result).toHaveLength(4)
+      expect(result).toHaveLength(5)
       expect(result[0]).toEqual({ path: 'file1.ts', status: 'modified' })
       expect(result[1]).toEqual({ path: 'file2.ts', status: 'added' })
       expect(result[2]).toEqual({ path: 'file3.ts', status: 'deleted' })
       expect(result[3]).toEqual({ path: 'dest.ts', status: 'added' }) // C = copy/added
+      expect(result[4]).toEqual({ path: 'new.ts', status: 'renamed' }) // R = renamed
     })
 
     it('returns empty array on error', async () => {

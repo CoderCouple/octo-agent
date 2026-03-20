@@ -95,4 +95,9 @@ describe('preload gh API', () => {
     await ghApi.currentUser()
     expect(mockInvoke).toHaveBeenCalledWith('gh:currentUser')
   })
+
+  it('myReviewStatus invokes gh:myReviewStatus', async () => {
+    await ghApi.myReviewStatus('/repo', 42)
+    expect(mockInvoke).toHaveBeenCalledWith('gh:myReviewStatus', '/repo', 42)
+  })
 })

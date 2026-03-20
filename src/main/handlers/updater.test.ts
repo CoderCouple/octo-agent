@@ -121,6 +121,42 @@ describe('updater handler', () => {
       expect(eventNames).toContain('update-downloaded')
     })
 
+    it('sends downloadProgress to all windows when download-progress fires', async () => {
+      const mockSend = vi.fn()
+      const electron = await import('electron')
+      vi.mocked(electron.BrowserWindow.getAllWindows).mockReturnValue([
+        { webContents: { send: mockSend } } as never,
+      ])
+
+      const mockIpcMain = createMockIpcMain()
+      register(mockIpcMain as unknown as IpcMain, createMockCtx())
+
+      // Find and invoke the download-progress callback
+      const progressCall = mockAutoUpdater.on.mock.calls.find((c: unknown[]) => c[0] === 'download-progress')
+      const callback = progressCall?.[1] as (progress: { percent: number }) => void
+      callback({ percent: 42 })
+
+      expect(mockSend).toHaveBeenCalledWith('updater:downloadProgress', 42)
+    })
+
+    it('sends updateDownloaded to all windows when update-downloaded fires', async () => {
+      const mockSend = vi.fn()
+      const electron = await import('electron')
+      vi.mocked(electron.BrowserWindow.getAllWindows).mockReturnValue([
+        { webContents: { send: mockSend } } as never,
+      ])
+
+      const mockIpcMain = createMockIpcMain()
+      register(mockIpcMain as unknown as IpcMain, createMockCtx())
+
+      // Find and invoke the update-downloaded callback
+      const downloadedCall = mockAutoUpdater.on.mock.calls.find((c: unknown[]) => c[0] === 'update-downloaded')
+      const callback = downloadedCall?.[1] as () => void
+      callback()
+
+      expect(mockSend).toHaveBeenCalledWith('updater:updateDownloaded')
+    })
+
     it('registers all three IPC handlers', () => {
       const mockIpcMain = createMockIpcMain()
       register(mockIpcMain as unknown as IpcMain, createMockCtx())
