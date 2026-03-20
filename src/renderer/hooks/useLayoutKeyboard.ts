@@ -48,6 +48,11 @@ function shortcutKeyNoShift(e: KeyboardEvent): string {
   return `${parts.join('+')}:${resolveKey(e)}`
 }
 
+/** Check if focus is inside a modal dialog that should handle its own keyboard events. */
+function isInsideModalDialog(): boolean {
+  return !!document.activeElement?.closest('[role="dialog"][aria-modal="true"]')
+}
+
 /** Check if focus is in a context that should pass through arrow keys. */
 function isArrowPassthrough(el: Element): boolean {
   if (el.closest('.xterm')) return true
@@ -64,6 +69,9 @@ function isArrowPassthrough(el: Element): boolean {
 
 /** Handle arrow key navigation within panels and modals. Returns true if handled. */
 function handleArrowNavigation(e: KeyboardEvent): boolean {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return false
+  if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return false
+
   const activeEl = document.activeElement
   if (!activeEl || isArrowPassthrough(activeEl)) return false
 
@@ -301,12 +309,12 @@ export function useLayoutKeyboard({
         return
       }
 
+      // When a modal dialog is open, let it handle its own keyboard events.
+      // Only global shortcuts (Cmd/Ctrl combos handled above) should pass through.
+      if (isInsideModalDialog()) return
+
       // Global arrow key navigation within panels/modals
-      if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey &&
-          (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        const handled = handleArrowNavigation(e)
-        if (handled) return
-      }
+      if (handleArrowNavigation(e)) return
 
       // Panel toggle shortcuts: Cmd/Ctrl+1-5 (work from any context including Monaco)
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && ['1', '2', '3', '4', '5'].includes(e.key)) {

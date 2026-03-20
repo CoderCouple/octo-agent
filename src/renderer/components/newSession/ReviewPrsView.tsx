@@ -1,11 +1,12 @@
 /**
  * View for browsing open pull requests and selecting one to review in a new session.
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAgentStore } from '../../store/agents'
 import { useSessionStore } from '../../store/sessions'
-import type { ManagedRepo, GitHubPrForReview } from '../../../preload/index'
+import type { ManagedRepo, GitHubPrForReview, AgentData } from '../../../preload/index'
 import { DialogErrorBanner } from '../ErrorBanner'
+import { useListKeyboardNav } from './useListKeyboardNav'
 
 async function createReviewWorktree(repo: ManagedRepo, pr: GitHubPrForReview): Promise<{ worktreePath: string; error?: string }> {
   const mainDir = `${repo.rootDir}/main`
@@ -63,11 +64,15 @@ async function createReviewWorktree(repo: ManagedRepo, pr: GitHubPrForReview): P
   return { worktreePath }
 }
 
-function PrRow({ pr, hasSession, onSelect }: { pr: GitHubPrForReview; hasSession: boolean; onSelect: () => void }) {
+function PrRow({ pr, hasSession, isFocused, onSelect, onMouseEnter }: { pr: GitHubPrForReview; hasSession: boolean; isFocused: boolean; onSelect: () => void; onMouseEnter: () => void }) {
   return (
     <button
       onClick={onSelect}
-      className="w-full flex items-start gap-3 p-2 rounded border border-border bg-bg-primary hover:bg-bg-tertiary hover:border-purple-500/50 transition-colors text-left"
+      onMouseEnter={onMouseEnter}
+      data-pr-row
+      className={`w-full flex items-start gap-3 p-2 rounded border transition-colors text-left ${
+        isFocused ? 'bg-bg-tertiary border-purple-500/50 ring-1 ring-purple-500/50' : 'border-border bg-bg-primary hover:bg-bg-tertiary hover:border-purple-500/50'
+      }`}
     >
       <span className="text-purple-400 font-mono text-xs mt-0.5 flex-shrink-0">#{pr.number}</span>
       <div className="flex-1 min-w-0">
@@ -91,6 +96,81 @@ function PrRow({ pr, hasSession, onSelect }: { pr: GitHubPrForReview; hasSession
         )}
       </div>
     </button>
+  )
+}
+
+function PrConfirmation({ repo, pr, agents, error, creating, onBack, onCreate, onAgentChange, selectedAgentId }: {
+  repo: ManagedRepo; pr: GitHubPrForReview; agents: AgentData[]
+  error: string | null; creating: boolean
+  onBack: () => void; onCreate: () => void; onAgentChange: (id: string | null) => void; selectedAgentId: string | null
+}) {
+  return (
+    <>
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <button onClick={onBack} className="text-text-secondary hover:text-text-primary transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div>
+          <h2 className="text-lg font-medium text-text-primary">Review PR</h2>
+          <p className="text-xs text-text-secondary">{repo.name}</p>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-3">
+        <div className="rounded border border-purple-500/30 bg-purple-500/5 px-3 py-2">
+          <div className="text-xs text-text-secondary">PR #{pr.number} by {pr.author}</div>
+          <div className="text-sm text-text-primary">{pr.title}</div>
+          <div className="text-xs text-text-secondary mt-1 font-mono">
+            {pr.headRefName} &rarr; {pr.baseRefName}
+          </div>
+          {pr.labels.length > 0 && (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {pr.labels.map((label) => (
+                <span key={label} className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-text-secondary mb-1">Agent</label>
+          <select
+            value={selectedAgentId || ''}
+            onChange={(e) => onAgentChange(e.target.value || null)}
+            className="w-full px-3 py-2 text-sm rounded border border-border bg-bg-primary text-text-primary focus:outline-none focus:border-accent"
+          >
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+            <option value="">Shell Only</option>
+          </select>
+        </div>
+
+        {error && (
+          <div className="text-xs text-red-400 bg-red-400/10 rounded px-3 py-2 whitespace-pre-wrap">{error}</div>
+        )}
+      </div>
+
+      <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
+        <button
+          onClick={onBack}
+          className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onCreate}
+          disabled={creating}
+          className="px-4 py-2 text-sm rounded bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {creating ? 'Setting up...' : 'Start Review'}
+        </button>
+      </div>
+    </>
   )
 }
 
@@ -139,9 +219,9 @@ export function ReviewPrsView({
     void fetchPrs()
   }, [repo])
 
-  const handleSelectPr = (pr: GitHubPrForReview) => {
+  const handleSelectPr = useCallback((pr: GitHubPrForReview) => {
     setSelectedPr(pr)
-  }
+  }, [])
 
   const handleCreateReviewSession = async () => {
     if (!selectedPr) return
@@ -170,75 +250,23 @@ export function ReviewPrsView({
     }
   }
 
+  const { focusedIndex, setFocusedIndex, listRef } = useListKeyboardNav({
+    items: prs,
+    enabled: !selectedPr,
+    onSelect: handleSelectPr,
+    dataAttribute: 'data-pr-row',
+  })
+
   // PR selected - show confirmation with agent picker
   if (selectedPr) {
     return (
-      <>
-        <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-          <button onClick={() => setSelectedPr(null)} className="text-text-secondary hover:text-text-primary transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h2 className="text-lg font-medium text-text-primary">Review PR</h2>
-            <p className="text-xs text-text-secondary">{repo.name}</p>
-          </div>
-        </div>
-
-        <div className="p-4 space-y-3">
-          <div className="rounded border border-purple-500/30 bg-purple-500/5 px-3 py-2">
-            <div className="text-xs text-text-secondary">PR #{selectedPr.number} by {selectedPr.author}</div>
-            <div className="text-sm text-text-primary">{selectedPr.title}</div>
-            <div className="text-xs text-text-secondary mt-1 font-mono">
-              {selectedPr.headRefName} &rarr; {selectedPr.baseRefName}
-            </div>
-            {selectedPr.labels.length > 0 && (
-              <div className="flex gap-1 mt-1 flex-wrap">
-                {selectedPr.labels.map((label) => (
-                  <span key={label} className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1">Agent</label>
-            <select
-              value={selectedAgentId || ''}
-              onChange={(e) => setSelectedAgentId(e.target.value || null)}
-              className="w-full px-3 py-2 text-sm rounded border border-border bg-bg-primary text-text-primary focus:outline-none focus:border-accent"
-            >
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-              <option value="">Shell Only</option>
-            </select>
-          </div>
-
-          {error && (
-            <div className="text-xs text-red-400 bg-red-400/10 rounded px-3 py-2 whitespace-pre-wrap">{error}</div>
-          )}
-        </div>
-
-        <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
-          <button
-            onClick={() => setSelectedPr(null)}
-            className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateReviewSession}
-            disabled={creating}
-            className="px-4 py-2 text-sm rounded bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {creating ? 'Setting up...' : 'Start Review'}
-          </button>
-        </div>
-      </>
+      <PrConfirmation
+        repo={repo} pr={selectedPr} agents={agents} error={error} creating={creating}
+        selectedAgentId={selectedAgentId}
+        onBack={() => setSelectedPr(null)}
+        onCreate={handleCreateReviewSession}
+        onAgentChange={setSelectedAgentId}
+      />
     )
   }
 
@@ -278,9 +306,9 @@ export function ReviewPrsView({
         )}
 
         {!loading && !error && prs.length > 0 && (
-          <div className="space-y-1">
-            {prs.map((pr) => (
-              <PrRow key={pr.number} pr={pr} hasSession={reviewedPrNumbers.has(pr.number)} onSelect={() => handleSelectPr(pr)} />
+          <div className="space-y-1" ref={listRef}>
+            {prs.map((pr, index) => (
+              <PrRow key={pr.number} pr={pr} hasSession={reviewedPrNumbers.has(pr.number)} isFocused={index === focusedIndex} onSelect={() => handleSelectPr(pr)} onMouseEnter={() => setFocusedIndex(index)} />
             ))}
           </div>
         )}

@@ -226,4 +226,82 @@ describe('IssuesView', () => {
       expect(screen.getByText('No issues found.')).toBeTruthy()
     })
   })
+
+  describe('keyboard navigation', () => {
+    const issues = [
+      { number: 1, title: 'First issue', labels: [], url: 'https://github.com/user/my-project/issues/1' },
+      { number: 2, title: 'Second issue', labels: [], url: 'https://github.com/user/my-project/issues/2' },
+      { number: 3, title: 'Third issue', labels: [], url: 'https://github.com/user/my-project/issues/3' },
+    ]
+
+    it('highlights first issue by default', async () => {
+      vi.mocked(window.gh.issues).mockResolvedValue(issues)
+      render(<IssuesView repo={mockRepo} onBack={vi.fn()} onSelectIssue={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('First issue')).toBeTruthy())
+
+      const firstButton = screen.getByText('First issue').closest('button')!
+      expect(firstButton.className).toContain('ring-1')
+    })
+
+    it('ArrowDown moves focus to next issue', async () => {
+      vi.mocked(window.gh.issues).mockResolvedValue(issues)
+      render(<IssuesView repo={mockRepo} onBack={vi.fn()} onSelectIssue={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('First issue')).toBeTruthy())
+
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+
+      const secondButton = screen.getByText('Second issue').closest('button')!
+      expect(secondButton.className).toContain('ring-1')
+    })
+
+    it('ArrowUp moves focus to previous issue', async () => {
+      vi.mocked(window.gh.issues).mockResolvedValue(issues)
+      render(<IssuesView repo={mockRepo} onBack={vi.fn()} onSelectIssue={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('First issue')).toBeTruthy())
+
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'ArrowUp' })
+
+      const secondButton = screen.getByText('Second issue').closest('button')!
+      expect(secondButton.className).toContain('ring-1')
+    })
+
+    it('Enter selects the focused issue', async () => {
+      vi.mocked(window.gh.issues).mockResolvedValue(issues)
+      const onSelectIssue = vi.fn()
+      render(<IssuesView repo={mockRepo} onBack={vi.fn()} onSelectIssue={onSelectIssue} />)
+      await waitFor(() => expect(screen.getByText('First issue')).toBeTruthy())
+
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'Enter' })
+
+      expect(onSelectIssue).toHaveBeenCalledWith(issues[1])
+    })
+
+    it('mouse hover updates focused index', async () => {
+      vi.mocked(window.gh.issues).mockResolvedValue(issues)
+      render(<IssuesView repo={mockRepo} onBack={vi.fn()} onSelectIssue={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('Third issue')).toBeTruthy())
+
+      const thirdButton = screen.getByText('Third issue').closest('button')!
+      fireEvent.mouseEnter(thirdButton)
+
+      expect(thirdButton.className).toContain('ring-1')
+    })
+
+    it('does not go below last issue', async () => {
+      vi.mocked(window.gh.issues).mockResolvedValue(issues)
+      render(<IssuesView repo={mockRepo} onBack={vi.fn()} onSelectIssue={vi.fn()} />)
+      await waitFor(() => expect(screen.getByText('First issue')).toBeTruthy())
+
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+      fireEvent.keyDown(window, { key: 'ArrowDown' })
+
+      const thirdButton = screen.getByText('Third issue').closest('button')!
+      expect(thirdButton.className).toContain('ring-1')
+    })
+  })
 })
