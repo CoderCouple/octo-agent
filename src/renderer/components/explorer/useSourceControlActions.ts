@@ -25,7 +25,7 @@ export function useSourceControlActions({
     setIsCommitting, setCommitError,
     setGitOpError, setAgentMergeMessage,
     setIsSyncing, setIsSyncingWithMain,
-    branchBaseName: _branchBaseName, gitStatus,
+    gitStatus,
     expandedCommits, setExpandedCommits,
     commitFilesByHash, setCommitFilesByHash,
     setLoadingCommitFiles,

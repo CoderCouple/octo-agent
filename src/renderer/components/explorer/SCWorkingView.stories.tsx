@@ -40,7 +40,6 @@ const meta: Meta<typeof SCWorkingView> = {
     gitStatus: [],
     syncStatus: { files: [], ahead: 0, behind: 0, tracking: 'origin/main', current: 'feature/test', isMerging: false, hasConflicts: false },
     branchStatus: 'in-progress',
-    branchBaseName: 'main',
     stagedFiles: [],
     unstagedFiles: [],
     isMerging: false,

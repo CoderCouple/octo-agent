@@ -18,7 +18,6 @@ const defaultProps = {
   gitStatus: [],
   syncStatus: { current: 'feature/test', tracking: 'origin/feature/test', ahead: 0, behind: 0, files: [] },
   branchStatus: 'in-progress' as const,
-  branchBaseName: 'main',
   stagedFiles: [],
   unstagedFiles: [],
   isMerging: false,

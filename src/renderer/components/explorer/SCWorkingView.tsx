@@ -18,7 +18,6 @@ export interface SCWorkingViewProps {
   gitStatus: GitFileStatus[]
   syncStatus?: GitStatusResult | null
   branchStatus?: BranchStatus
-  branchBaseName: string
   stagedFiles: GitFileStatus[]
   unstagedFiles: GitFileStatus[]
   isMerging: boolean
@@ -214,7 +213,6 @@ export function SCWorkingView({
   gitStatus,
   syncStatus,
   branchStatus,
-  branchBaseName: _branchBaseName,
   stagedFiles,
   unstagedFiles,
   isMerging,

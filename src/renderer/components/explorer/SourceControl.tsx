@@ -222,7 +222,6 @@ export function SourceControl({
         gitStatus={gitStatus}
         syncStatus={syncStatus}
         branchStatus={branchStatus}
-        branchBaseName={data.branchBaseName}
         stagedFiles={data.stagedFiles}
         unstagedFiles={data.unstagedFiles}
         isMerging={syncStatus?.isMerging ?? false}
