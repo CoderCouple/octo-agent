@@ -20,8 +20,6 @@ const defaultProps = {
   branchBaseName: 'main',
   gitStatus: [],
   syncStatus: undefined,
-  isSyncingWithMain: false,
-  onSyncWithMain: vi.fn(),
   gitOpError: null as { operation: string; message: string } | null,
   onDismissError: vi.fn(),
   agentMergeMessage: null as string | null,
@@ -29,9 +27,13 @@ const defaultProps = {
 }
 
 describe('SCPrBanner', () => {
-  it('shows loading state for PR', () => {
-    render(<SCPrBanner {...defaultProps} isPrLoading={true} />)
-    expect(screen.getByText('Loading PR status...')).toBeTruthy()
+  it('shows spinning refresh icon during PR loading', () => {
+    render(<SCPrBanner {...defaultProps} isPrLoading={true} onRefresh={vi.fn()} />)
+    // Should show "No pull request" (current status) instead of "Loading PR status..."
+    expect(screen.getByText('No pull request')).toBeTruthy()
+    // Refresh icon should be spinning
+    const svg = screen.getByTitle('Refresh PR status').querySelector('svg')
+    expect(svg?.getAttribute('class')).toContain('animate-spin')
   })
 
   it('renders PR status with number and title', () => {
@@ -55,52 +57,6 @@ describe('SCPrBanner', () => {
     render(<SCPrBanner {...defaultProps} prStatus={prStatus} />)
     fireEvent.click(screen.getByText(/#42: Add feature/))
     expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/test/pr/42')
-  })
-
-  it('shows sync button when PR is open and no uncommitted changes', () => {
-    const prStatus = { number: 42, title: 'Add feature', state: 'OPEN' as const, url: 'https://github.com/test/pr/42', headRefName: 'feature/test', baseRefName: 'main' }
-    const syncStatus = { current: 'feature/test', tracking: 'origin/feature/test', ahead: 0, behind: 0, files: [] }
-    render(
-      <SCPrBanner
-        {...defaultProps}
-        prStatus={prStatus}
-        syncStatus={syncStatus}
-        gitStatus={[]}
-      />
-    )
-    expect(screen.getByText('Sync with main')).toBeTruthy()
-  })
-
-  it('calls onSyncWithMain when sync button is clicked', () => {
-    const onSyncWithMain = vi.fn()
-    const prStatus = { number: 42, title: 'Add feature', state: 'OPEN' as const, url: 'https://github.com/test/pr/42', headRefName: 'feature/test', baseRefName: 'main' }
-    const syncStatus = { current: 'feature/test', tracking: 'origin/feature/test', ahead: 0, behind: 0, files: [] }
-    render(
-      <SCPrBanner
-        {...defaultProps}
-        prStatus={prStatus}
-        syncStatus={syncStatus}
-        gitStatus={[]}
-        onSyncWithMain={onSyncWithMain}
-      />
-    )
-    fireEvent.click(screen.getByText('Sync with main'))
-    expect(onSyncWithMain).toHaveBeenCalled()
-  })
-
-  it('shows Syncing... when syncing with main', () => {
-    const prStatus = { number: 42, title: 'Add feature', state: 'OPEN' as const, url: 'https://github.com/test/pr/42', headRefName: 'feature/test', baseRefName: 'main' }
-    const syncStatus = { current: 'feature/test', tracking: 'origin/feature/test', ahead: 0, behind: 0, files: [] }
-    render(
-      <SCPrBanner
-        {...defaultProps}
-        prStatus={prStatus}
-        syncStatus={syncStatus}
-        gitStatus={[]}
-        isSyncingWithMain={true}
-      />
-    )
-    expect(screen.getByText('Syncing...')).toBeTruthy()
   })
 
   it('shows merged status banner', () => {

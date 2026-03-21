@@ -156,4 +156,28 @@ describe('PanelPicker', () => {
     const moveDownButtons = screen.getAllByTitle('Move down')
     expect(moveDownButtons[moveDownButtons.length - 1]).toBeDisabled()
   })
+
+  it('reorders panels via drag and drop', () => {
+    const onToolbarPanelsChange = vi.fn()
+    const { container } = renderPanelPicker({
+      toolbarPanels: [PANEL_IDS.SIDEBAR, PANEL_IDS.EXPLORER, PANEL_IDS.FILE_VIEWER],
+      onToolbarPanelsChange,
+    })
+    const draggableRows = container.querySelectorAll('[draggable="true"]')
+    // Drag first panel
+    fireEvent.dragStart(draggableRows[0], { dataTransfer: { effectAllowed: '' } })
+    // Drag over third position
+    fireEvent.dragOver(draggableRows[2], { dataTransfer: { dropEffect: '' }, preventDefault: vi.fn() })
+    // Drop
+    fireEvent.dragEnd(draggableRows[0])
+    expect(onToolbarPanelsChange).toHaveBeenCalledWith([PANEL_IDS.EXPLORER, PANEL_IDS.FILE_VIEWER, PANEL_IDS.SIDEBAR])
+  })
+
+  it('closes on click outside the panel', () => {
+    const onClose = vi.fn()
+    renderPanelPicker({ onClose })
+    // Click outside - simulate mousedown on document (not inside container)
+    fireEvent.mouseDown(document.body)
+    expect(onClose).toHaveBeenCalled()
+  })
 })

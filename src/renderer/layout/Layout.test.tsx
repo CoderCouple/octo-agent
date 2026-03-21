@@ -161,8 +161,10 @@ describe('Layout', () => {
         [PANEL_IDS.EXPLORER]: <div data-testid="explorer-content">Explorer</div>,
         [PANEL_IDS.FILE_VIEWER]: <div data-testid="fileviewer-content">FileViewer</div>,
         [PANEL_IDS.AGENT]: <div data-testid="terminal-content">Terminal</div>,
-        [PANEL_IDS.SETTINGS]: <div data-testid="settings-content">Settings</div>,
         [PANEL_IDS.TUTORIAL]: <div data-testid="tutorial-content">Tutorial</div>,
+      },
+      panelVisibility: {
+        [PANEL_IDS.EXPLORER]: true,
       },
       globalPanelVisibility: {
         [PANEL_IDS.SIDEBAR]: true,

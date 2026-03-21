@@ -215,4 +215,27 @@ describe('TerminalTabBar', () => {
     fireEvent.dragEnd(tab)
     expect(handleDragEnd).toHaveBeenCalled()
   })
+
+  it('shows [C] badge for isolated container tabs', () => {
+    const isolatedTabs: TerminalTab[] = [
+      { id: 'tab-1', name: 'Terminal 1', isolated: true },
+      { id: 'tab-2', name: 'Terminal 2' },
+    ]
+    renderTabBar({ tabs: isolatedTabs })
+    expect(screen.getByText('[C]')).toBeTruthy()
+  })
+
+  it('does not show context menu or double-click on fixed tabs', () => {
+    const handleContextMenu = vi.fn()
+    const handleDoubleClick = vi.fn()
+    renderTabBar({
+      fixedTabIds: new Set(['tab-1']),
+      handleContextMenu,
+      handleDoubleClick,
+    })
+    fireEvent.contextMenu(screen.getByText('Terminal 1'))
+    fireEvent.doubleClick(screen.getByText('Terminal 1'))
+    expect(handleContextMenu).not.toHaveBeenCalled()
+    expect(handleDoubleClick).not.toHaveBeenCalled()
+  })
 })

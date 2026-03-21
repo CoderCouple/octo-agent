@@ -1,7 +1,7 @@
 /**
- * Banner component showing pull request status, sync actions, and merge conflict alerts.
+ * Banner component showing pull request status and merge conflict alerts.
  */
-import type { GitFileStatus, GitStatusResult, GitHubPrStatus } from '../../../../../preload/index'
+import type { GitHubPrStatus } from '../../../../../preload/index'
 import type { BranchStatus } from '../../../../store/sessions'
 import type { NavigationTarget } from '../../../../shared/utils/fileNavigation'
 import { prStateBadgeClass } from '../../../../features/git/explorerHelpers'
@@ -15,10 +15,6 @@ interface SCPrBannerProps {
   isPrLoading: boolean
   branchStatus?: BranchStatus
   branchBaseName: string
-  gitStatus: GitFileStatus[]
-  syncStatus?: GitStatusResult | null
-  isSyncingWithMain: boolean
-  onSyncWithMain: () => void
   gitOpError: { operation: string; message: string } | null
   onDismissError: () => void
   agentMergeMessage: string | null
@@ -59,24 +55,14 @@ function RefreshButton({ onRefresh, isRefreshing }: { onRefresh: () => void; isR
 }
 
 function PrStatusContent({
-  prStatus, branchStatus, branchBaseName, gitStatus, syncStatus,
-  isSyncingWithMain, onSyncWithMain, issueNumber, issueTitle, issueUrl,
-  onFileSelect, onRefresh, isRefreshing, isPrLoading,
+  prStatus, branchStatus, branchBaseName, issueNumber, issueTitle, issueUrl,
+  onFileSelect, onRefresh, isRefreshing,
 }: Pick<SCPrBannerProps,
-  'prStatus' | 'branchStatus' | 'branchBaseName' | 'gitStatus' | 'syncStatus' |
-  'isSyncingWithMain' | 'onSyncWithMain' | 'issueNumber' | 'issueTitle' | 'issueUrl' |
-  'onFileSelect' | 'onRefresh' | 'isRefreshing' | 'isPrLoading'
+  'prStatus' | 'branchStatus' | 'branchBaseName' |
+  'issueNumber' | 'issueTitle' | 'issueUrl' |
+  'onFileSelect' | 'onRefresh' | 'isRefreshing'
 >) {
   const refresh = onRefresh ? <RefreshButton onRefresh={onRefresh} isRefreshing={isRefreshing} /> : null
-
-  if (isPrLoading) {
-    return (
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-text-secondary">Loading PR status...</div>
-        {refresh}
-      </div>
-    )
-  }
 
   // Determine whether to show PR info (hide stale MERGED/CLOSED when branch has moved on)
   const showPr = prStatus?.number && prStatus.url && !(
@@ -101,17 +87,6 @@ function PrStatusContent({
           </button>
           {refresh}
         </div>
-        {prStatus.state === 'OPEN' && gitStatus.length === 0 && syncStatus?.current !== branchBaseName && (
-          <div className="flex items-center gap-2 mt-1">
-            <button
-              onClick={onSyncWithMain}
-              disabled={isSyncingWithMain}
-              className="px-2 py-1 text-xs rounded bg-bg-tertiary text-text-primary hover:bg-bg-secondary disabled:opacity-50"
-            >
-              {isSyncingWithMain ? 'Syncing...' : `Sync with ${branchBaseName}`}
-            </button>
-          </div>
-        )}
       </div>
     )
   }
@@ -154,8 +129,8 @@ function PrStatusContent({
 }
 
 export function SCPrBanner({
-  prStatus, isPrLoading, branchStatus, branchBaseName, gitStatus, syncStatus,
-  isSyncingWithMain, onSyncWithMain, gitOpError, onDismissError,
+  prStatus, isPrLoading, branchStatus, branchBaseName,
+  gitOpError, onDismissError,
   agentMergeMessage, onDismissAgentMerge, issueNumber, issueTitle, issueUrl,
   onRetryGitOp, onFileSelect, onRefresh, isRefreshing,
 }: SCPrBannerProps) {
@@ -165,11 +140,10 @@ export function SCPrBanner({
       {/* PR Status banner */}
       <div className="px-3 py-2 border-b border-border bg-bg-secondary">
         <PrStatusContent
-          prStatus={prStatus} isPrLoading={isPrLoading} branchStatus={branchStatus}
-          branchBaseName={branchBaseName} gitStatus={gitStatus} syncStatus={syncStatus}
-          isSyncingWithMain={isSyncingWithMain} onSyncWithMain={onSyncWithMain}
+          prStatus={prStatus} branchStatus={branchStatus}
+          branchBaseName={branchBaseName}
           issueNumber={issueNumber} issueTitle={issueTitle} issueUrl={issueUrl}
-          onFileSelect={onFileSelect} onRefresh={onRefresh} isRefreshing={isRefreshing}
+          onFileSelect={onFileSelect} onRefresh={onRefresh} isRefreshing={isRefreshing || isPrLoading}
         />
       </div>
 
