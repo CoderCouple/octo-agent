@@ -303,6 +303,35 @@ describe('useGitPolling', () => {
       await vi.advanceTimersByTimeAsync(5000)
       expect(window.git.status).not.toHaveBeenCalled()
     })
+
+    it('starts polling after session transitions from initializing to idle', async () => {
+      vi.mocked(window.git.status).mockResolvedValue(makeGitStatus())
+      vi.mocked(normalizeGitStatus).mockReturnValue(makeGitStatus())
+
+      const initSession = makeSession({ status: 'initializing' })
+      const props = { ...defaultProps, sessions: [initSession], activeSession: initSession }
+
+      const { rerender } = renderHook(
+        (p) => useGitPolling(p),
+        { initialProps: props }
+      )
+
+      // Should not poll while initializing
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3000)
+      })
+      expect(window.git.status).not.toHaveBeenCalled()
+
+      // Transition to idle (same id/directory, only status changes)
+      const idleSession = makeSession({ status: 'idle' })
+      rerender({ ...defaultProps, sessions: [idleSession], activeSession: idleSession })
+
+      // Should start polling now
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(window.git.status).toHaveBeenCalled()
+    })
   })
 
   describe('branch status computation', () => {
