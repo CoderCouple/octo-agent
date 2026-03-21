@@ -143,7 +143,6 @@ export function useSourceControlData({
   const [commitError, setCommitError] = useState<string | null>(null)
   const [commitErrorExpanded, setCommitErrorExpanded] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [isSyncingWithMain, setIsSyncingWithMain] = useState(false)
   const [gitOpError, setGitOpError] = useState<{ operation: string; message: string } | null>(null)
   const [branchChanges, setBranchChanges] = useState<{ path: string; status: string }[]>([])
   const [branchBaseName, setBranchBaseName] = useState<string>('main')
@@ -280,7 +279,6 @@ export function useSourceControlData({
     commitError, setCommitError,
     commitErrorExpanded, setCommitErrorExpanded,
     isSyncing, setIsSyncing,
-    isSyncingWithMain, setIsSyncingWithMain,
     gitOpError, setGitOpError,
     branchChanges,
     branchBaseName,

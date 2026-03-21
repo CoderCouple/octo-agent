@@ -75,4 +75,44 @@ describe('CommandsSetupDialog', () => {
     expect(screen.getByText(/currently ignores/)).toBeTruthy()
     unmount()
   })
+
+  it('removes legacy gitignore when creating and legacy is detected', async () => {
+    const mod = await import('../../../../features/commands/commandsConfig')
+    vi.mocked(mod.checkLegacyBroomyGitignore).mockResolvedValue(true)
+
+    const onCreated = vi.fn()
+    render(<CommandsSetupDialog directory="/repo" onClose={vi.fn()} onCreated={onCreated} />)
+
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 10))
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create default commands.json'))
+    })
+
+    expect(mod.removeLegacyBroomyGitignore).toHaveBeenCalledWith('/repo')
+    expect(onCreated).toHaveBeenCalled()
+  })
+
+  it('shows Creating... text and recovers on error', async () => {
+    vi.mocked(window.fs.mkdir).mockRejectedValue(new Error('fail'))
+
+    render(<CommandsSetupDialog directory="/repo" onClose={vi.fn()} onCreated={vi.fn()} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create default commands.json'))
+    })
+
+    // Button should be re-enabled after error
+    expect(screen.getByText('Create default commands.json')).toBeTruthy()
+  })
+
+  it('closes backdrop on click', () => {
+    const onClose = vi.fn()
+    const { container } = render(<CommandsSetupDialog directory="/repo" onClose={onClose} onCreated={vi.fn()} />)
+    // Click the backdrop (outer div)
+    fireEvent.click(container.querySelector('.fixed')!)
+    expect(onClose).toHaveBeenCalled()
+  })
 })

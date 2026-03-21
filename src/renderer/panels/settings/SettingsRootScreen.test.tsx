@@ -82,4 +82,36 @@ describe('SettingsRootScreen', () => {
     render(<SettingsRootScreen {...defaultProps} repos={[]} />)
     expect(screen.queryByText('Repositories')).toBeNull()
   })
+
+  it('shows "Detecting shells…" when no shells available', () => {
+    render(<SettingsRootScreen {...defaultProps} availableShells={[]} />)
+    expect(screen.getByText('Detecting shells…')).toBeTruthy()
+  })
+
+  it('calls onSetDefaultCloneDir when Browse button is clicked and folder selected', async () => {
+    vi.mocked(window.dialog.openFolder).mockResolvedValue('/new/path')
+    render(<SettingsRootScreen {...defaultProps} />)
+    fireEvent.click(screen.getByText('Browse'))
+    await vi.waitFor(() => {
+      expect(defaultProps.onSetDefaultCloneDir).toHaveBeenCalledWith('/new/path')
+    })
+  })
+
+  it('does not call onSetDefaultCloneDir when Browse is cancelled', async () => {
+    vi.mocked(window.dialog.openFolder).mockResolvedValue(null as never)
+    const onSetCloneDir = vi.fn()
+    render(<SettingsRootScreen {...defaultProps} onSetDefaultCloneDir={onSetCloneDir} />)
+    fireEvent.click(screen.getByText('Browse'))
+    await vi.waitFor(() => {
+      expect(window.dialog.openFolder).toHaveBeenCalled()
+    })
+    expect(onSetCloneDir).not.toHaveBeenCalled()
+  })
+
+  it('calls onSetDefaultShell when shell selector changes', () => {
+    render(<SettingsRootScreen {...defaultProps} />)
+    const select = screen.getByDisplayValue('zsh (system default)')
+    fireEvent.change(select, { target: { value: '/bin/bash' } })
+    expect(defaultProps.onSetDefaultShell).toHaveBeenCalledWith('/bin/bash')
+  })
 })

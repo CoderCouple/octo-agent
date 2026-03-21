@@ -134,4 +134,47 @@ describe('Layout', () => {
     expect(screen.getByTitle('Menu')).toBeTruthy()
     expect(screen.queryByTitle('Configure panels')).toBeNull()
   })
+
+  it('renders tutorial panel when visible', () => {
+    renderLayout({
+      panels: {
+        [PANEL_IDS.SIDEBAR]: <div data-testid="sidebar-content">Sidebar</div>,
+        [PANEL_IDS.EXPLORER]: <div data-testid="explorer-content">Explorer</div>,
+        [PANEL_IDS.FILE_VIEWER]: <div data-testid="fileviewer-content">FileViewer</div>,
+        [PANEL_IDS.AGENT]: <div data-testid="terminal-content">Terminal</div>,
+        [PANEL_IDS.SETTINGS]: <div data-testid="settings-content">Settings</div>,
+        [PANEL_IDS.TUTORIAL]: <div data-testid="tutorial-content">Tutorial</div>,
+      },
+      globalPanelVisibility: {
+        [PANEL_IDS.SIDEBAR]: true,
+        [PANEL_IDS.SETTINGS]: false,
+        [PANEL_IDS.TUTORIAL]: true,
+      },
+    })
+    expect(screen.getByTestId('tutorial-content')).toBeTruthy()
+  })
+
+  it('hides explorer and tutorial when error message present', () => {
+    renderLayout({
+      panels: {
+        [PANEL_IDS.SIDEBAR]: <div data-testid="sidebar-content">Sidebar</div>,
+        [PANEL_IDS.EXPLORER]: <div data-testid="explorer-content">Explorer</div>,
+        [PANEL_IDS.FILE_VIEWER]: <div data-testid="fileviewer-content">FileViewer</div>,
+        [PANEL_IDS.AGENT]: <div data-testid="terminal-content">Terminal</div>,
+        [PANEL_IDS.TUTORIAL]: <div data-testid="tutorial-content">Tutorial</div>,
+      },
+      panelVisibility: {
+        [PANEL_IDS.EXPLORER]: true,
+      },
+      globalPanelVisibility: {
+        [PANEL_IDS.SIDEBAR]: true,
+        [PANEL_IDS.SETTINGS]: false,
+        [PANEL_IDS.TUTORIAL]: true,
+      },
+      errorMessage: 'Something went wrong',
+    })
+    expect(screen.queryByTestId('explorer-content')).toBeNull()
+    expect(screen.queryByTestId('tutorial-content')).toBeNull()
+    expect(screen.getByText('Something went wrong')).toBeTruthy()
+  })
 })
