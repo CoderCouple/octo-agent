@@ -12,6 +12,8 @@ import { terminalBufferRegistry } from '../../../shared/utils/terminalBufferRegi
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 import { usePlanDetection } from '../../../features/git/hooks/usePlanDetection'
 import { createPtyDataHandler } from './ptyDataHandler'
+import { ScrollLog, scrollLogRegistry, setupScrollLock } from '../utils/scrollLog'
+import type { ScrollSource } from '../utils/scrollLog'
 
 export interface TerminalConfig {
   sessionId: string | undefined
@@ -89,6 +91,8 @@ function createViewportHelpers(terminal: XTerm): ViewportHelpers {
 
 interface ScrollTrackingState {
   pendingScrollRAF: number
+  /** Timestamp of the last user-initiated scroll gesture (wheel/key). */
+  lastUserGestureTime: number
 }
 
 interface ScrollTrackingResult {
@@ -97,22 +101,45 @@ interface ScrollTrackingResult {
   handleKeyScroll: (e: KeyboardEvent) => void
 }
 
-function createScrollTracking(
-  terminal: XTerm,
-  helpers: ViewportHelpers,
-  isFollowingRef: React.MutableRefObject<boolean>,
-  setShowScrollButton: React.Dispatch<React.SetStateAction<boolean>>,
-): ScrollTrackingResult {
-  const state: ScrollTrackingState = { pendingScrollRAF: 0 }
+interface ScrollTrackingArgs {
+  terminal: XTerm
+  helpers: ViewportHelpers
+  isFollowingRef: React.MutableRefObject<boolean>
+  setShowScrollButton: React.Dispatch<React.SetStateAction<boolean>>
+  scrollLog: ScrollLog
+  viewportEl: HTMLElement | null
+}
+
+function createScrollTracking(args: ScrollTrackingArgs): ScrollTrackingResult {
+  const { terminal, helpers, isFollowingRef, setShowScrollButton, scrollLog, viewportEl } = args
+  const state: ScrollTrackingState = { pendingScrollRAF: 0, lastUserGestureTime: 0 }
+
+  const logScroll = (source: ScrollSource, detail?: string) => {
+    scrollLog.add({
+      source,
+      viewportY: terminal.buffer.active.viewportY,
+      baseY: terminal.buffer.active.baseY,
+      scrollTop: viewportEl?.scrollTop,
+      scrollHeight: viewportEl?.scrollHeight,
+      clientHeight: viewportEl?.clientHeight,
+      following: isFollowingRef.current,
+      detail,
+    })
+  }
 
   const updateFollowingFromScroll = (e: Event) => {
     const isScrollUp = e instanceof WheelEvent && e.deltaY < 0
     if (isScrollUp) {
+      state.lastUserGestureTime = Date.now()
       isFollowingRef.current = false
+      logScroll('wheel-up')
       if (state.pendingScrollRAF) {
         cancelAnimationFrame(state.pendingScrollRAF)
         state.pendingScrollRAF = 0
       }
+    } else {
+      state.lastUserGestureTime = Date.now()
+      logScroll('wheel-down')
     }
 
     requestAnimationFrame(() => {
@@ -126,7 +153,9 @@ function createScrollTracking(
 
   const handleKeyScroll = (e: KeyboardEvent) => {
     if (e.key === 'PageUp' || (e.shiftKey && e.key === 'ArrowUp')) {
+      state.lastUserGestureTime = Date.now()
       isFollowingRef.current = false
+      logScroll(e.key === 'PageUp' ? 'key-pageup' : 'key-shift-arrow')
       if (state.pendingScrollRAF) {
         cancelAnimationFrame(state.pendingScrollRAF)
         state.pendingScrollRAF = 0
@@ -134,6 +163,7 @@ function createScrollTracking(
     }
     if (e.key === 'PageUp' || e.key === 'PageDown' ||
         (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown'))) {
+      state.lastUserGestureTime = Date.now()
       requestAnimationFrame(() => {
         const atBottom = helpers.isAtBottom()
         isFollowingRef.current = atBottom
@@ -143,6 +173,52 @@ function createScrollTracking(
   }
 
   return { state, updateFollowingFromScroll, handleKeyScroll }
+}
+
+// ── Resize observer with scroll logging ─────────────────────────────
+
+interface ResizeObserverSetup {
+  observer: ResizeObserver
+  cleanup: () => void
+}
+
+interface ResizeObserverLogArgs {
+  terminal: XTerm; fitAddon: FitAddon; ptyIdRef: React.MutableRefObject<string | null>
+  isActiveRef: React.MutableRefObject<boolean>; isFollowingRef: React.MutableRefObject<boolean>
+  scrollLog: ScrollLog; viewportEl: HTMLElement | null
+}
+
+function createResizeObserverWithLog(args: ResizeObserverLogArgs): ResizeObserverSetup {
+  const { terminal, fitAddon, ptyIdRef, isActiveRef, isFollowingRef, scrollLog, viewportEl } = args
+  let ptyResizeTimeout: ReturnType<typeof setTimeout> | null = null
+  const observer = new ResizeObserver((entries) => {
+    if (!isActiveRef.current) return
+    const entry = entries[0] as ResizeObserverEntry | undefined
+    if (!entry || entry.contentRect.width === 0 || entry.contentRect.height === 0) return
+    if (ptyResizeTimeout) clearTimeout(ptyResizeTimeout)
+    ptyResizeTimeout = setTimeout(() => {
+      const oldCols = terminal.cols
+      const oldRows = terminal.rows
+      try { fitAddon.fit() } catch { /* ignore */ }
+      if (terminal.cols !== oldCols || terminal.rows !== oldRows) {
+        scrollLog.add({
+          source: 'resize',
+          viewportY: terminal.buffer.active.viewportY,
+          baseY: terminal.buffer.active.baseY,
+          scrollTop: viewportEl?.scrollTop,
+          scrollHeight: viewportEl?.scrollHeight,
+          clientHeight: viewportEl?.clientHeight,
+          following: isFollowingRef.current,
+          detail: `${oldCols}x${oldRows} -> ${terminal.cols}x${terminal.rows}`,
+        })
+      }
+      if (ptyIdRef.current && terminal.cols > 0 && terminal.rows > 0) {
+        void window.pty.resize(ptyIdRef.current, terminal.cols, terminal.rows)
+      }
+    }, 100)
+  })
+  const cleanup = () => { observer.disconnect(); if (ptyResizeTimeout) clearTimeout(ptyResizeTimeout) }
+  return { observer, cleanup }
 }
 
 // ── Terminal state hook (refs, store wiring, callbacks) ──────────────
@@ -291,7 +367,24 @@ export function useTerminalSetup(
     })
 
     const helpers = createViewportHelpers(terminal)
-    const scrollTracking = createScrollTracking(terminal, helpers, s.isFollowingRef, s.setShowScrollButton)
+    const viewportEl = containerRef.current.querySelector<HTMLElement>('.xterm-viewport')
+
+    // ── Scroll event log for debugging ──────────────────────────────
+    const scrollLog = new ScrollLog()
+    scrollLogRegistry.register(registryKey, scrollLog)
+
+    const scrollTracking = createScrollTracking({
+      terminal, helpers, isFollowingRef: s.isFollowingRef,
+      setShowScrollButton: s.setShowScrollButton, scrollLog, viewportEl,
+    })
+
+    const scrollLock = viewportEl
+      ? setupScrollLock({
+        terminal, isFollowingRef: s.isFollowingRef,
+        lastUserGestureTime: () => scrollTracking.state.lastUserGestureTime,
+        scrollLog, viewportEl,
+      })
+      : { cleanup: () => {} }
 
     let onRenderRAF = 0
     terminal.onRender(() => {
@@ -396,35 +489,19 @@ export function useTerminalSetup(
         terminal.write(`\x1b[33m${err instanceof Error ? err.message : String(err)}\x1b[0m\r\n`)
       })
 
-    let ptyResizeTimeout: ReturnType<typeof setTimeout> | null = null
-    const resizeObserver = new ResizeObserver((entries) => {
-      // Skip background terminals — resizing them sends SIGWINCH to the shell,
-      // causing prompt redraws that false-trigger the activity detector.
-      // They'll be fitted when activated via the activation handler.
-      if (!s.isActiveRef.current) return
-      const entry = entries[0] as ResizeObserverEntry | undefined
-      if (!entry || entry.contentRect.width === 0 || entry.contentRect.height === 0) return
-      // Debounce fit() and pty.resize() together so xterm and the child process
-      // learn about the new size atomically. Without this, TUI agents like Codex
-      // render frames for the old size into a terminal that already changed,
-      // leaving orphaned lines and blank gaps in the scrollback.
-      if (ptyResizeTimeout) clearTimeout(ptyResizeTimeout)
-      ptyResizeTimeout = setTimeout(() => {
-        try { fitAddon.fit() } catch { /* ignore */ }
-        if (s.ptyIdRef.current && terminal.cols > 0 && terminal.rows > 0) {
-          void window.pty.resize(s.ptyIdRef.current, terminal.cols, terminal.rows)
-        }
-      }, 100)
+    const resizeSetup = createResizeObserverWithLog({
+      terminal, fitAddon, ptyIdRef: s.ptyIdRef, isActiveRef: s.isActiveRef,
+      isFollowingRef: s.isFollowingRef, scrollLog, viewportEl,
     })
     const containerEl = containerRef.current
-    resizeObserver.observe(containerEl)
+    resizeSetup.observer.observe(containerEl)
 
     return () => {
       scrollContainer.removeEventListener('wheel', scrollTracking.updateFollowingFromScroll)
       scrollContainer.removeEventListener('touchmove', scrollTracking.updateFollowingFromScroll)
       scrollContainer.removeEventListener('keydown', scrollTracking.handleKeyScroll)
-      resizeObserver.disconnect()
-      if (ptyResizeTimeout) clearTimeout(ptyResizeTimeout)
+      resizeSetup.cleanup()
+      scrollLock.cleanup()
       if (scrollTracking.state.pendingScrollRAF) cancelAnimationFrame(scrollTracking.state.pendingScrollRAF)
       if (onRenderRAF) cancelAnimationFrame(onRenderRAF)
       s.cleanupRef.current?.()
@@ -436,6 +513,7 @@ export function useTerminalSetup(
         s.updateAgentMonitorRef.current(s.sessionIdRef.current, { status: 'idle' })
       }
       terminalBufferRegistry.unregister(registryKey)
+      scrollLogRegistry.unregister(registryKey)
     }
   }, [sessionId, restartKey, config.command]) // Recreate terminal when session identity, command, or restart key changes
 

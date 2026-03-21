@@ -5,6 +5,7 @@ import { useEffect, useCallback, useState, useMemo, useRef } from 'react'
 import type { Session } from '../../../store/sessions'
 import type { ProfileData } from '../../../store/profiles'
 import { terminalBufferRegistry } from '../../../shared/utils/terminalBufferRegistry'
+import { scrollLogRegistry } from '../../../panels/agent/utils/scrollLog'
 import { loadMonacoProjectContext } from '../../../shared/utils/monacoProjectContext'
 import { restoreSessionFocus } from '../../../shared/utils/focusHelpers'
 
@@ -140,7 +141,11 @@ export function useSessionLifecycle({
         content += `Directory: ${activeSession.directory}\n`
         content += `Status: ${activeSession.status}\n`
         content += `Last Message: ${activeSession.lastMessage || '(none)'}\n`
-        content += '\n=== Terminal Output (last 200 lines) ===\n\n'
+        // Scroll event log for debugging viewport jump issues
+        const scrollLogContent = scrollLogRegistry.format(activeSession.id)
+        content += '\n=== Scroll Event Log ===\n\n'
+        content += scrollLogContent
+        content += '\n\n=== Terminal Output (last 200 lines) ===\n\n'
         content += buffer || '(no content)'
 
         void navigator.clipboard.writeText(content).catch((err: unknown) => {
