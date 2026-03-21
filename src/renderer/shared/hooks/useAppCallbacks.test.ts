@@ -357,6 +357,14 @@ describe('useAppCallbacks', () => {
     expect(result.current.getAgentCommand({ agentId: 'a1', repoId: 'r1' } as never)).toBe('claude')
   })
 
+  it('getAgentCommand returns undefined when session has repoId but repo not yet loaded', () => {
+    const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
+    // repos is empty — simulates repos not yet loaded from config
+    const deps = makeDeps({ agents, repos: [] })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getAgentCommand({ agentId: 'a1', repoId: 'r1' } as never)).toBeUndefined()
+  })
+
   it('getAgentCommand does not append flag when session has no repoId', () => {
     const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
     const deps = makeDeps({ agents })

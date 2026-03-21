@@ -90,6 +90,10 @@ export function useAppCallbacks({
     if (!session.agentId) return undefined
     const agent = agents.find((a) => a.id === session.agentId)
     if (!agent?.command) return undefined
+    // If the session is linked to a repo, wait until repo data is available
+    // before returning a command. This prevents spawning the agent without
+    // repo-level flags (e.g. skipApproval) that get appended to the command.
+    if (session.repoId && !repos.find((r) => r.id === session.repoId)) return undefined
     const repo = session.repoId ? repos.find((r) => r.id === session.repoId) : undefined
     if (repo?.skipApproval && agent.skipApprovalFlag) {
       const flag = agent.skipApprovalFlag

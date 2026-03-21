@@ -481,7 +481,7 @@ export function useTerminalSetup(
       }
       terminalBufferRegistry.unregister(registryKey)
     }
-  }, [sessionId, restartKey]) // Recreate terminal when session identity changes or on restart
+  }, [sessionId, restartKey, config.command]) // Recreate terminal when session identity, command, or restart key changes
 
   // Subscribe to store for activation changes — imperative only, no re-render.
   useEffect(() => {

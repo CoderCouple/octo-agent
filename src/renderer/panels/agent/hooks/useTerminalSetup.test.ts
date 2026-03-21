@@ -215,6 +215,69 @@ describe('useTerminalSetup', () => {
     )
   })
 
+  it('recreates PTY when command changes (e.g. auto-approve flag appended after repos load)', async () => {
+    const containerRef = makeContainerRef()
+    // Initial render: agent command without the skip-approval flag (repos not loaded yet)
+    const initialConfig = makeConfig({
+      sessionId: 'my-session',
+      cwd: '/my/cwd',
+      command: 'claude',
+      isAgentTerminal: true,
+    })
+
+    const { rerender } = renderHook(
+      ({ config }) => useTerminalSetup(config, containerRef),
+      { initialProps: { config: initialConfig } },
+    )
+
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+    expect(window.pty.create).toHaveBeenCalledTimes(1)
+    expect(window.pty.create).toHaveBeenCalledWith(
+      expect.objectContaining({ command: 'claude' }),
+    )
+
+    // Repos finish loading — command now includes the auto-approve flag
+    const updatedConfig = makeConfig({
+      sessionId: 'my-session',
+      cwd: '/my/cwd',
+      command: 'claude --dangerously-skip-permissions',
+      isAgentTerminal: true,
+    })
+
+    rerender({ config: updatedConfig })
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+
+    // The old PTY should be killed and a new one created with the updated command
+    expect(window.pty.kill).toHaveBeenCalled()
+    expect(window.pty.create).toHaveBeenCalledTimes(2)
+    expect(window.pty.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ command: 'claude --dangerously-skip-permissions' }),
+    )
+  })
+
+  it('does not recreate PTY when command stays the same', async () => {
+    const containerRef = makeContainerRef()
+    const config = makeConfig({
+      sessionId: 'my-session',
+      cwd: '/my/cwd',
+      command: 'claude',
+      isAgentTerminal: true,
+    })
+
+    const { rerender } = renderHook(
+      ({ config: c }) => useTerminalSetup(c, containerRef),
+      { initialProps: { config } },
+    )
+
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+    expect(window.pty.create).toHaveBeenCalledTimes(1)
+
+    // Re-render with same command — should NOT recreate
+    rerender({ config: { ...config } })
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+    expect(window.pty.create).toHaveBeenCalledTimes(1)
+  })
+
   it('opens terminal in the container element', () => {
     const config = makeConfig()
     const containerRef = makeContainerRef()
