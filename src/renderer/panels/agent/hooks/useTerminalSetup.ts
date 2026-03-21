@@ -103,8 +103,13 @@ function createViewportHelpers(terminal: XTerm, containerEl: HTMLElement): Viewp
   const forceViewportSync = () => {
     const { cols, rows } = terminal
     if (cols > 0 && rows > 1) {
+      const viewportY = terminal.buffer.active.viewportY
       terminal.resize(cols, rows + 1)
       terminal.resize(cols, rows)
+      // Restore viewport position — the resize reflow can shift it
+      if (viewportY < terminal.buffer.active.baseY) {
+        terminal.scrollToLine(viewportY)
+      }
     }
   }
 
@@ -370,7 +375,11 @@ export function useTerminalSetup(
       effectStartTime,
       isActiveRef: s.isActiveRef,
       onViewportSyncCheck: () => {
-        if (helpers.isViewportDesynced()) {
+        // Only fix viewport desync when the user is following (at bottom).
+        // If they've scrolled up, the viewport IS scrollable (otherwise they
+        // couldn't be up there), so there's no desync to fix — and the resize
+        // trick in forceViewportSync can shift their viewport position.
+        if (s.isFollowingRef.current && helpers.isViewportDesynced()) {
           helpers.forceViewportSync()
         }
       },
