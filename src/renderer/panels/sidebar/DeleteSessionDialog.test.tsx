@@ -10,14 +10,14 @@ afterEach(() => {
   cleanup()
 })
 
-const baseSession: Session = {
+const baseSession = {
   id: 's1',
   name: 'Test Session',
   branch: 'feature/test',
   repoId: 'r1',
   branchStatus: 'active',
   agentId: 'a1',
-} as Session
+} as unknown as Session
 
 const repos: ManagedRepo[] = [
   { id: 'r1', name: 'Repo', rootDir: '/repo', defaultBranch: 'main', remoteUrl: '' },
