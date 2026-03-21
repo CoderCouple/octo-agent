@@ -24,6 +24,8 @@ interface CreatePtyDataHandlerArgs {
   state: TerminalStateForPtyData
   effectStartTime: number
   isActiveRef: React.MutableRefObject<boolean>
+  /** Called periodically after data writes to check/repair viewport desync. */
+  onViewportSyncCheck?: () => void
 }
 
 /** Maximum buffer size (5 MB) to prevent unbounded memory growth for background terminals. */
@@ -37,13 +39,15 @@ interface PtyDataHandlerController {
 }
 
 export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHandlerController {
-  const { terminal, isAgent, command, state, effectStartTime, isActiveRef } = args
+  const { terminal, isAgent, command, state, effectStartTime, isActiveRef, onViewportSyncCheck } = args
   // Codex (Ink-based TUI) uses cursor movement to redraw in-place. Buffering
   // these frames and replaying them in a batch corrupts the scrollback with
   // duplicate status bars and blank gaps. Disable buffering entirely for Codex.
   const skipBuffering = isAgent && !!command && /\bcodex\b/i.test(command)
   const bufferedChunks: string[] = []
   let bufferedSize = 0
+  // Debounce timer for proactive viewport desync checks after data writes
+  let syncCheckTimeout: ReturnType<typeof setTimeout> | null = null
 
   const processActivityDetection = (data: string) => {
     if (!isAgent) return
@@ -87,6 +91,15 @@ export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHan
     }
 
     terminal.write(data)
+
+    // Proactive viewport desync check — debounced so we don't
+    // do the DOM read on every single data chunk.
+    if (onViewportSyncCheck && !syncCheckTimeout) {
+      syncCheckTimeout = setTimeout(() => {
+        syncCheckTimeout = null
+        onViewportSyncCheck()
+      }, 500)
+    }
   }
 
   const flush = () => {
@@ -98,7 +111,7 @@ export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHan
   }
 
   const clearTimers = () => {
-    // no-op — kept for interface compatibility
+    if (syncCheckTimeout) { clearTimeout(syncCheckTimeout); syncCheckTimeout = null }
   }
 
   return { handleData, clearTimers, flush }
