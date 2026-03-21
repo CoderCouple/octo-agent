@@ -83,7 +83,7 @@ describe('ActionButtons', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Commit'))
     })
-    expect(screen.getByText('Something failed')).toBeTruthy()
+    expect(screen.getByText('Commit failed: Something failed')).toBeTruthy()
   })
 
   it('uses default actions when actions is null', () => {
