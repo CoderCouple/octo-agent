@@ -153,10 +153,6 @@ export function SourceControl({
         isPrLoading={data.isPrLoading}
         branchStatus={branchStatus}
         branchBaseName={data.branchBaseName}
-        gitStatus={gitStatus}
-        syncStatus={syncStatus}
-        isSyncingWithMain={data.isSyncingWithMain}
-        onSyncWithMain={actions.handleSyncWithMain}
         gitOpError={data.gitOpError}
         onDismissError={() => data.setGitOpError(null)}
         agentMergeMessage={data.agentMergeMessage}
