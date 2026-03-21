@@ -1,7 +1,17 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
+import { execSync } from 'child_process'
+
+const gitCommit = (() => {
+  try { return execSync('git rev-parse --short HEAD').toString().trim() }
+  catch { return 'unknown' }
+})()
 
 export default defineConfig({
+  define: {
+    __BUILD_COMMIT__: JSON.stringify(gitCommit),
+    __BUILD_TIME__: JSON.stringify('test'),
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src/renderer'),

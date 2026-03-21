@@ -98,7 +98,7 @@ async function loadConfigFile(configFile: string): Promise<Record<string, unknow
       }
       for (const agent of config.agents) {
         const def = defaultsById.get(agent.id)
-        if (def && 'skipApprovalFlag' in def && agent.skipApprovalFlag === undefined) {
+        if (def && 'skipApprovalFlag' in def && !agent.skipApprovalFlag) {
           agent.skipApprovalFlag = def.skipApprovalFlag
         }
       }

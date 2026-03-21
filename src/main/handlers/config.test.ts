@@ -226,6 +226,19 @@ describe('config handlers', () => {
       expect(ids).toContain('gemini')
     })
 
+    it('backfills skipApprovalFlag when saved as empty string', async () => {
+      const mockConfig = {
+        agents: [{ id: 'claude', name: 'Claude', command: 'claude', color: '#D97757', skipApprovalFlag: '' }],
+        sessions: [],
+      }
+      vi.mocked(readFile).mockResolvedValue(JSON.stringify(mockConfig))
+
+      const handlers = setupHandlers()
+      const result = await handlers['config:load'](null, 'default')
+      const claude = result.agents.find((a: { id: string }) => a.id === 'claude')
+      expect(claude.skipApprovalFlag).toBe('--dangerously-skip-permissions')
+    })
+
     it('falls back to backup on corrupt primary config', async () => {
       allowConsoleWarn()
       const backupConfig = { agents: DEFAULT_AGENTS, sessions: [{ id: 'backup' }] }
