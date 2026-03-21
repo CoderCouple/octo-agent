@@ -72,7 +72,7 @@ export function useGitPolling({
     } catch {
       // Ignore errors
     }
-  }, [activeSession?.id, activeSession?.directory, activeSession?.repoId, repos, markHasHadCommits])
+  }, [activeSession?.id, activeSession?.status, activeSession?.directory, activeSession?.repoId, repos, markHasHadCommits])
 
   // Poll git status every 2 seconds
   useEffect(() => {
