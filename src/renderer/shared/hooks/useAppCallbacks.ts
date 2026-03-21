@@ -93,15 +93,18 @@ export function useAppCallbacks({
     // If the session is linked to a repo, wait until repo data is available
     // before returning a command. This prevents spawning the agent without
     // repo-level flags (e.g. skipApproval) that get appended to the command.
-    if (session.repoId && !repos.find((r) => r.id === session.repoId)) return undefined
-    const repo = session.repoId ? repos.find((r) => r.id === session.repoId) : undefined
-    if (repo?.skipApproval && agent.skipApprovalFlag) {
-      const flag = agent.skipApprovalFlag
-      if (!agent.command.includes(flag)) {
-        return `${agent.command} ${flag}`
-      }
+    if (session.repoId && !repos.find((r) => r.id === session.repoId)) {
+      return undefined
     }
-    return agent.command
+    // Find repo by ID, or fall back to directory matching for sessions
+    // that predate the repo system (no repoId set).
+    const repo = session.repoId
+      ? repos.find((r) => r.id === session.repoId)
+      : repos.find((r) => session.directory.startsWith(`${r.rootDir}/`) || session.directory === r.rootDir)
+    const command = (repo?.skipApproval && agent.skipApprovalFlag && !agent.command.includes(agent.skipApprovalFlag))
+      ? `${agent.command} ${agent.skipApprovalFlag}`
+      : agent.command
+    return command
   }, [agents, repos])
 
   const getAgentEnv = useCallback((session: Session) => {

@@ -285,7 +285,7 @@ function createDevcontainerPty(
 function resolveShellConfig(
   ctx: HandlerContext,
   options: { command?: string; sessionId?: string; shell?: string },
-): { shell: string; shellArgs: string[]; initialCommand: string | undefined } {
+): { shell: string; shellArgs: string[]; initialCommand: string | undefined; extraEnv?: Record<string, string> } {
   let initialCommand: string | undefined = options.command
 
   if (ctx.isE2ETest) {
@@ -297,7 +297,7 @@ function resolveShellConfig(
       } else {
         initialCommand = 'echo E2E_TEST_SHELL_READY'
       }
-      return { shell, shellArgs: [], initialCommand }
+      return { shell, shellArgs: [], initialCommand, extraEnv: options.command ? { BROOMY_ORIGINAL_COMMAND: options.command } : undefined }
     }
     const shell = '/bin/bash'
     if (options.command) {
@@ -309,7 +309,7 @@ function resolveShellConfig(
     } else {
       initialCommand = 'echo "E2E_TEST_SHELL_READY"; PS1="test-shell$ "'
     }
-    return { shell, shellArgs: [], initialCommand }
+    return { shell, shellArgs: [], initialCommand, extraEnv: options.command ? { BROOMY_ORIGINAL_COMMAND: options.command } : undefined }
   }
 
   if (ctx.E2E_MOCK_SHELL) {
@@ -354,7 +354,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     }
 
     // Standard (non-isolated) path
-    const { shell, shellArgs, initialCommand: resolvedCommand } = resolveShellConfig(ctx, options)
+    const { shell, shellArgs, initialCommand: resolvedCommand, extraEnv } = resolveShellConfig(ctx, options)
     let initialCommand = resolvedCommand
 
     // Build environment — extend PATH with common bin dirs so agents in
@@ -378,7 +378,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
       }
     }
 
-    const env = { ...baseEnv, ...agentEnv } as Record<string, string>
+    const env = { ...baseEnv, ...agentEnv, ...extraEnv } as Record<string, string>
 
     let ptyProcess: IPty
     try {

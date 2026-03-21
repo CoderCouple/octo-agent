@@ -101,6 +101,6 @@ export const expandHomePath = (path: string): string => {
 // Only non-scenario-specific data remains here.
 export function getE2EDemoRepos() {
   return [
-    { id: 'repo-1', name: 'demo-project', remoteUrl: 'git@github.com:user/demo-project.git', rootDir: normalizePath(join(tmpdir(), 'broomy-e2e-repos/demo-project')), defaultBranch: 'main' },
+    { id: 'repo-1', name: 'demo-project', remoteUrl: 'git@github.com:user/demo-project.git', rootDir: normalizePath(join(tmpdir(), 'broomy-e2e-repos/demo-project')), defaultBranch: 'main', skipApproval: true },
   ]
 }

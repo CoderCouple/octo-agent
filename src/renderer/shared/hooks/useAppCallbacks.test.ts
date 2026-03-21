@@ -365,11 +365,28 @@ describe('useAppCallbacks', () => {
     expect(result.current.getAgentCommand({ agentId: 'a1', repoId: 'r1' } as never)).toBeUndefined()
   })
 
-  it('getAgentCommand does not append flag when session has no repoId', () => {
+  it('getAgentCommand does not append flag when session has no repoId and no directory match', () => {
     const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
     const deps = makeDeps({ agents })
     const { result } = renderHook(() => useAppCallbacks(deps))
-    expect(result.current.getAgentCommand({ agentId: 'a1' } as never)).toBe('claude')
+    expect(result.current.getAgentCommand({ agentId: 'a1', directory: '/unrelated' } as never)).toBe('claude')
+  })
+
+  it('getAgentCommand appends flag when session has no repoId but directory matches repo rootDir', () => {
+    const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
+    const repos = [{ id: 'r1', rootDir: '/repos/my-project', defaultBranch: 'main', skipApproval: true }]
+    const deps = makeDeps({ agents, repos })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    // Session directory is a worktree under the repo rootDir
+    expect(result.current.getAgentCommand({ agentId: 'a1', directory: '/repos/my-project/feature-branch' } as never)).toBe('claude --dangerously-skip-permissions')
+  })
+
+  it('getAgentCommand appends flag when session directory equals repo rootDir exactly', () => {
+    const agents = [{ id: 'a1', name: 'Claude', command: 'claude', skipApprovalFlag: '--dangerously-skip-permissions' }] as Parameters<typeof useAppCallbacks>[0]['agents']
+    const repos = [{ id: 'r1', rootDir: '/repos/my-project', defaultBranch: 'main', skipApproval: true }]
+    const deps = makeDeps({ agents, repos })
+    const { result } = renderHook(() => useAppCallbacks(deps))
+    expect(result.current.getAgentCommand({ agentId: 'a1', directory: '/repos/my-project' } as never)).toBe('claude --dangerously-skip-permissions')
   })
 
   // --- getRepoIsolation ---
