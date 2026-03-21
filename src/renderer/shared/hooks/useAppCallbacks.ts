@@ -149,7 +149,7 @@ export function useAppCallbacks({
     if (deleteWorktree && session?.repoId) {
       const repo = repos.find(r => r.id === session.repoId)
       if (repo) {
-        const mainDir = `${repo.rootDir}/${repo.defaultBranch}`
+        const mainDir = `${repo.rootDir}/main`
         void (async () => {
           try {
             const removeResult = await window.git.worktreeRemove(mainDir, session.directory)
