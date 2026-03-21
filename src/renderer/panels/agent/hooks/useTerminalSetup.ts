@@ -378,13 +378,11 @@ export function useTerminalSetup(
       setShowScrollButton: s.setShowScrollButton, scrollLog, viewportEl,
     })
 
-    const scrollLock = viewportEl
-      ? setupScrollLock({
-        terminal, isFollowingRef: s.isFollowingRef,
-        lastUserGestureTime: () => scrollTracking.state.lastUserGestureTime,
-        scrollLog, viewportEl,
-      })
-      : { cleanup: () => {} }
+    const scrollLock = setupScrollLock({
+      terminal,
+      lastUserGestureTime: () => scrollTracking.state.lastUserGestureTime,
+      scrollLog, viewportEl,
+    })
 
     let onRenderRAF = 0
     terminal.onRender(() => {
@@ -398,17 +396,14 @@ export function useTerminalSetup(
       })
     })
 
-    // Attach scroll-tracking listeners to the xterm VIEWPORT element, not the
-    // outer container. xterm.js intercepts wheel events on its viewport and calls
-    // stopPropagation(), so listeners on parent elements never fire. By listening
-    // on the same element, our handler is guaranteed to run (only
-    // stopImmediatePropagation would block it, and xterm doesn't use that).
-    // Fall back to the container if viewport wasn't found (shouldn't happen).
-    const scrollEventTarget = viewportEl ?? containerRef.current
-    scrollEventTarget.addEventListener('wheel', scrollTracking.updateFollowingFromScroll, { passive: true })
-    scrollEventTarget.addEventListener('touchmove', scrollTracking.updateFollowingFromScroll, { passive: true })
-    scrollEventTarget.addEventListener('keydown', scrollTracking.handleKeyScroll)
-    const scrollContainer = scrollEventTarget
+    // Use CAPTURE phase on the container so our handlers fire BEFORE xterm's
+    // handlers on child elements. xterm.js 6 handles wheel events on its canvas
+    // and may call stopPropagation(), but capture-phase listeners on an ancestor
+    // fire during the capture phase (top-down) before the target phase.
+    const scrollContainer = containerRef.current
+    scrollContainer.addEventListener('wheel', scrollTracking.updateFollowingFromScroll, { capture: true, passive: true })
+    scrollContainer.addEventListener('touchmove', scrollTracking.updateFollowingFromScroll, { capture: true, passive: true })
+    scrollContainer.addEventListener('keydown', scrollTracking.handleKeyScroll, { capture: true })
 
     requestAnimationFrame(() => {
       if (containerRef.current && containerRef.current.offsetWidth > 0 && containerRef.current.offsetHeight > 0) {
@@ -504,9 +499,9 @@ export function useTerminalSetup(
     resizeSetup.observer.observe(containerEl)
 
     return () => {
-      scrollContainer.removeEventListener('wheel', scrollTracking.updateFollowingFromScroll)
-      scrollContainer.removeEventListener('touchmove', scrollTracking.updateFollowingFromScroll)
-      scrollContainer.removeEventListener('keydown', scrollTracking.handleKeyScroll)
+      scrollContainer.removeEventListener('wheel', scrollTracking.updateFollowingFromScroll, { capture: true })
+      scrollContainer.removeEventListener('touchmove', scrollTracking.updateFollowingFromScroll, { capture: true })
+      scrollContainer.removeEventListener('keydown', scrollTracking.handleKeyScroll, { capture: true })
       resizeSetup.cleanup()
       scrollLock.cleanup()
       if (scrollTracking.state.pendingScrollRAF) cancelAnimationFrame(scrollTracking.state.pendingScrollRAF)

@@ -838,9 +838,9 @@ describe('useTerminalSetup', () => {
 
       renderHook(() => useTerminalSetup(config, containerRef))
 
-      expect(addEventSpy).toHaveBeenCalledWith('wheel', expect.any(Function), { passive: true })
-      expect(addEventSpy).toHaveBeenCalledWith('touchmove', expect.any(Function), { passive: true })
-      expect(addEventSpy).toHaveBeenCalledWith('keydown', expect.any(Function))
+      expect(addEventSpy).toHaveBeenCalledWith('wheel', expect.any(Function), { capture: true, passive: true })
+      expect(addEventSpy).toHaveBeenCalledWith('touchmove', expect.any(Function), { capture: true, passive: true })
+      expect(addEventSpy).toHaveBeenCalledWith('keydown', expect.any(Function), { capture: true })
       addEventSpy.mockRestore()
     })
 
@@ -852,9 +852,9 @@ describe('useTerminalSetup', () => {
       const { unmount } = renderHook(() => useTerminalSetup(config, containerRef))
       unmount()
 
-      expect(removeEventSpy).toHaveBeenCalledWith('wheel', expect.any(Function))
-      expect(removeEventSpy).toHaveBeenCalledWith('touchmove', expect.any(Function))
-      expect(removeEventSpy).toHaveBeenCalledWith('keydown', expect.any(Function))
+      expect(removeEventSpy).toHaveBeenCalledWith('wheel', expect.any(Function), { capture: true })
+      expect(removeEventSpy).toHaveBeenCalledWith('touchmove', expect.any(Function), { capture: true })
+      expect(removeEventSpy).toHaveBeenCalledWith('keydown', expect.any(Function), { capture: true })
       removeEventSpy.mockRestore()
     })
   })

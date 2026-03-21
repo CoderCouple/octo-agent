@@ -94,19 +94,20 @@ export const scrollLogRegistry = {
 
 // ── Scroll lock ────────────────────────────────────────────────────
 //
-// Locks the xterm viewport's scrollTop so it can only change when:
-//   1. The user is following (at bottom) — new output naturally pushes down.
+// Locks the xterm viewport position (viewportY) so it can only change when:
+//   1. The viewport is at the bottom (following) — output naturally pushes down.
 //   2. The user explicitly scrolled (wheel, key, or "Go to End" button).
 //
-// Any other scrollTop change (e.g. xterm reflow, DOM reattach, spacer
-// height glitch) is immediately reverted and logged.
+// xterm.js 6 with the canvas renderer does NOT use the DOM .xterm-viewport
+// element for scrolling — scrollHeight always equals clientHeight and
+// scrollTop is always 0. So we operate entirely at xterm's buffer level
+// using terminal.onScroll and terminal.scrollToLine.
 
 export interface ScrollLockDeps {
   terminal: XTerm
-  isFollowingRef: React.MutableRefObject<boolean>
   lastUserGestureTime: () => number
   scrollLog: ScrollLog
-  viewportEl: HTMLElement
+  viewportEl: HTMLElement | null
 }
 
 export interface ScrollLockHandle {
@@ -114,70 +115,47 @@ export interface ScrollLockHandle {
 }
 
 export function setupScrollLock(deps: ScrollLockDeps): ScrollLockHandle {
-  const { terminal, isFollowingRef, lastUserGestureTime, scrollLog, viewportEl } = deps
-  let savedScrollTop = viewportEl.scrollTop
+  const { terminal, lastUserGestureTime, scrollLog, viewportEl } = deps
+  let savedViewportY = terminal.buffer.active.viewportY
   let isRestoring = false
 
-  const handleScroll = () => {
+  const onScrollDisposable = terminal.onScroll((newViewportY: number) => {
     if (isRestoring) return
-    const newScrollTop = viewportEl.scrollTop
 
-    // Check isAtBottom directly from the DOM — don't trust isFollowingRef alone
-    // because xterm.js stops wheel event propagation, which can prevent
-    // isFollowingRef from being updated by our gesture tracking.
-    const scrollMax = viewportEl.scrollHeight - viewportEl.clientHeight
-    const isAtBottom = scrollMax <= 0 || newScrollTop >= scrollMax - 1
+    const baseY = terminal.buffer.active.baseY
+    const isAtBottom = newViewportY >= baseY
 
     if (isAtBottom) {
-      // At the bottom — always allow (new output pushing the viewport down).
-      savedScrollTop = newScrollTop
+      // At the bottom — allow (new output pushing down, or user scrolled to end).
+      savedViewportY = newViewportY
       return
     }
 
     const timeSinceGesture = Date.now() - lastUserGestureTime()
-    if (timeSinceGesture < 300) {
+    if (timeSinceGesture < 500) {
       // User just scrolled — allow and save.
-      savedScrollTop = newScrollTop
+      savedViewportY = newViewportY
       return
     }
 
-    // Not at bottom, no recent user gesture — unauthorized scroll. Revert.
-    if (newScrollTop !== savedScrollTop) {
+    // Not at bottom, no recent user gesture — unauthorized move. Revert.
+    if (newViewportY !== savedViewportY) {
       scrollLog.add({
         source: 'scroll-restored',
-        viewportY: terminal.buffer.active.viewportY,
-        baseY: terminal.buffer.active.baseY,
-        scrollTop: newScrollTop,
-        scrollHeight: viewportEl.scrollHeight,
-        clientHeight: viewportEl.clientHeight,
+        viewportY: newViewportY,
+        baseY,
+        scrollTop: viewportEl?.scrollTop,
+        scrollHeight: viewportEl?.scrollHeight,
+        clientHeight: viewportEl?.clientHeight,
         following: false,
-        detail: `scrollTop ${savedScrollTop} -> ${newScrollTop} with no gesture (${timeSinceGesture}ms ago) -- reverting`,
+        detail: `viewportY ${savedViewportY} -> ${newViewportY} with no gesture (${timeSinceGesture}ms ago) -- reverting`,
       })
       isRestoring = true
-      viewportEl.scrollTop = savedScrollTop
+      terminal.scrollToLine(savedViewportY)
       isRestoring = false
-    }
-  }
-
-  viewportEl.addEventListener('scroll', handleScroll)
-
-  // Also log via xterm's onScroll for buffer-level position tracking.
-  terminal.onScroll((newViewportY: number) => {
-    if (isRestoring) return
-    const timeSinceGesture = Date.now() - lastUserGestureTime()
-    if (!isFollowingRef.current && timeSinceGesture >= 300) {
-      scrollLog.add({
-        source: 'xterm-scroll',
-        viewportY: newViewportY,
-        baseY: terminal.buffer.active.baseY,
-        scrollTop: viewportEl.scrollTop,
-        scrollHeight: viewportEl.scrollHeight,
-        clientHeight: viewportEl.clientHeight,
-        following: false,
-        detail: `no gesture for ${timeSinceGesture}ms`,
-      })
+      return
     }
   })
 
-  return { cleanup: () => viewportEl.removeEventListener('scroll', handleScroll) }
+  return { cleanup: () => onScrollDisposable.dispose() }
 }
