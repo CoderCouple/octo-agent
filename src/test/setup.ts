@@ -80,6 +80,7 @@ const mockApp: Mocked<AppApi> = {
   platform: vi.fn().mockResolvedValue('darwin'),
   tmpdir: vi.fn().mockResolvedValue('/tmp'),
   getVersion: vi.fn().mockResolvedValue('0.6.1'),
+  getBuildInfo: vi.fn().mockResolvedValue({ commit: 'abc1234', buildTime: '2024-01-01T00:00:00.000Z' }),
   getCrashLog: vi.fn().mockResolvedValue(null),
   dismissCrashLog: vi.fn().mockResolvedValue(undefined),
   getCrashReportUrl: vi.fn().mockResolvedValue(null),
