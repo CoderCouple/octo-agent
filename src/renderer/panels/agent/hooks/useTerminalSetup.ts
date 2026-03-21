@@ -74,41 +74,15 @@ const XTERM_THEME = {
 
 export interface ViewportHelpers {
   isAtBottom: () => boolean
-  /** Returns true when the buffer has scrollback but the DOM viewport isn't scrollable. */
-  isViewportDesynced: () => boolean
-  /**
-   * Force xterm to recalculate its viewport scroll area.
-   * Works around an xterm.js bug where the DOM scroll area height gets
-   * out of sync with the buffer, making scrollback unreachable.
-   * Toggles terminal.resize() by ±1 row — the intermediate state is
-   * never painted because the browser batches DOM updates within a single JS turn.
-   */
-  forceViewportSync: () => void
 }
 
-function createViewportHelpers(terminal: XTerm, containerEl: HTMLElement): ViewportHelpers {
-  const viewportEl = containerEl.querySelector<HTMLElement>('.xterm-viewport')
-
+function createViewportHelpers(terminal: XTerm): ViewportHelpers {
   const isAtBottom = () => {
     const buffer = terminal.buffer.active
     return buffer.viewportY >= buffer.baseY
   }
 
-  const isViewportDesynced = () => {
-    if (!viewportEl) return false
-    return terminal.buffer.active.baseY > 0 &&
-      viewportEl.scrollHeight <= viewportEl.clientHeight + 1
-  }
-
-  const forceViewportSync = () => {
-    const { cols, rows } = terminal
-    if (cols > 0 && rows > 1) {
-      terminal.resize(cols, rows + 1)
-      terminal.resize(cols, rows)
-    }
-  }
-
-  return { isAtBottom, isViewportDesynced, forceViewportSync }
+  return { isAtBottom }
 }
 
 // ── Scroll tracking setup ────────────────────────────────────────────
@@ -132,14 +106,8 @@ function createScrollTracking(
   const state: ScrollTrackingState = { pendingScrollRAF: 0 }
 
   const updateFollowingFromScroll = (e: Event) => {
-    // Immediately disengage following on upward scroll gestures.
     const isScrollUp = e instanceof WheelEvent && e.deltaY < 0
     if (isScrollUp) {
-      // If the viewport is desynced, fix it immediately so this scroll
-      // gesture actually works (user shouldn't have to scroll twice).
-      if (helpers.isViewportDesynced()) {
-        helpers.forceViewportSync()
-      }
       isFollowingRef.current = false
       if (state.pendingScrollRAF) {
         cancelAnimationFrame(state.pendingScrollRAF)
@@ -149,9 +117,6 @@ function createScrollTracking(
 
     requestAnimationFrame(() => {
       const atBottom = helpers.isAtBottom()
-      // Only re-engage following on downward scroll that reaches bottom.
-      // Don't override the explicit upward-scroll disengage — the rAF may
-      // fire before the viewport has actually moved, falsely reading "at bottom".
       if (!isScrollUp) {
         isFollowingRef.current = atBottom
       }
@@ -199,7 +164,6 @@ function useTerminalState(config: TerminalConfig) {
   const [showScrollButton, setShowScrollButton] = useState(false)
 
   const isActiveRef = useRef(true)
-  const dataHandlerRef = useRef<{ flush: () => void } | null>(null)
   const [exitInfo, setExitInfo] = useState<ExitInfo | null>(null)
 
   const commandRef = useRef(command)
@@ -259,7 +223,7 @@ function useTerminalState(config: TerminalConfig) {
     terminalRef, fitAddonRef, serializeAddonRef, cleanupRef,
     updateTimeoutRef, idleTimeoutRef, lastStatusRef,
     lastUserInputRef, lastInteractionRef, ptyIdRef, isFollowingRef,
-    isActiveRef, dataHandlerRef,
+    isActiveRef,
     showScrollButton, setShowScrollButton,
     exitInfo, setExitInfo,
     commandRef, envRef, isAgentTerminalRef, cwdRef, isolatedRef, repoRootDirRef,
@@ -326,7 +290,7 @@ export function useTerminalSetup(
       try { return serializeAddon.serialize() } catch { return '' }
     })
 
-    const helpers = createViewportHelpers(terminal, containerRef.current)
+    const helpers = createViewportHelpers(terminal)
     const scrollTracking = createScrollTracking(terminal, helpers, s.isFollowingRef, s.setShowScrollButton)
 
     let onRenderRAF = 0
@@ -365,17 +329,9 @@ export function useTerminalSetup(
     const dataHandler = createPtyDataHandler({
       terminal,
       isAgent,
-      command: cmd,
       state: s,
       effectStartTime,
-      isActiveRef: s.isActiveRef,
-      onViewportSyncCheck: () => {
-        if (helpers.isViewportDesynced()) {
-          helpers.forceViewportSync()
-        }
-      },
     })
-    s.dataHandlerRef.current = dataHandler
     const removeDataListener = window.pty.onData(id, dataHandler.handleData)
 
     const removeExitListener = window.pty.onExit(id, (exitCode: number) => {
@@ -502,18 +458,6 @@ export function useTerminalSetup(
       s.isActiveRef.current = isNowActive
       s.lastInteractionRef.current = Date.now()
       if (isNowActive) {
-        // Fit first so the terminal has correct dimensions before flushing.
-        // Without this, buffered TUI frames render at stale dimensions and
-        // leave orphaned lines / blank gaps in the scrollback.
-        try { s.fitAddonRef.current?.fit() } catch { /* ignore */ }
-        // Sync PTY dimensions — the ResizeObserver won't fire because the
-        // container size hasn't changed, but the terminal may have been
-        // created or last fitted at different dimensions.
-        const term = s.terminalRef.current
-        if (s.ptyIdRef.current && term && term.cols > 0 && term.rows > 0) {
-          void window.pty.resize(s.ptyIdRef.current, term.cols, term.rows)
-        }
-        s.dataHandlerRef.current?.flush()
         requestAnimationFrame(() => {
           s.terminalRef.current?.focus()
         })

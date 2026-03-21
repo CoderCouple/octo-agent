@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createPtyDataHandler, MAX_BUFFER_SIZE } from './ptyDataHandler'
+import { createPtyDataHandler } from './ptyDataHandler'
 
 vi.mock('../utils/terminalActivityDetector', () => ({
   evaluateActivity: vi.fn().mockReturnValue({ status: null, scheduleIdle: false }),
@@ -30,27 +30,23 @@ function makeState() {
 describe('createPtyDataHandler', () => {
   let terminal: ReturnType<typeof makeTerminal>
   let state: ReturnType<typeof makeState>
-  let isActiveRef: { current: boolean }
 
   beforeEach(() => {
     vi.clearAllMocks()
     terminal = makeTerminal()
     state = makeState()
-    isActiveRef = { current: true }
   })
 
-  function createHandler(overrides: { isAgent?: boolean; command?: string } = {}) {
+  function createHandler(overrides: { isAgent?: boolean } = {}) {
     return createPtyDataHandler({
       terminal,
       isAgent: overrides.isAgent ?? false,
-      command: overrides.command,
       state,
       effectStartTime: Date.now(),
-      isActiveRef,
     })
   }
 
-  it('writes data to terminal when active', () => {
+  it('writes data to terminal', () => {
     const handler = createHandler()
     handler.handleData('hello')
     expect(terminal.write).toHaveBeenCalledWith('hello')
@@ -59,89 +55,22 @@ describe('createPtyDataHandler', () => {
   it('does not call scrollToBottom — xterm 6 handles scroll pinning natively', () => {
     const handler = createHandler()
     handler.handleData('data')
-    // scrollToBottom should never be called by the data handler
     expect((terminal as { scrollToBottom?: unknown }).scrollToBottom).toBeUndefined()
   })
 
-  it('buffers data when inactive instead of writing to terminal', () => {
-    isActiveRef.current = false
+  it('always writes data to terminal regardless of visibility', () => {
     const handler = createHandler()
-    handler.handleData('hello')
-    handler.handleData(' world')
-    expect(terminal.write).not.toHaveBeenCalled()
-  })
-
-  it('flushes buffered data as a single write', () => {
-    isActiveRef.current = false
-    const handler = createHandler()
-    handler.handleData('hello')
-    handler.handleData(' world')
-    handler.handleData('!')
-
-    isActiveRef.current = true
-    handler.flush()
-
-    expect(terminal.write).toHaveBeenCalledTimes(1)
-    expect(terminal.write).toHaveBeenCalledWith('hello world!')
-  })
-
-  it('flush is a no-op when buffer is empty', () => {
-    const handler = createHandler()
-    handler.flush()
-    expect(terminal.write).not.toHaveBeenCalled()
-  })
-
-  it('clears buffer after flush', () => {
-    isActiveRef.current = false
-    const handler = createHandler()
-    handler.handleData('data')
-    handler.flush()
-    // Second flush should be a no-op
-    vi.mocked(terminal.write).mockClear()
-    handler.flush()
-    expect(terminal.write).not.toHaveBeenCalled()
-  })
-
-  it('caps buffer at MAX_BUFFER_SIZE by dropping oldest chunks', () => {
-    isActiveRef.current = false
-    const handler = createHandler()
-
-    // Write chunks that exceed MAX_BUFFER_SIZE
-    const chunkSize = 1024 * 1024 // 1MB
-    const chunk = 'x'.repeat(chunkSize)
-    for (let i = 0; i < 7; i++) {
-      handler.handleData(chunk)
-    }
-
-    // Flush and check the total size is <= MAX_BUFFER_SIZE
-    handler.flush()
-    expect(terminal.write).toHaveBeenCalledTimes(1)
-    const writtenData = vi.mocked(terminal.write).mock.calls[0][0] as string
-    expect(writtenData.length).toBeLessThanOrEqual(MAX_BUFFER_SIZE)
-    // Should have dropped earliest chunks
-    expect(writtenData.length).toBeGreaterThan(0)
-  })
-
-  it('skips buffering for codex terminals (writes through when inactive)', () => {
-    isActiveRef.current = false
-    const handler = createHandler({ isAgent: true, command: 'codex' })
     handler.handleData('hello')
     handler.handleData(' world')
     expect(terminal.write).toHaveBeenCalledTimes(2)
+    expect(terminal.write).toHaveBeenCalledWith('hello')
+    expect(terminal.write).toHaveBeenCalledWith(' world')
   })
 
-  it('still buffers non-codex agent terminals when inactive', () => {
-    isActiveRef.current = false
-    const handler = createHandler({ isAgent: true, command: 'claude' })
-    handler.handleData('hello')
-    expect(terminal.write).not.toHaveBeenCalled()
-  })
-
-  it('still runs activity detection when inactive (agent terminal)', async () => {
+  it('runs activity detection for agent terminals', async () => {
     const { evaluateActivity } = await import('../utils/terminalActivityDetector')
     vi.mocked(evaluateActivity).mockReturnValue({ status: 'working', scheduleIdle: true })
 
-    isActiveRef.current = false
     const handler = createHandler({ isAgent: true })
     handler.handleData('output')
 
@@ -189,59 +118,5 @@ describe('createPtyDataHandler', () => {
     expect(state.scheduleUpdate).toHaveBeenCalledWith({ status: 'idle' })
 
     vi.useRealTimers()
-  })
-
-  it('calls onViewportSyncCheck after debounce when active', () => {
-    vi.useFakeTimers()
-    const syncCheck = vi.fn()
-    const handler = createPtyDataHandler({
-      terminal,
-      isAgent: false,
-      command: undefined,
-      state,
-      effectStartTime: Date.now(),
-      isActiveRef,
-      onViewportSyncCheck: syncCheck,
-    })
-
-    handler.handleData('data1')
-    handler.handleData('data2')
-
-    // Should not have been called yet (debounced)
-    expect(syncCheck).not.toHaveBeenCalled()
-
-    vi.advanceTimersByTime(500)
-    expect(syncCheck).toHaveBeenCalledTimes(1)
-
-    // After timer fires, next data should schedule another check
-    handler.handleData('data3')
-    vi.advanceTimersByTime(500)
-    expect(syncCheck).toHaveBeenCalledTimes(2)
-
-    vi.useRealTimers()
-  })
-
-  describe('clearTimers', () => {
-    it('clears the viewport sync check timer', () => {
-      vi.useFakeTimers()
-      const syncCheck = vi.fn()
-      const handler = createPtyDataHandler({
-        terminal,
-        isAgent: false,
-        command: undefined,
-        state,
-        effectStartTime: Date.now(),
-        isActiveRef,
-        onViewportSyncCheck: syncCheck,
-      })
-
-      handler.handleData('data')
-      handler.clearTimers()
-      vi.advanceTimersByTime(500)
-      // syncCheck should NOT have been called because we cleared timers
-      expect(syncCheck).not.toHaveBeenCalled()
-
-      vi.useRealTimers()
-    })
   })
 })

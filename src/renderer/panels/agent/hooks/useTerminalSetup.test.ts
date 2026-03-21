@@ -113,10 +113,6 @@ function makeConfig(overrides: Partial<TerminalConfig> = {}): TerminalConfig {
 
 function makeContainerRef(): React.RefObject<HTMLDivElement | null> {
   const div = document.createElement('div')
-  // Provide a mock viewport element
-  const viewportEl = document.createElement('div')
-  viewportEl.className = 'xterm-viewport'
-  div.appendChild(viewportEl)
   // Give it non-zero dimensions
   Object.defineProperty(div, 'offsetWidth', { value: 800, configurable: true })
   Object.defineProperty(div, 'offsetHeight', { value: 600, configurable: true })
@@ -441,7 +437,7 @@ describe('useTerminalSetup', () => {
       act(() => { useSessionStore.setState({ activeSessionId: 'session-1' }) })
 
       // requestAnimationFrame is mocked to call immediately
-      expect(mockFitAddonFit).toHaveBeenCalled()
+      // fit() is no longer called on activation — invisible preserves layout dimensions
       expect(mockTerminalFocus).toHaveBeenCalled()
     })
   })

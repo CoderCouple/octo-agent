@@ -4,6 +4,9 @@
  * Scroll pinning is handled natively by xterm.js 6 — it keeps the viewport
  * at the bottom when data arrives (if already there) and stays put when
  * the user has scrolled away.  We do NOT call scrollToBottom() ourselves.
+ *
+ * Data is always written directly to the terminal — xterm 6 is fast enough
+ * that background (invisible) terminals don't need buffering.
  */
 import { Terminal as XTerm } from '@xterm/xterm'
 import { evaluateActivity } from '../utils/terminalActivityDetector'
@@ -20,34 +23,17 @@ interface TerminalStateForPtyData {
 interface CreatePtyDataHandlerArgs {
   terminal: XTerm
   isAgent: boolean
-  command: string | undefined
   state: TerminalStateForPtyData
   effectStartTime: number
-  isActiveRef: React.MutableRefObject<boolean>
-  /** Called periodically after data writes to check/repair viewport desync. */
-  onViewportSyncCheck?: () => void
 }
-
-/** Maximum buffer size (5 MB) to prevent unbounded memory growth for background terminals. */
-export const MAX_BUFFER_SIZE = 5 * 1024 * 1024
 
 interface PtyDataHandlerController {
   handleData: (data: string) => void
   clearTimers: () => void
-  /** Flush buffered data to the terminal (call when terminal becomes visible). */
-  flush: () => void
 }
 
 export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHandlerController {
-  const { terminal, isAgent, command, state, effectStartTime, isActiveRef, onViewportSyncCheck } = args
-  // Codex (Ink-based TUI) uses cursor movement to redraw in-place. Buffering
-  // these frames and replaying them in a batch corrupts the scrollback with
-  // duplicate status bars and blank gaps. Disable buffering entirely for Codex.
-  const skipBuffering = isAgent && !!command && /\bcodex\b/i.test(command)
-  const bufferedChunks: string[] = []
-  let bufferedSize = 0
-  // Debounce timer for proactive viewport desync checks after data writes
-  let syncCheckTimeout: ReturnType<typeof setTimeout> | null = null
+  const { terminal, isAgent, state, effectStartTime } = args
 
   const processActivityDetection = (data: string) => {
     if (!isAgent) return
@@ -75,44 +61,13 @@ export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHan
   }
 
   const handleData = (data: string) => {
-    // Activity detection is cheap — always run it even for background terminals
     processActivityDetection(data)
-
-    if (!isActiveRef.current && !skipBuffering) {
-      // Buffer data for background terminals instead of writing to xterm
-      bufferedChunks.push(data)
-      bufferedSize += data.length
-      // Cap buffer at MAX_BUFFER_SIZE: drop oldest chunks when exceeded
-      while (bufferedSize > MAX_BUFFER_SIZE && bufferedChunks.length > 1) {
-        const dropped = bufferedChunks.shift()!
-        bufferedSize -= dropped.length
-      }
-      return
-    }
-
     terminal.write(data)
-
-    // Proactive viewport desync check — debounced so we don't
-    // do the DOM read on every single data chunk.
-    if (onViewportSyncCheck && !syncCheckTimeout) {
-      syncCheckTimeout = setTimeout(() => {
-        syncCheckTimeout = null
-        onViewportSyncCheck()
-      }, 500)
-    }
-  }
-
-  const flush = () => {
-    if (bufferedChunks.length === 0) return
-    const all = bufferedChunks.join('')
-    bufferedChunks.length = 0
-    bufferedSize = 0
-    terminal.write(all)
   }
 
   const clearTimers = () => {
-    if (syncCheckTimeout) { clearTimeout(syncCheckTimeout); syncCheckTimeout = null }
+    // Reserved for future cleanup — currently no timers owned by the data handler.
   }
 
-  return { handleData, clearTimers, flush }
+  return { handleData, clearTimers }
 }
