@@ -74,15 +74,41 @@ const XTERM_THEME = {
 
 export interface ViewportHelpers {
   isAtBottom: () => boolean
+  /** Returns true when the buffer has scrollback but the DOM viewport isn't scrollable. */
+  isViewportDesynced: () => boolean
+  /**
+   * Force xterm to recalculate its viewport scroll area.
+   * Works around an xterm.js bug where the DOM scroll area height gets
+   * out of sync with the buffer, making scrollback unreachable.
+   * Toggles terminal.resize() by ±1 row — the intermediate state is
+   * never painted because the browser batches DOM updates within a single JS turn.
+   */
+  forceViewportSync: () => void
 }
 
-function createViewportHelpers(terminal: XTerm): ViewportHelpers {
+function createViewportHelpers(terminal: XTerm, containerEl: HTMLElement): ViewportHelpers {
+  const viewportEl = containerEl.querySelector('.xterm-viewport') as HTMLElement | null
+
   const isAtBottom = () => {
     const buffer = terminal.buffer.active
     return buffer.viewportY >= buffer.baseY
   }
 
-  return { isAtBottom }
+  const isViewportDesynced = () => {
+    if (!viewportEl) return false
+    return terminal.buffer.active.baseY > 0 &&
+      viewportEl.scrollHeight <= viewportEl.clientHeight + 1
+  }
+
+  const forceViewportSync = () => {
+    const { cols, rows } = terminal
+    if (cols > 0 && rows > 1) {
+      terminal.resize(cols, rows + 1)
+      terminal.resize(cols, rows)
+    }
+  }
+
+  return { isAtBottom, isViewportDesynced, forceViewportSync }
 }
 
 // ── Scroll tracking setup ────────────────────────────────────────────
@@ -109,6 +135,11 @@ function createScrollTracking(
     // Immediately disengage following on upward scroll gestures.
     const isScrollUp = e instanceof WheelEvent && e.deltaY < 0
     if (isScrollUp) {
+      // If the viewport is desynced, fix it immediately so this scroll
+      // gesture actually works (user shouldn't have to scroll twice).
+      if (helpers.isViewportDesynced()) {
+        helpers.forceViewportSync()
+      }
       isFollowingRef.current = false
       if (state.pendingScrollRAF) {
         cancelAnimationFrame(state.pendingScrollRAF)
@@ -295,7 +326,7 @@ export function useTerminalSetup(
       try { return serializeAddon.serialize() } catch { return '' }
     })
 
-    const helpers = createViewportHelpers(terminal)
+    const helpers = createViewportHelpers(terminal, containerRef.current)
     const scrollTracking = createScrollTracking(terminal, helpers, s.isFollowingRef, s.setShowScrollButton)
 
     let onRenderRAF = 0
@@ -338,6 +369,11 @@ export function useTerminalSetup(
       state: s,
       effectStartTime,
       isActiveRef: s.isActiveRef,
+      onViewportSyncCheck: () => {
+        if (helpers.isViewportDesynced()) {
+          helpers.forceViewportSync()
+        }
+      },
     })
     s.dataHandlerRef.current = dataHandler
     const removeDataListener = window.pty.onData(id, dataHandler.handleData)
