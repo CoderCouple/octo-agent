@@ -87,7 +87,7 @@ export interface ViewportHelpers {
 }
 
 function createViewportHelpers(terminal: XTerm, containerEl: HTMLElement): ViewportHelpers {
-  const viewportEl = containerEl.querySelector('.xterm-viewport') as HTMLElement | null
+  const viewportEl = containerEl.querySelector('.xterm-viewport')
 
   const isAtBottom = () => {
     const buffer = terminal.buffer.active
