@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react'
 import type { ActionDefinition, ConditionState, TemplateVars } from '../../features/commands/commandsConfig'
 import { evaluateShowWhen, resolveTemplateVars, getDefaultCommandsConfig, matchesSurface } from '../../features/commands/commandsConfig'
 import { executeAction, type ActionExecutionContext } from '../../features/commands/actionExecutor'
+import { DialogErrorBanner } from './ErrorBanner'
 
 interface ActionButtonsProps {
   actions: ActionDefinition[] | null // null = use defaults
@@ -106,17 +107,15 @@ export function ActionButtons({
               {isLoading ? `${label}...` : label}
             </button>
             {error && (
-              <div className="mt-1 px-2 py-1 text-xs text-red-400 bg-red-500/10 rounded flex items-center gap-1">
-                <span className="flex-1 truncate">{error}</span>
-                <button
-                  onClick={() => setActionErrors(prev => {
+              <div className="mt-1">
+                <DialogErrorBanner
+                  error={error}
+                  label={`${label} failed`}
+                  onDismiss={() => setActionErrors(prev => {
                     const { [action.id]: _, ...next } = prev
                     return next
                   })}
-                  className="text-red-400 hover:text-red-300 shrink-0"
-                >
-                  &times;
-                </button>
+                />
               </div>
             )}
           </div>
