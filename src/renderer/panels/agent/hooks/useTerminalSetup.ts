@@ -2,14 +2,14 @@
  * Sets up and manages the xterm.js terminal instance including PTY creation,
  * resize handling, buffer restoration, and scroll tracking.
  *
- * Scroll strategy (Wave Terminal approach):
- * - Trust xterm.js's built-in scroll management — don't fight it.
- * - Use a generous "at bottom" threshold (50% of viewport height) to avoid
- *   false "user scrolled up" detection from small perturbations.
- * - Track "recently at bottom" with a 1-second window for resize resilience.
+ * Scroll strategy (replicates Wave Terminal exactly):
+ * - Track at-bottom state via DOM scrollTop on .xterm-viewport (xterm 5.x).
+ * - Generous threshold: within 50% of viewport height counts as "at bottom".
+ * - wasRecentlyAtBottom(): true if at bottom now OR was within last 1000ms.
  * - Cache at-bottom state in ResizeObserver before debounced fit runs.
- * - Repaint transactions (CSI 3 J inside DEC mode 2026) are detected in
- *   ptyDataHandler.ts and trigger a scroll-to-bottom after repaint completes.
+ * - After resize, scrollToBottom() with 20ms delay if was recently at bottom.
+ * - Repaint transactions (CSI 3 J inside DEC mode 2026) detected in
+ *   ptyDataHandler.ts — only scroll to bottom if wasRecentlyAtBottom().
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
@@ -84,9 +84,9 @@ const XTERM_THEME = {
 
 // ── At-bottom detection (Wave Terminal approach) ─────────────────────
 //
-// Uses a generous threshold: within 50% of viewport height counts as
-// "at bottom". This prevents false "user scrolled up" detection from
-// small scroll perturbations during resize or output bursts.
+// Uses DOM scrollTop on .xterm-viewport (xterm 5.x uses native scrollbar).
+// Generous threshold: within 50% of viewport height counts as "at bottom".
+// This prevents false "user scrolled up" detection from small perturbations.
 
 function isAtBottom(viewportEl: HTMLElement | null): boolean {
   if (!viewportEl) return true
@@ -94,10 +94,61 @@ function isAtBottom(viewportEl: HTMLElement | null): boolean {
   return scrollTop + clientHeight >= scrollHeight - clientHeight * 0.5
 }
 
+// ── Scroll state tracker (Wave Terminal approach) ────────────────────
+//
+// Tracks at-bottom state with a time-based heuristic. wasRecentlyAtBottom()
+// returns true if at bottom now OR was within the last 1000ms. This bridges
+// the gap during resize where xterm briefly reports "not at bottom".
+
+/** Time window (ms) during which wasRecentlyAtBottom() returns true. */
+const RECENTLY_AT_BOTTOM_MS = 1000
+
+interface ScrollState {
+  setAtBottom: (atBottom: boolean) => void
+  wasRecentlyAtBottom: () => boolean
+  cleanup: () => void
+}
+
+function createScrollState(viewportEl: HTMLElement | null): ScrollState {
+  let lastAtBottomTime = Date.now()
+  let lastScrollAtBottom = true
+
+  const setAtBottom = (atBottom: boolean) => {
+    if (lastScrollAtBottom && !atBottom) {
+      lastAtBottomTime = Date.now()
+    }
+    lastScrollAtBottom = atBottom
+    if (atBottom) {
+      lastAtBottomTime = Date.now()
+    }
+  }
+
+  const wasRecentlyAtBottom = () => {
+    if (lastScrollAtBottom) return true
+    return Date.now() - lastAtBottomTime <= RECENTLY_AT_BOTTOM_MS
+  }
+
+  // Track at-bottom state via viewport scroll events (Wave's handleViewportScroll)
+  const handleScroll = () => {
+    setAtBottom(isAtBottom(viewportEl))
+  }
+
+  if (viewportEl) {
+    viewportEl.addEventListener('scroll', handleScroll)
+  }
+
+  const cleanup = () => {
+    if (viewportEl) {
+      viewportEl.removeEventListener('scroll', handleScroll)
+    }
+  }
+
+  return { setAtBottom, wasRecentlyAtBottom, cleanup }
+}
+
 // ── Scroll tracking ─────────────────────────────────────────────────
 //
-// Simplified scroll tracking that observes user gestures (wheel, keyboard)
-// to manage the "Go to End" button and following state.
+// Observes user gestures (wheel, keyboard) to manage the "Go to End" button.
 
 interface ScrollTrackingResult {
   updateFollowingFromScroll: (e: Event) => void
@@ -156,55 +207,29 @@ function createScrollTracking(args: ScrollTrackingArgs): ScrollTrackingResult {
   return { updateFollowingFromScroll, handleKeyScroll }
 }
 
-// ── Resize observer with at-bottom caching ──────────────────────────
+// ── Resize observer (Wave Terminal approach) ─────────────────────────
 //
-// Wave Terminal approach: capture at-bottom state in the ResizeObserver
-// callback BEFORE the debounced fit runs. After fit, if we were at bottom,
-// scroll back to bottom with a short delay.
+// Captures at-bottom state in ResizeObserver BEFORE debounced fit runs.
+// After fit, if was recently at bottom, scrollToBottom() with 20ms delay.
 
 interface ResizeObserverSetup {
   observer: ResizeObserver
+  cachedAtBottomForResize: { value: boolean | null }
   cleanup: () => void
 }
 
 interface ResizeObserverArgs {
   terminal: XTerm; fitAddon: FitAddon; ptyIdRef: React.MutableRefObject<string | null>
   isActiveRef: React.MutableRefObject<boolean>
+  scrollState: ScrollState
   scrollLog: ScrollLog; viewportEl: HTMLElement | null
 }
 
-/** Time window (ms) during which wasRecentlyAtBottom() returns true. */
-const RECENTLY_AT_BOTTOM_MS = 1000
-
 function createResizeObserver(args: ResizeObserverArgs): ResizeObserverSetup {
-  const { terminal, fitAddon, ptyIdRef, isActiveRef, scrollLog, viewportEl } = args
+  const { terminal, fitAddon, ptyIdRef, isActiveRef, scrollState, scrollLog, viewportEl } = args
   let ptyResizeTimeout: ReturnType<typeof setTimeout> | null = null
   let scrollToBottomTimeout: ReturnType<typeof setTimeout> | null = null
-
-  // Track "recently at bottom" — true if at bottom now OR was within the last second
-  let lastAtBottomTime = Date.now()
-  let lastScrollAtBottom = true
-
-  const setAtBottom = (atBottom: boolean) => {
-    lastScrollAtBottom = atBottom
-    if (atBottom) lastAtBottomTime = Date.now()
-  }
-
-  const wasRecentlyAtBottom = () => {
-    if (lastScrollAtBottom) return true
-    return Date.now() - lastAtBottomTime <= RECENTLY_AT_BOTTOM_MS
-  }
-
-  // Track at-bottom state via viewport scroll events
-  if (viewportEl) {
-    viewportEl.addEventListener('scroll', () => {
-      setAtBottom(isAtBottom(viewportEl))
-    })
-  }
-
-  // Cached at-bottom state captured immediately in the ResizeObserver
-  // callback, before the debounced fit runs.
-  let cachedAtBottomForResize: boolean | null = null
+  const cachedAtBottomForResize = { value: null as boolean | null }
 
   const observer = new ResizeObserver((entries) => {
     if (!isActiveRef.current) return
@@ -212,12 +237,15 @@ function createResizeObserver(args: ResizeObserverArgs): ResizeObserverSetup {
     if (!entry || entry.contentRect.width === 0 || entry.contentRect.height === 0) return
 
     // Capture at-bottom state NOW, before the debounced fit changes dimensions
-    cachedAtBottomForResize = wasRecentlyAtBottom()
+    // (Wave's cachedAtBottomForResize pattern)
+    if (cachedAtBottomForResize.value === null) {
+      cachedAtBottomForResize.value = scrollState.wasRecentlyAtBottom()
+    }
 
     if (ptyResizeTimeout) clearTimeout(ptyResizeTimeout)
     ptyResizeTimeout = setTimeout(() => {
-      const atBottomBeforeFit = cachedAtBottomForResize
-      cachedAtBottomForResize = null
+      const atBottomBeforeFit = cachedAtBottomForResize.value
+      cachedAtBottomForResize.value = null
 
       const oldCols = terminal.cols
       const oldRows = terminal.rows
@@ -239,12 +267,12 @@ function createResizeObserver(args: ResizeObserverArgs): ResizeObserverSetup {
       }
 
       // If we were at bottom before resize, scroll back to bottom after
-      // xterm has had a chance to reflow content.
+      // xterm has had a chance to reflow content. (Wave's exact pattern)
       if (atBottomBeforeFit) {
         if (scrollToBottomTimeout) clearTimeout(scrollToBottomTimeout)
         scrollToBottomTimeout = setTimeout(() => {
           terminal.scrollToBottom()
-          setAtBottom(true)
+          scrollState.setAtBottom(true)
           scrollToBottomTimeout = null
         }, 20)
       }
@@ -257,7 +285,7 @@ function createResizeObserver(args: ResizeObserverArgs): ResizeObserverSetup {
     if (scrollToBottomTimeout) clearTimeout(scrollToBottomTimeout)
   }
 
-  return { observer, cleanup }
+  return { observer, cachedAtBottomForResize, cleanup }
 }
 
 // ── Terminal state hook (refs, store wiring, callbacks) ──────────────
@@ -392,9 +420,9 @@ export function useTerminalSetup(
 
     terminal.open(containerRef.current)
 
-    // xterm.js 6 uses a canvas renderer by default, which is performant enough.
-    // The WebGL addon is intentionally not loaded — it crashes the GPU process
-    // on some hardware, causing a white screen / sad-face. Revisit later.
+    // xterm 5.x uses DOM rendering by default. The WebGL addon is intentionally
+    // not loaded — it crashes the GPU process on some hardware, causing a white
+    // screen / sad-face. The DOM renderer is reliable and fast enough.
 
     // Register all terminals in the buffer registry so content is accessible.
     // Agent terminals are keyed by sessionId; non-agent terminals use the pty ID.
@@ -404,6 +432,9 @@ export function useTerminalSetup(
     })
 
     const viewportEl = containerRef.current.querySelector<HTMLElement>('.xterm-viewport')
+
+    // ── Scroll state tracking (Wave Terminal approach) ───────────────
+    const scrollState = createScrollState(viewportEl)
 
     // ── Scroll event log for debugging ──────────────────────────────
     const scrollLog = new ScrollLog()
@@ -427,9 +458,8 @@ export function useTerminalSetup(
     })
 
     // Use CAPTURE phase on the container so our handlers fire BEFORE xterm's
-    // handlers on child elements. xterm.js 6 handles wheel events on its canvas
-    // and may call stopPropagation(), but capture-phase listeners on an ancestor
-    // fire during the capture phase (top-down) before the target phase.
+    // handlers on child elements. xterm.js may call stopPropagation() on wheel
+    // events, but capture-phase listeners on an ancestor fire first.
     const scrollContainer = containerRef.current
     scrollContainer.addEventListener('wheel', scrollTracking.updateFollowingFromScroll, { capture: true, passive: true })
     scrollContainer.addEventListener('touchmove', scrollTracking.updateFollowingFromScroll, { capture: true, passive: true })
@@ -456,6 +486,7 @@ export function useTerminalSetup(
       isAgent,
       state: s,
       effectStartTime,
+      wasRecentlyAtBottom: scrollState.wasRecentlyAtBottom,
     })
     const removeDataListener = window.pty.onData(id, dataHandler.handleData)
 
@@ -523,7 +554,7 @@ export function useTerminalSetup(
 
     const resizeSetup = createResizeObserver({
       terminal, fitAddon, ptyIdRef: s.ptyIdRef, isActiveRef: s.isActiveRef,
-      scrollLog, viewportEl,
+      scrollState, scrollLog, viewportEl,
     })
     const containerEl = containerRef.current
     resizeSetup.observer.observe(containerEl)
@@ -533,6 +564,7 @@ export function useTerminalSetup(
       scrollContainer.removeEventListener('touchmove', scrollTracking.updateFollowingFromScroll, { capture: true })
       scrollContainer.removeEventListener('keydown', scrollTracking.handleKeyScroll, { capture: true })
       resizeSetup.cleanup()
+      scrollState.cleanup()
       if (onRenderRAF) cancelAnimationFrame(onRenderRAF)
       s.cleanupRef.current?.()
       if (s.ptyIdRef.current) { void window.pty.kill(s.ptyIdRef.current); s.ptyIdRef.current = null }

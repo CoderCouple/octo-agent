@@ -28,6 +28,8 @@ interface CreatePtyDataHandlerArgs {
   isAgent: boolean
   state: TerminalStateForPtyData
   effectStartTime: number
+  /** Returns true if the terminal was recently at the bottom (Wave Terminal approach). */
+  wasRecentlyAtBottom?: () => boolean
 }
 
 interface PtyDataHandlerController {
@@ -45,7 +47,7 @@ const MAX_REPAINT_TRANSACTION_MS = 2000
  *
  * Returns a cleanup function that disposes the handlers.
  */
-function setupRepaintDetection(terminal: XTerm): { cleanup: () => void } {
+function setupRepaintDetection(terminal: XTerm, wasRecentlyAtBottom?: () => boolean): { cleanup: () => void } {
   let inSyncTransaction = false
   let inRepaintTransaction = false
   let lastClearScrollbackTs = 0
@@ -86,7 +88,13 @@ function setupRepaintDetection(terminal: XTerm): { cleanup: () => void } {
         inSyncTransaction = false
         inRepaintTransaction = false
 
-        if (wasRepaint && Date.now() - lastClearScrollbackTs <= MAX_REPAINT_TRANSACTION_MS) {
+        // Only scroll to bottom if the user was recently at the bottom.
+        // If they intentionally scrolled up, don't yank them back down.
+        // (Wave Terminal's wasRecentlyAtBottom guard)
+        const shouldScroll = wasRepaint
+          && Date.now() - lastClearScrollbackTs <= MAX_REPAINT_TRANSACTION_MS
+          && (!wasRecentlyAtBottom || wasRecentlyAtBottom())
+        if (shouldScroll) {
           if (scrollToBottomTimer) clearTimeout(scrollToBottomTimer)
           scrollToBottomTimer = setTimeout(() => {
             terminal.scrollToBottom()
@@ -109,10 +117,10 @@ function setupRepaintDetection(terminal: XTerm): { cleanup: () => void } {
 }
 
 export function createPtyDataHandler(args: CreatePtyDataHandlerArgs): PtyDataHandlerController {
-  const { terminal, isAgent, state, effectStartTime } = args
+  const { terminal, isAgent, state, effectStartTime, wasRecentlyAtBottom } = args
 
   // Set up repaint transaction detection for agent terminals
-  const repaintDetection = isAgent ? setupRepaintDetection(terminal) : null
+  const repaintDetection = isAgent ? setupRepaintDetection(terminal, wasRecentlyAtBottom) : null
 
   const processActivityDetection = (data: string) => {
     if (!isAgent) return

@@ -1,14 +1,15 @@
 /*
- * Scrollbar styling for xterm.js viewport.
+ * Scrollbar styling for xterm.js viewport (xterm 5.x DOM scrollbar).
  *
  * Uses color-based visibility (transparent → visible on hover) instead of
  * display toggling (none → block). This prevents layout reflows when the
  * scrollbar appears/disappears, which can cause scroll position jumps.
  *
- * Matches Wave Terminal's approach.
+ * Matches Wave Terminal's approach (term.scss).
  */
 .xterm-viewport::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 .xterm-viewport::-webkit-scrollbar-track {
@@ -22,9 +23,4 @@
 
 .xterm-viewport:hover::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Remove xterm's default viewport background to prevent color flashes */
-.xterm-viewport {
-  background: none !important;
 }
