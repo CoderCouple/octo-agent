@@ -39,6 +39,7 @@ interface UseAgentSdkReturn {
 export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
   const { sessionId, cwd, sdkSessionId, skipApproval, env } = options
   const isRunningRef = useRef(false)
+  const hasActiveSessionRef = useRef(false)
   const [availableCommands, setAvailableCommands] = useState<CommandInfo[]>([])
   const [historyMeta, setHistoryMeta] = useState<HistoryMeta | null>(null)
 
@@ -87,6 +88,7 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
 
     const unsubError = window.agentSdk.onError(sessionId, (error: string) => {
       isRunningRef.current = false
+      hasActiveSessionRef.current = false
       // Clear stale SDK session ID so next attempt starts fresh
       useSessionStore.getState().setSdkSessionId(sessionId, '')
       useAgentChatStore.getState().setError(sessionId, error)
@@ -150,24 +152,29 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
       text: prompt,
     })
 
-    // Every message is a new query() call. Resume with the SDK session ID
-    // from the previous query to maintain conversation context.
-    const storedId = useSessionStore.getState().sessions.find(s => s.id === sessionId)?.sdkSessionId
-    const resumeId = storedId && storedId.length > 0 ? storedId : (sdkSessionId && sdkSessionId.length > 0 ? sdkSessionId : undefined)
-
-    void window.agentSdk.start({
-      id: sessionId,
-      prompt,
-      cwd,
-      sdkSessionId: resumeId,
-      skipApproval,
-      env,
-    })
+    if (hasActiveSessionRef.current) {
+      // Session is alive — push message into the queue (no new process)
+      void window.agentSdk.send(sessionId, prompt)
+    } else {
+      // First message — start a new persistent session
+      const storedId = useSessionStore.getState().sessions.find(s => s.id === sessionId)?.sdkSessionId
+      const resumeId = storedId && storedId.length > 0 ? storedId : (sdkSessionId && sdkSessionId.length > 0 ? sdkSessionId : undefined)
+      hasActiveSessionRef.current = true
+      void window.agentSdk.start({
+        id: sessionId,
+        prompt,
+        cwd,
+        sdkSessionId: resumeId,
+        skipApproval,
+        env,
+      })
+    }
   }, [sessionId, cwd, sdkSessionId, skipApproval, env])
 
   const stopAgent = useCallback(() => {
     void window.agentSdk.stop(sessionId)
     isRunningRef.current = false
+    hasActiveSessionRef.current = false
     useAgentChatStore.getState().setState(sessionId, 'idle')
     useSessionStore.getState().updateAgentMonitor(sessionId, { status: 'idle' })
   }, [sessionId])

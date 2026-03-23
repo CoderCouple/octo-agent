@@ -6,15 +6,61 @@
  * query). The SDK process exits after each query completes.
  */
 import { BrowserWindow, IpcMain } from 'electron'
-import { spawn } from 'child_process'
-import { join } from 'path'
-import { homedir } from 'os'
 import { HandlerContext } from './types'
-import { resolveCommand } from '../platform'
 import type { AgentSdkMessage, AgentSdkPermissionRequest } from '../../shared/agentSdkTypes'
+import {
+  expandHome, nextMessageId, sendMsg,
+  handleLoadHistory, handleStatus, handleFetchCommands, handleLogin,
+} from './agentSdkHelpers'
 
 interface PendingPermission {
   resolve: (result: { behavior: 'allow' } | { behavior: 'deny'; message: string }) => void
+}
+
+type UserMessage = {
+  type: 'user'
+  message: { role: 'user'; content: string }
+}
+
+/**
+ * Async message queue (same pattern as the official simple-chatapp demo).
+ * Messages are pushed in via push(), consumed by the SDK via async iteration.
+ * The SDK process stays alive as long as the queue is open.
+ */
+class MessageQueue {
+  private messages: UserMessage[] = []
+  private waiting: ((msg: UserMessage) => void) | null = null
+  private closed = false
+
+  push(content: string): void {
+    const msg: UserMessage = { type: 'user', message: { role: 'user', content } }
+    if (this.waiting) {
+      this.waiting(msg)
+      this.waiting = null
+    } else {
+      this.messages.push(msg)
+    }
+  }
+
+  close(): void {
+    this.closed = true
+    if (this.waiting) {
+      // Resolve with a dummy that will cause iteration to end
+      this.waiting = null
+    }
+  }
+
+  async *[Symbol.asyncIterator](): AsyncIterableIterator<UserMessage> {
+    while (!this.closed) {
+      if (this.messages.length > 0) {
+        yield this.messages.shift()!
+      } else {
+        yield await new Promise<UserMessage>((resolve) => {
+          this.waiting = resolve
+        })
+      }
+    }
+  }
 }
 
 interface ActiveSession {
@@ -23,19 +69,12 @@ interface ActiveSession {
   ownerWindow: BrowserWindow
   pendingPermission: PendingPermission | null
   queryObj?: { close(): void }
+  messageQueue: MessageQueue
 }
 
 // Module-local state
 const activeSessions = new Map<string, ActiveSession>()
 
-let messageCounter = 0
-function nextMessageId(): string {
-  return `sdk-msg-${String(++messageCounter)}-${String(Date.now())}`
-}
-
-function sendMsg(win: BrowserWindow, sessionId: string, msg: AgentSdkMessage): void {
-  win.webContents.send(`agentSdk:message:${sessionId}`, msg)
-}
 
 function processSystemMessage(sessionId: string, sdkMessage: Record<string, unknown>, win: BrowserWindow): void {
   const session = activeSessions.get(sessionId)
@@ -145,20 +184,16 @@ function processAndSendMessage(
   }
 }
 
-// Expand ~ to home directory in env var values (same as pty.ts)
-function expandHome(value: string): string {
-  if (value.startsWith('~/')) return join(homedir(), value.slice(2))
-  if (value === '~') return homedir()
-  return value
-}
-
 /**
- * Run a single SDK query. Each message gets its own query() call.
- * Multi-turn context is maintained via resume with the SDK session ID.
+ * Start a persistent SDK session using an async message queue as the prompt.
+ * The SDK process stays alive and consumes messages from the queue.
+ * Follow-up messages are pushed into the queue via agentSdk:send.
+ *
+ * This is the same pattern used by the official simple-chatapp demo.
  */
-async function runSdkQuery(
+async function startSession(
   sessionId: string,
-  prompt: string,
+  firstPrompt: string,
   cwd: string,
   win: BrowserWindow,
   options: {
@@ -170,12 +205,14 @@ async function runSdkQuery(
   const { query } = await import('@anthropic-ai/claude-agent-sdk')
 
   const abortController = new AbortController()
+  const messageQueue = new MessageQueue()
 
   const session: ActiveSession = {
     sdkSessionId: options.sdkSessionId,
     abortController,
     ownerWindow: win,
     pendingPermission: null,
+    messageQueue,
   }
   activeSessions.set(sessionId, session)
 
@@ -228,8 +265,12 @@ async function runSdkQuery(
     }
   }
 
+  // Push the first message into the queue, then pass the queue as the prompt.
+  // The SDK iterates the queue — it stays alive waiting for more messages.
+  messageQueue.push(firstPrompt)
+
   const queryObj = query({
-    prompt,
+    prompt: messageQueue as unknown as Parameters<typeof query>[0]['prompt'],
     options: queryOptions as Parameters<typeof query>[0]['options'],
   })
   session.queryObj = queryObj
@@ -237,10 +278,15 @@ async function runSdkQuery(
   try {
     for await (const message of queryObj) {
       if (!activeSessions.has(sessionId)) break
-      processAndSendMessage(sessionId, message as unknown as Record<string, unknown>, win)
+      const msg = message as unknown as Record<string, unknown>
+      processAndSendMessage(sessionId, msg, win)
+
+      // When a result arrives, the current turn is done — signal idle
+      if (msg.type === 'result') {
+        const sdkSessionId = session.sdkSessionId ?? ''
+        win.webContents.send(`agentSdk:done:${sessionId}`, sdkSessionId)
+      }
     }
-    const sdkSessionId = session.sdkSessionId ?? ''
-    win.webContents.send(`agentSdk:done:${sessionId}`, sdkSessionId)
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err)
     if (!errorMessage.includes('aborted')) {
@@ -248,134 +294,6 @@ async function runSdkQuery(
     }
   } finally {
     activeSessions.delete(sessionId)
-  }
-}
-
-async function handleLoadHistory(senderWindow: BrowserWindow, sdkSessionId: string, sessionId: string, agentEnv?: Record<string, string>, limit?: number): Promise<void> {
-  const configDir = agentEnv?.CLAUDE_CONFIG_DIR
-  const prevConfigDir = process.env.CLAUDE_CONFIG_DIR
-  if (configDir) process.env.CLAUDE_CONFIG_DIR = expandHome(configDir)
-
-  try {
-    const { getSessionMessages } = await import('@anthropic-ai/claude-agent-sdk')
-    const allMessages = await getSessionMessages(sdkSessionId)
-
-    // Only load the last N messages (default 10) for speed.
-    // Send total count so the renderer can show "Show earlier".
-    const maxMessages = limit ?? 10
-    const history = allMessages.length > maxMessages
-      ? allMessages.slice(allMessages.length - maxMessages)
-      : allMessages
-
-    // Tell the renderer how many total messages exist so it can show a "load more" button
-    if (allMessages.length > maxMessages) {
-      senderWindow.webContents.send(`agentSdk:historyMeta:${sessionId}`, {
-        total: allMessages.length,
-        loaded: history.length,
-      })
-    }
-
-    for (const entry of history) {
-      const entryType = (entry as Record<string, unknown>).type as string
-      const message = (entry as Record<string, unknown>).message as Record<string, unknown> | undefined
-      if (!message) continue
-      const content = message.content as Record<string, unknown>[] | string | undefined
-      if (!content) continue
-
-      const idPrefix = entryType === 'user' ? 'history-user' : 'history-asst'
-      const blocks = typeof content === 'string'
-        ? [{ type: 'text', text: content }] as Record<string, unknown>[]
-        : Array.isArray(content) ? content : []
-
-      for (const block of blocks) {
-        if (block.type === 'text' && typeof block.text === 'string') {
-          sendMsg(senderWindow, sessionId, {
-            id: `${idPrefix}-${nextMessageId()}`, type: 'text', timestamp: Date.now(), text: block.text,
-          })
-        } else if (entryType === 'assistant' && block.type === 'tool_use') {
-          sendMsg(senderWindow, sessionId, {
-            id: `history-tool-${nextMessageId()}`, type: 'tool_use', timestamp: Date.now(),
-            toolName: block.name as string, toolInput: block.input as Record<string, unknown>, toolUseId: block.id as string,
-          })
-        }
-      }
-    }
-  } finally {
-    if (configDir) {
-      if (prevConfigDir) process.env.CLAUDE_CONFIG_DIR = prevConfigDir
-      else delete process.env.CLAUDE_CONFIG_DIR
-    }
-  }
-}
-
-async function handleStatus(senderWindow: BrowserWindow, sessionId: string, agentEnv?: Record<string, string>): Promise<void> {
-  const session = activeSessions.get(sessionId)
-  const rows: [string, string][] = [
-    ['Status', session ? 'Active' : 'Idle'],
-    ['Session', session?.sdkSessionId ?? 'none'],
-  ]
-
-  try {
-    const configDir = agentEnv?.CLAUDE_CONFIG_DIR
-    const prevConfigDir = process.env.CLAUDE_CONFIG_DIR
-    if (configDir) process.env.CLAUDE_CONFIG_DIR = expandHome(configDir)
-
-    const { query: sdkQuery } = await import('@anthropic-ai/claude-agent-sdk')
-    const q = sdkQuery({
-      prompt: '/cost',
-      options: { env: process.env, settingSources: ['user'], maxTurns: 0 },
-    })
-    const account = await q.accountInfo()
-    if (account.email) rows.push(['Account', account.email])
-    if (account.subscriptionType) rows.push(['Plan', account.subscriptionType])
-    q.close()
-
-    if (configDir) {
-      if (prevConfigDir) process.env.CLAUDE_CONFIG_DIR = prevConfigDir
-      else delete process.env.CLAUDE_CONFIG_DIR
-    }
-  } catch {
-    // Ignore
-  }
-
-  const tableRows = rows.map(([k, v]) => `| **${k}** | ${v} |`).join('\n')
-  const table = `| | |\n|---|---|\n${tableRows}`
-
-  sendMsg(senderWindow, sessionId, {
-    id: nextMessageId(), type: 'result', timestamp: Date.now(), result: table,
-  })
-  senderWindow.webContents.send(`agentSdk:done:${sessionId}`, session?.sdkSessionId ?? '')
-}
-
-async function handleFetchCommands(agentEnv?: Record<string, string>): Promise<{ name: string; description: string }[]> {
-  const configDir = agentEnv?.CLAUDE_CONFIG_DIR
-  const prevConfigDir = process.env.CLAUDE_CONFIG_DIR
-  if (configDir) process.env.CLAUDE_CONFIG_DIR = expandHome(configDir)
-
-  try {
-    const { query: sdkQuery } = await import('@anthropic-ai/claude-agent-sdk')
-    const q = sdkQuery({
-      prompt: '/cost',
-      options: {
-        env: process.env,
-        tools: { type: 'preset', preset: 'claude_code' },
-        settingSources: ['user', 'project'],
-        maxTurns: 0,
-      },
-    })
-    const cmds = await q.supportedCommands()
-    q.close()
-    return cmds.map((c: Record<string, unknown>) => ({
-      name: c.name as string,
-      description: (typeof c.description === 'string' ? c.description : '').split('\n')[0].slice(0, 80),
-    }))
-  } catch {
-    return []
-  } finally {
-    if (configDir) {
-      if (prevConfigDir) process.env.CLAUDE_CONFIG_DIR = prevConfigDir
-      else delete process.env.CLAUDE_CONFIG_DIR
-    }
   }
 }
 
@@ -433,11 +351,12 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     // Kill any existing session with the same ID
     const existing = activeSessions.get(options.id)
     if (existing) {
+      existing.messageQueue.close()
       existing.abortController.abort()
       activeSessions.delete(options.id)
     }
 
-    void runSdkQuery(options.id, options.prompt, options.cwd, senderWindow, {
+    void startSession(options.id, options.prompt, options.cwd, senderWindow, {
       sdkSessionId: options.sdkSessionId,
       skipApproval: options.skipApproval,
       env: options.env,
@@ -446,18 +365,21 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     return { id: options.id }
   })
 
-  // Send is now the same as start — each message is a new query() with resume
+  // Send a follow-up message to an existing session via the message queue.
+  // If no session exists, starts a new one.
   ipcMain.handle('agentSdk:send', (_event, id: string, prompt: string, sdkSessionId?: string) => {
     const existing = activeSessions.get(id)
     if (existing) {
-      existing.abortController.abort()
-      activeSessions.delete(id)
+      // Push into the queue — the SDK process picks it up
+      existing.messageQueue.push(prompt)
+      return
     }
 
+    // No active session — start a new one
     const senderWindow = BrowserWindow.fromWebContents(_event.sender)
     if (!senderWindow) return
 
-    void runSdkQuery(id, prompt, process.cwd(), senderWindow, {
+    void startSession(id, prompt, process.cwd(), senderWindow, {
       sdkSessionId,
       skipApproval: false,
     })
@@ -466,6 +388,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('agentSdk:stop', (_event, id: string) => {
     const session = activeSessions.get(id)
     if (session) {
+      session.messageQueue.close()
       session.abortController.abort()
       if (session.queryObj) {
         (session.queryObj as { close(): void }).close()
@@ -500,46 +423,17 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     }
   })
 
-  // Handle /login — spawns `claude login` which opens a browser for OAuth
   ipcMain.handle('agentSdk:login', (_event, sessionId: string) => {
     const senderWindow = BrowserWindow.fromWebContents(_event.sender)
     if (!senderWindow) return
-
-    const claudePath = resolveCommand('claude') ?? 'claude'
-    const child = spawn(claudePath, ['login'], {
-      env: process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-
-    let output = ''
-    child.stdout.on('data', (data: Buffer) => { output += data.toString() })
-    child.stderr.on('data', (data: Buffer) => { output += data.toString() })
-
-    sendMsg(senderWindow, sessionId, {
-      id: nextMessageId(),
-      type: 'system',
-      timestamp: Date.now(),
-      text: 'Opening browser for login...',
-    })
-
-    child.on('close', (code) => {
-      const success = code === 0
-      sendMsg(senderWindow, sessionId, {
-        id: nextMessageId(),
-        type: success ? 'system' : 'error',
-        timestamp: Date.now(),
-        text: success
-          ? 'Login successful. You can now send messages.'
-          : `Login failed (exit ${String(code)}). ${output.trim()}`,
-      })
-      senderWindow.webContents.send(`agentSdk:done:${sessionId}`, '')
-    })
+    handleLogin(senderWindow, sessionId)
   })
 
   ipcMain.handle('agentSdk:status', async (_event, sessionId: string, agentEnv?: Record<string, string>) => {
     const senderWindow = BrowserWindow.fromWebContents(_event.sender)
     if (!senderWindow) return
-    await handleStatus(senderWindow, sessionId, agentEnv)
+    const session = activeSessions.get(sessionId)
+    await handleStatus(senderWindow, sessionId, session?.sdkSessionId, agentEnv)
   })
 
   ipcMain.handle('agentSdk:commands', async (_event, agentEnv?: Record<string, string>) => {
