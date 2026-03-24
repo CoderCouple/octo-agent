@@ -49,6 +49,7 @@
     "storybook:update-refs": "node scripts/storybook-update-refs.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.81",
     "@monaco-editor/react": "^4.7.0",
     "@xterm/addon-canvas": "^0.7.0",
     "@xterm/addon-fit": "^0.10.0",

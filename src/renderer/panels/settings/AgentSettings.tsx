@@ -32,11 +32,12 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
   const [color, setColor] = useState('')
   const [env, setEnv] = useState<Record<string, string>>({})
   const [skipApprovalFlag, setSkipApprovalFlag] = useState('')
+  const [connectionMode, setConnectionMode] = useState<'terminal' | 'api'>('terminal')
   const envEditorRef = useRef<EnvVarEditorRef>(null)
 
   const resetForm = useCallback(() => {
     setName(''); setCommand(''); setColor(''); setEnv({})
-    setSkipApprovalFlag('')
+    setSkipApprovalFlag(''); setConnectionMode('terminal')
     setShowAddForm(false); setEditingId(null)
   }, [])
 
@@ -47,6 +48,7 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
       name: name.trim(), command: command.trim(), color: color.trim() || undefined,
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
       skipApprovalFlag: skipApprovalFlag.trim() || undefined,
+      connectionMode: connectionMode !== 'terminal' ? connectionMode : undefined,
     })
     resetForm()
   }
@@ -54,7 +56,8 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
   const handleEdit = (agent: AgentConfig) => {
     setEditingId(agent.id); setName(agent.name); setCommand(agent.command)
     setColor(agent.color || ''); setEnv(agent.env || {})
-    setSkipApprovalFlag(agent.skipApprovalFlag || ''); setShowAddForm(false)
+    setSkipApprovalFlag(agent.skipApprovalFlag || '')
+    setConnectionMode(agent.connectionMode ?? 'terminal'); setShowAddForm(false)
   }
 
   const handleUpdate = () => {
@@ -64,6 +67,7 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
       name: name.trim(), command: command.trim(), color: color.trim() || undefined,
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
       skipApprovalFlag: skipApprovalFlag.trim() || undefined,
+      connectionMode: connectionMode !== 'terminal' ? connectionMode : undefined,
     })
     resetForm()
   }
@@ -74,8 +78,8 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
   }
 
   return {
-    editingId, showAddForm, name, command, color, env, skipApprovalFlag, envEditorRef,
-    setName, setCommand, setColor, setEnv, setSkipApprovalFlag,
+    editingId, showAddForm, name, command, color, env, skipApprovalFlag, connectionMode, envEditorRef,
+    setName, setCommand, setColor, setEnv, setSkipApprovalFlag, setConnectionMode,
     setShowAddForm, resetForm, handleAdd, handleEdit, handleUpdate, handleDelete,
   }
 }
@@ -134,10 +138,12 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
             agents={agents} editingId={form.editingId} showAddForm={form.showAddForm}
             name={form.name} command={form.command} color={form.color} env={form.env}
             skipApprovalFlag={form.skipApprovalFlag}
+            connectionMode={form.connectionMode}
             envEditorRef={form.envEditorRef}
             onNameChange={form.setName} onCommandChange={form.setCommand}
             onColorChange={form.setColor} onEnvChange={form.setEnv}
             onSkipApprovalFlagChange={form.setSkipApprovalFlag}
+            onConnectionModeChange={form.setConnectionMode}
             onEdit={form.handleEdit} onUpdate={form.handleUpdate}
             onDelete={form.handleDelete} onAdd={form.handleAdd}
             onShowAddForm={() => form.setShowAddForm(true)} onCancel={form.resetForm}

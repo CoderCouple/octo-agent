@@ -22,11 +22,15 @@ import type { NavigationTarget } from '../shared/utils/fileNavigation'
 /** Wrapper that subscribes each session terminal to its own visibility from the store. */
 const SessionTerminal = memo(function SessionTerminal({
   sessionId, cwd, branch, agentCommand, agentEnv, isRestored, isolated, repoRootDir,
+  connectionMode, skipApproval, sdkSessionId,
 }: {
   sessionId: string; cwd: string; branch: string
   agentCommand?: string; agentEnv?: Record<string, string>
   isRestored?: boolean
   isolated: boolean; repoRootDir?: string
+  connectionMode?: 'terminal' | 'api'
+  skipApproval?: boolean
+  sdkSessionId?: string
 }) {
   const isVisible = useSessionStore((s) => s.activeSessionId === sessionId)
   return (
@@ -40,6 +44,9 @@ const SessionTerminal = memo(function SessionTerminal({
           isRestored={isRestored}
           isolated={isolated}
           repoRootDir={repoRootDir}
+          connectionMode={connectionMode}
+          skipApproval={skipApproval}
+          sdkSessionId={sdkSessionId}
         />
       </PanelErrorBoundary>
     </div>
@@ -75,6 +82,8 @@ export interface PanelsMapConfig {
   getAgentCommand: (session: Session) => string | undefined
   getAgentEnv: (session: Session) => Record<string, string> | undefined
   getRepoIsolation: (session: Session) => { isolated: boolean; repoRootDir?: string } | undefined
+  getAgentConnectionMode: (session: Session) => 'terminal' | 'api' | undefined
+  getAgentSkipApproval: (session: Session) => boolean
   globalPanelVisibility: Record<string, boolean>
   toggleGlobalPanel: (panelId: string) => void
   selectFile: (sessionId: string, filePath: string) => void
@@ -234,6 +243,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
     handleSelectSession, handleNewSession, removeSession, refreshPrStatus,
     archiveSession, unarchiveSession,
     getAgentCommand, getAgentEnv,
+    getAgentConnectionMode, getAgentSkipApproval,
     globalPanelVisibility, toggleGlobalPanel,
     repos,
   } = config
@@ -309,6 +319,9 @@ export function usePanelsMap(config: PanelsMapConfig) {
             isRestored={session.isRestored}
             isolated={repo?.isolated ?? false}
             repoRootDir={repo?.rootDir}
+            connectionMode={getAgentConnectionMode(session)}
+            skipApproval={getAgentSkipApproval(session)}
+            sdkSessionId={session.sdkSessionId}
           />
         )
       })}

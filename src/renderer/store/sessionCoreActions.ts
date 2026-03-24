@@ -270,6 +270,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             lastKnownPrNumber: sessionData.lastKnownPrNumber,
             lastKnownPrUrl: sessionData.lastKnownPrUrl,
             isArchived: sessionData.isArchived ?? false,
+            sdkSessionId: sessionData.sdkSessionId,
             isRestored: true,
           }
           sessions.push(session)

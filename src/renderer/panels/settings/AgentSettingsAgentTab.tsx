@@ -14,12 +14,14 @@ interface AgentSettingsAgentTabProps {
   color: string
   env: Record<string, string>
   skipApprovalFlag: string
+  connectionMode: 'terminal' | 'api'
   envEditorRef: RefObject<EnvVarEditorRef>
   onNameChange: (v: string) => void
   onCommandChange: (v: string) => void
   onColorChange: (v: string) => void
   onEnvChange: (v: Record<string, string>) => void
   onSkipApprovalFlagChange: (v: string) => void
+  onConnectionModeChange: (v: 'terminal' | 'api') => void
   onEdit: (agent: AgentConfig) => void
   onUpdate: () => void
   onDelete: (id: string) => void
@@ -37,12 +39,14 @@ export function AgentSettingsAgentTab({
   color,
   env,
   skipApprovalFlag,
+  connectionMode,
   envEditorRef,
   onNameChange,
   onCommandChange,
   onColorChange,
   onEnvChange,
   onSkipApprovalFlagChange,
+  onConnectionModeChange,
   onEdit,
   onUpdate,
   onDelete,
@@ -73,12 +77,14 @@ export function AgentSettingsAgentTab({
                 color={color}
                 env={env}
                 skipApprovalFlag={skipApprovalFlag}
+                connectionMode={connectionMode}
                 envEditorRef={envEditorRef}
                 onNameChange={onNameChange}
                 onCommandChange={onCommandChange}
                 onColorChange={onColorChange}
                 onEnvChange={onEnvChange}
                 onSkipApprovalFlagChange={onSkipApprovalFlagChange}
+                onConnectionModeChange={onConnectionModeChange}
                 onSave={onUpdate}
                 onCancel={onCancel}
               />
@@ -122,6 +128,20 @@ export function AgentSettingsAgentTab({
             placeholder="Color (optional, e.g., #4a9eff)"
             className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent"
           />
+          <div className="space-y-1">
+            <label className="text-xs text-text-secondary">Connection mode</label>
+            <select
+              value={connectionMode}
+              onChange={(e) => onConnectionModeChange(e.target.value as 'terminal' | 'api')}
+              className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary focus:outline-none focus:border-accent"
+            >
+              <option value="terminal">Terminal (PTY)</option>
+              <option value="api">API (Agent SDK)</option>
+            </select>
+            <p className="text-xs text-text-tertiary">
+              API mode uses the Claude Agent SDK for structured output instead of terminal.
+            </p>
+          </div>
           <EnvVarEditor ref={envEditorRef} env={env} onChange={onEnvChange} command={command} />
           <div className="space-y-1">
             <label className="text-xs text-text-secondary">Auto-approve flag</label>
@@ -175,12 +195,14 @@ function AgentEditForm({
   color,
   env,
   skipApprovalFlag,
+  connectionMode,
   envEditorRef,
   onNameChange,
   onCommandChange,
   onColorChange,
   onEnvChange,
   onSkipApprovalFlagChange,
+  onConnectionModeChange,
   onSave,
   onCancel,
 }: {
@@ -189,12 +211,14 @@ function AgentEditForm({
   color: string
   env: Record<string, string>
   skipApprovalFlag: string
+  connectionMode: 'terminal' | 'api'
   envEditorRef: RefObject<EnvVarEditorRef>
   onNameChange: (v: string) => void
   onCommandChange: (v: string) => void
   onColorChange: (v: string) => void
   onEnvChange: (v: Record<string, string>) => void
   onSkipApprovalFlagChange: (v: string) => void
+  onConnectionModeChange: (v: 'terminal' | 'api') => void
   onSave: () => void
   onCancel: () => void
 }) {
@@ -221,6 +245,17 @@ function AgentEditForm({
         placeholder="Color (optional, e.g., #4a9eff)"
         className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent"
       />
+      <div className="space-y-1">
+        <label className="text-xs text-text-secondary">Connection mode</label>
+        <select
+          value={connectionMode}
+          onChange={(e) => onConnectionModeChange(e.target.value as 'terminal' | 'api')}
+          className="w-full px-3 py-2 bg-bg-secondary border border-border rounded text-sm text-text-primary focus:outline-none focus:border-accent"
+        >
+          <option value="terminal">Terminal (PTY)</option>
+          <option value="api">API (Agent SDK)</option>
+        </select>
+      </div>
       <EnvVarEditor ref={envEditorRef} env={env} onChange={onEnvChange} command={command} />
       <div className="space-y-1">
         <label className="text-xs text-text-secondary">Auto-approve flag</label>
@@ -275,6 +310,9 @@ function AgentRow({
         <div>
           <div className="font-medium text-sm text-text-primary flex items-center gap-2">
             {agent.name}
+            {agent.connectionMode === 'api' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-normal">API</span>
+            )}
             {agent.skipApprovalFlag && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-normal">auto</span>
             )}

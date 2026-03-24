@@ -105,6 +105,8 @@ export interface Session {
   lastKnownPrUrl?: string
   // Archive state (persisted)
   isArchived: boolean
+  // Agent SDK session ID for resume (persisted)
+  sdkSessionId?: string
   // Whether this session was loaded from config (runtime only, not persisted)
   isRestored: boolean
   // Error from background initialization (runtime only, not persisted)
@@ -166,6 +168,8 @@ interface SessionStore {
   closeCommandsEditor: (sessionId: string) => void
   // Agent PTY tracking (runtime only)
   setAgentPtyId: (sessionId: string, ptyId: string) => void
+  // Agent SDK session ID (persisted for resume)
+  setSdkSessionId: (sessionId: string, sdkSessionId: string) => void
   // Branch status actions
   markHasHadCommits: (sessionId: string) => void
   clearHasHadCommits: (sessionId: string) => void
@@ -326,6 +330,15 @@ export const useSessionStore = create<SessionStore>((set, get) => {
     )
     set({ sessions: updatedSessions })
     // Don't persist - runtime only
+  },
+
+  setSdkSessionId: (sessionId: string, sdkSessionId: string) => {
+    const { sessions } = get()
+    const updatedSessions = sessions.map((s) =>
+      s.id === sessionId ? { ...s, sdkSessionId } : s
+    )
+    set({ sessions: updatedSessions })
+    debouncedSave()
   },
 
   // Search history actions

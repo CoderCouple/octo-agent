@@ -22,6 +22,7 @@ export type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from './apis/config'
 export type { ShellApi, DialogApi, AppApi, UpdateApi, UpdateCheckResult, WindowControlsApi } from './apis/shell'
 export type { MenuApi, TsApi } from './apis/menu'
 export type { DevcontainerApi } from './apis/devcontainer'
+export type { AgentSdkApi } from './apis/agentSdk'
 
 export type HelpMenuEvent = 'getting-started' | 'shortcuts' | 'reset-tutorial'
 
@@ -46,6 +47,7 @@ import type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from './apis/config'
 import type { ShellApi, DialogApi, AppApi, UpdateApi, WindowControlsApi } from './apis/shell'
 import type { MenuApi, TsApi } from './apis/menu'
 import type { DevcontainerApi } from './apis/devcontainer'
+import type { AgentSdkApi } from './apis/agentSdk'
 
 // Import API implementations
 import { ptyApi } from './apis/pty'
@@ -56,6 +58,7 @@ import { configApi, profilesApi, agentsApi, reposApi } from './apis/config'
 import { shellApi, dialogApi, appApi, updateApi, windowControlsApi } from './apis/shell'
 import { menuApi, tsApi } from './apis/menu'
 import { devcontainerApi } from './apis/devcontainer'
+import { agentSdkApi } from './apis/agentSdk'
 
 // Forward menu:select-all from main process to a DOM CustomEvent
 ipcRenderer.on('menu:select-all', () => {
@@ -86,6 +89,7 @@ contextBridge.exposeInMainWorld('help', helpApi)
 contextBridge.exposeInMainWorld('update', updateApi)
 contextBridge.exposeInMainWorld('devcontainer', devcontainerApi)
 contextBridge.exposeInMainWorld('windowControls', windowControlsApi)
+contextBridge.exposeInMainWorld('agentSdk', agentSdkApi)
 
 declare global {
   interface Window {
@@ -107,5 +111,6 @@ declare global {
     update: UpdateApi
     devcontainer: DevcontainerApi
     windowControls: WindowControlsApi
+    agentSdk: AgentSdkApi
   }
 }

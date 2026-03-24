@@ -127,6 +127,7 @@ export type AgentData = {
   color?: string
   env?: Record<string, string>  // Environment variables for this agent
   skipApprovalFlag?: string    // Free-text flag to append for auto-approval (e.g. "--dangerously-skip-permissions")
+  connectionMode?: 'terminal' | 'api'  // How to connect: PTY terminal or Agent SDK API (default: 'terminal')
 }
 
 export type DockerStatus = {
@@ -201,6 +202,8 @@ export type SessionData = {
   searchHistory?: string[]
   // Archive state
   isArchived?: boolean
+  // Agent SDK session ID for resume
+  sdkSessionId?: string
 }
 
 export type ConfigData = {
