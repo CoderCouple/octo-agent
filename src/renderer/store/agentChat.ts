@@ -41,6 +41,9 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   addMessage: (sessionId: string, msg: AgentSdkMessage) => {
     set((state) => {
       const session = state.sessions[sessionId] ?? { ...DEFAULT_SESSION }
+      // Deduplicate by message ID (guards against double-delivery from
+      // React strict mode re-registering IPC listeners)
+      if (session.messages.some(m => m.id === msg.id)) return state
       return {
         sessions: {
           ...state.sessions,
