@@ -72,7 +72,9 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     const unsubMessage = window.agentSdk.onMessage(sessionId, (msg: AgentSdkMessage) => {
       useAgentChatStore.getState().addMessage(sessionId, msg)
 
-      if (msg.type === 'text' || msg.type === 'tool_use') {
+      // Don't update activity status for history messages (loaded on mount)
+      const isHistory = msg.id.startsWith('history-')
+      if (!isHistory && (msg.type === 'text' || msg.type === 'tool_use')) {
         useSessionStore.getState().updateAgentMonitor(sessionId, {
           status: 'working',
           lastMessage: msg.text ?? msg.toolName ?? undefined,
