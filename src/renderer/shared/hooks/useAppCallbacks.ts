@@ -127,8 +127,10 @@ export function useAppCallbacks({
   }, [agents])
 
   const getAgentSkipApproval = useCallback((session: Session): boolean => {
-    if (!session.repoId) return false
-    const repo = repos.find((r) => r.id === session.repoId)
+    // Match repo by ID, or fall back to directory matching (same as getAgentCommand)
+    const repo = session.repoId
+      ? repos.find((r) => r.id === session.repoId)
+      : repos.find((r) => session.directory.startsWith(`${r.rootDir}/`) || session.directory === r.rootDir)
     return repo?.skipApproval ?? false
   }, [repos])
 
