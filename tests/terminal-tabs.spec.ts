@@ -99,9 +99,9 @@ test.describe('Terminal Tabs', () => {
   })
 
   test('should close a user terminal tab', async () => {
-    // Find and hover the non-Agent tab to reveal close button
-    // The user tab is the one that is NOT "Agent"
-    const userTab = page.locator('div.cursor-pointer:visible').filter({ hasNotText: 'Agent' }).filter({ has: page.locator('span.truncate') }).first()
+    // Scope to the terminal tablist to avoid matching sidebar session items
+    const tablist = page.locator('[role="tablist"][aria-label="Terminal tabs"]')
+    const userTab = tablist.locator('[role="tab"]').filter({ hasNotText: 'Agent' }).first()
     await userTab.hover()
 
     // Click the close button
