@@ -21,9 +21,17 @@ interface PendingPermission {
   resolve: (result: { behavior: 'allow' } | { behavior: 'deny'; message: string }) => void
 }
 
+interface InjectPayload {
+  type: 'user'
+  message: { role: 'user'; content: { type: 'text'; text: string }[] }
+  parent_tool_use_id: null
+  priority: 'next'
+  session_id: string
+}
+
 interface ActiveSession {
   sdkSession: {
-    send(message: string | Record<string, unknown>): Promise<void>
+    send(message: string | InjectPayload): Promise<void>
     stream(): AsyncGenerator<unknown, void>
     close(): void
     readonly sessionId: string
@@ -465,14 +473,24 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
       console.warn('[agentSdk] inject: no active session for', id)
       return
     }
+    if (!session.sdkSessionId) {
+      console.warn('[agentSdk] inject: sdkSessionId not yet known for', id)
+      return
+    }
     console.log('[agentSdk] inject: queuing mid-turn message for', id)
-    await session.sdkSession.send({
-      type: 'user',
-      message: { role: 'user', content: [{ type: 'text', text: prompt }] },
-      parent_tool_use_id: null,
-      priority: 'next',
-      session_id: session.sdkSessionId ?? '',
-    })
+    try {
+      await session.sdkSession.send({
+        type: 'user',
+        message: { role: 'user', content: [{ type: 'text', text: prompt }] },
+        parent_tool_use_id: null,
+        priority: 'next',
+        session_id: session.sdkSessionId,
+      })
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('[agentSdk] inject error:', errorMessage)
+      session.ownerWindow.webContents.send(`agentSdk:error:${id}`, errorMessage)
+    }
   })
 
   ipcMain.handle('agentSdk:respond', (_event, id: string, _toolUseId: string, allowed: boolean, updatedInput?: Record<string, unknown>) => {

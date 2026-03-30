@@ -22,6 +22,7 @@ interface AgentChatStore {
   setPendingPermission: (sessionId: string, req: AgentSdkPermissionRequest | null) => void
   setError: (sessionId: string, error: string | null) => void
   clearSession: (sessionId: string) => void
+  clearQueuedFlag: (sessionId: string) => void
 }
 
 const DEFAULT_SESSION: AgentChatSession = {
@@ -100,6 +101,22 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     set((state) => {
       const { [sessionId]: _, ...rest } = state.sessions
       return { sessions: rest }
+    })
+  },
+
+  clearQueuedFlag: (sessionId: string) => {
+    set((state) => {
+      const session = state.sessions[sessionId] ?? { ...DEFAULT_SESSION }
+      if (!session.messages.some(m => m.queued)) return state
+      return {
+        sessions: {
+          ...state.sessions,
+          [sessionId]: {
+            ...session,
+            messages: session.messages.map(m => m.queued ? { ...m, queued: false } : m),
+          },
+        },
+      }
     })
   },
 }))

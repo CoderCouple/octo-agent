@@ -82,6 +82,7 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
 
     const unsubDone = window.agentSdk.onDone(sessionId, (returnedSdkSessionId: string) => {
       isRunningRef.current = false
+      useAgentChatStore.getState().clearQueuedFlag(sessionId)
       useAgentChatStore.getState().setState(sessionId, 'idle')
       useSessionStore.getState().updateAgentMonitor(sessionId, { status: 'idle' })
       if (returnedSdkSessionId && returnedSdkSessionId.length > 0) {
@@ -207,11 +208,21 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     const trimmed = prompt.trim()
     if (!trimmed || !isRunningRef.current) return
 
+    // The SDK requires a known session ID to route the injected message.
+    // This is populated as soon as the first system message arrives from the
+    // stream, so it will be set in any realistic scenario.
+    const currentSdkSessionId = useSessionStore.getState().sessions.find(s => s.id === sessionId)?.sdkSessionId
+    if (!currentSdkSessionId) {
+      console.warn('[useAgentSdk] queuePrompt: sdkSessionId not yet known, dropping')
+      return
+    }
+
     useAgentChatStore.getState().addMessage(sessionId, {
       id: `user-${String(Date.now())}`,
       type: 'text',
       timestamp: Date.now(),
-      text: prompt,
+      text: trimmed,
+      queued: true,
     })
 
     void window.agentSdk.inject(sessionId, trimmed)
