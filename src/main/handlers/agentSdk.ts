@@ -23,7 +23,7 @@ interface PendingPermission {
 
 interface ActiveSession {
   sdkSession: {
-    send(message: string): Promise<void>
+    send(message: string | Record<string, unknown>): Promise<void>
     stream(): AsyncGenerator<unknown, void>
     close(): void
     readonly sessionId: string
@@ -419,6 +419,24 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
       session.sdkSession.close()
       activeSessions.delete(id)
     }
+  })
+
+  // Inject a message mid-turn with priority 'next'. The stream for the current
+  // turn is already running — we just enqueue the message; no new stream needed.
+  ipcMain.handle('agentSdk:inject', async (_event, id: string, prompt: string) => {
+    const session = activeSessions.get(id)
+    if (!session) {
+      console.warn('[agentSdk] inject: no active session for', id)
+      return
+    }
+    console.log('[agentSdk] inject: queuing mid-turn message for', id)
+    await session.sdkSession.send({
+      type: 'user',
+      message: { role: 'user', content: [{ type: 'text', text: prompt }] },
+      parent_tool_use_id: null,
+      priority: 'next',
+      session_id: session.sdkSessionId ?? '',
+    })
   })
 
   ipcMain.handle('agentSdk:respond', (_event, id: string, _toolUseId: string, allowed: boolean, updatedInput?: Record<string, unknown>) => {

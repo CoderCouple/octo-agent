@@ -16,6 +16,7 @@ interface CommandInfo {
 
 interface AgentChatInputProps {
   onSubmit: (prompt: string) => void
+  onQueue: (prompt: string) => void
   onStop: () => void
   isRunning: boolean
   disabled?: boolean
@@ -23,7 +24,7 @@ interface AgentChatInputProps {
   availableCommands?: CommandInfo[]
 }
 
-export function AgentChatInput({ onSubmit, onStop, isRunning, disabled, sessionId, availableCommands }: AgentChatInputProps) {
+export function AgentChatInput({ onSubmit, onQueue, onStop, isRunning, disabled, sessionId, availableCommands }: AgentChatInputProps) {
   const [value, setValue] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -62,13 +63,19 @@ export function AgentChatInput({ onSubmit, onStop, isRunning, disabled, sessionI
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim()
-    if (!trimmed || isRunning || disabled) return
+    if (!trimmed || disabled) return
+    if (isRunning) {
+      onQueue(trimmed)
+      setValue('')
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
+      return
+    }
     onSubmit(trimmed)
     setValue('')
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
-  }, [value, isRunning, disabled, onSubmit])
+  }, [value, isRunning, disabled, onSubmit, onQueue])
 
   const selectCommand = useCallback((name: string) => {
     const cmd = `/${name}`

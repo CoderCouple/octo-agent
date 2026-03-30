@@ -30,6 +30,7 @@ interface HistoryMeta {
 
 interface UseAgentSdkReturn {
   sendPrompt: (prompt: string) => void
+  queuePrompt: (prompt: string) => void
   stopAgent: () => void
   respondToPermission: (toolUseId: string, allowed: boolean, updatedInput?: Record<string, unknown>) => void
   availableCommands: CommandInfo[]
@@ -202,5 +203,19 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     }
   }, [sessionId, env])
 
-  return { sendPrompt, stopAgent, respondToPermission, availableCommands, historyMeta, loadFullHistory }
+  const queuePrompt = useCallback((prompt: string) => {
+    const trimmed = prompt.trim()
+    if (!trimmed || !isRunningRef.current) return
+
+    useAgentChatStore.getState().addMessage(sessionId, {
+      id: `user-${String(Date.now())}`,
+      type: 'text',
+      timestamp: Date.now(),
+      text: prompt,
+    })
+
+    void window.agentSdk.inject(sessionId, trimmed)
+  }, [sessionId])
+
+  return { sendPrompt, queuePrompt, stopAgent, respondToPermission, availableCommands, historyMeta, loadFullHistory }
 }
