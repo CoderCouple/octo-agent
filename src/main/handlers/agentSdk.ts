@@ -312,6 +312,68 @@ async function startSession(
   }
 }
 
+/**
+ * Resolve the mock response text for a given prompt.
+ *
+ * Reads E2E_AGENT_RESPONSES (JSON array of {match, response} objects) and
+ * returns the text of the first entry whose `match` string appears in the
+ * prompt. Falls back to a generic placeholder when nothing matches.
+ */
+function resolveMockResponseText(prompt: string): string {
+  try {
+    const raw = process.env.E2E_AGENT_RESPONSES
+    if (raw) {
+      const entries = JSON.parse(raw) as { match: string; response: string }[]
+      for (const entry of entries) {
+        if (prompt.includes(entry.match)) return entry.response
+      }
+    }
+  } catch {
+    // Malformed JSON — fall through to default
+  }
+  return "I'll help you with that. Let me look at the codebase."
+}
+
+/**
+ * Send a canned mock agent response sequence for E2E tests.
+ * Fires system init, a text reply, and a result/done — all via IPC.
+ */
+function sendMockAgentResponse(win: BrowserWindow, sessionId: string, prompt: string): void {
+  const initMsg: AgentSdkMessage = {
+    id: nextMessageId(),
+    type: 'system',
+    timestamp: Date.now(),
+    text: 'Session initialized (model: claude-sonnet-4-20250514)',
+  }
+  win.webContents.send(`agentSdk:message:${sessionId}`, initMsg)
+
+  const responseText = resolveMockResponseText(prompt)
+
+  setTimeout(() => {
+    const textMsg: AgentSdkMessage = {
+      id: nextMessageId(),
+      type: 'text',
+      timestamp: Date.now(),
+      text: responseText,
+    }
+    win.webContents.send(`agentSdk:message:${sessionId}`, textMsg)
+
+    setTimeout(() => {
+      const resultMsg: AgentSdkMessage = {
+        id: nextMessageId(),
+        type: 'result',
+        timestamp: Date.now(),
+        result: 'Task completed successfully.',
+        costUsd: 0.01,
+        durationMs: 2000,
+        numTurns: 1,
+      }
+      win.webContents.send(`agentSdk:message:${sessionId}`, resultMsg)
+      win.webContents.send(`agentSdk:done:${sessionId}`, 'mock-session-id')
+    }, 500)
+  }, 200)
+}
+
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('agentSdk:start', (_event, options: {
     id: string
@@ -324,39 +386,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     if (ctx.isE2ETest) {
       const senderWindow = BrowserWindow.fromWebContents(_event.sender)
       if (!senderWindow) return { id: options.id }
-
-      const initMsg: AgentSdkMessage = {
-        id: nextMessageId(),
-        type: 'system',
-        timestamp: Date.now(),
-        text: 'Session initialized (model: claude-sonnet-4-20250514)',
-      }
-      senderWindow.webContents.send(`agentSdk:message:${options.id}`, initMsg)
-
-      setTimeout(() => {
-        const textMsg: AgentSdkMessage = {
-          id: nextMessageId(),
-          type: 'text',
-          timestamp: Date.now(),
-          text: "I'll help you with that. Let me look at the codebase.",
-        }
-        senderWindow.webContents.send(`agentSdk:message:${options.id}`, textMsg)
-
-        setTimeout(() => {
-          const resultMsg: AgentSdkMessage = {
-            id: nextMessageId(),
-            type: 'result',
-            timestamp: Date.now(),
-            result: 'Task completed successfully.',
-            costUsd: 0.01,
-            durationMs: 2000,
-            numTurns: 1,
-          }
-          senderWindow.webContents.send(`agentSdk:message:${options.id}`, resultMsg)
-          senderWindow.webContents.send(`agentSdk:done:${options.id}`, 'mock-session-id')
-        }, 500)
-      }, 200)
-
+      sendMockAgentResponse(senderWindow, options.id, options.prompt)
       return { id: options.id }
     }
 
@@ -384,6 +414,12 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   ipcMain.handle('agentSdk:send', async (_event, id: string, prompt: string, options?: {
     sdkSessionId?: string; cwd?: string; skipApproval?: boolean; env?: Record<string, string>
   }) => {
+    if (ctx.isE2ETest) {
+      const senderWindow = BrowserWindow.fromWebContents(_event.sender)
+      if (senderWindow) sendMockAgentResponse(senderWindow, id, prompt)
+      return
+    }
+
     const existing = activeSessions.get(id)
     if (existing) {
       // Session is alive — send then stream this turn (token-efficient, no restart)

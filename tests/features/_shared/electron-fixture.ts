@@ -87,6 +87,15 @@ interface ResetOptions {
   mockGitAhead?: number
   /** Override git status tracking branch */
   mockGitTracking?: string
+  /**
+   * Canned agent responses for E2E tests. Each entry maps a prompt substring
+   * to a reply string. The first matching entry is used; when nothing matches
+   * the mock falls back to a generic placeholder.
+   *
+   * @example
+   *   agentResponses: [{ match: 'hello', response: 'Hi there!' }]
+   */
+  agentResponses?: { match: string; response: string }[]
 }
 
 /**
@@ -110,6 +119,7 @@ export async function resetApp(opts?: ResetOptions): Promise<{ electronApp: Elec
     gitClean: opts?.mockGitClean ? 'true' : '',
     gitAhead: opts?.mockGitAhead !== undefined ? String(opts.mockGitAhead) : '',
     gitTracking: opts?.mockGitTracking ?? '',
+    agentResponses: opts?.agentResponses ? JSON.stringify(opts.agentResponses) : '',
   }
   await electronApp.evaluate((_electron, env) => {
     process.env.E2E_SCENARIO = env.sc
@@ -121,6 +131,7 @@ export async function resetApp(opts?: ResetOptions): Promise<{ electronApp: Elec
     setOrDelete('E2E_MOCK_GIT_CLEAN', env.gitClean)
     setOrDelete('E2E_MOCK_GIT_AHEAD', env.gitAhead)
     setOrDelete('E2E_MOCK_GIT_TRACKING', env.gitTracking)
+    setOrDelete('E2E_AGENT_RESPONSES', env.agentResponses)
   }, envOverrides)
 
   if (isFirstCall) {

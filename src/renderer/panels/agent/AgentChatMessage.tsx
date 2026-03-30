@@ -344,7 +344,7 @@ function AgentChatMessageInner({ msg, isUserMessage, toolResult, isLast, onAppro
     if (isUserMessage) {
       return (
         <div className="my-2 flex justify-end">
-          <div className="max-w-[85%] rounded-lg bg-blue-600/20 border border-blue-700/30 px-3 py-2 text-sm text-neutral-200">
+          <div className="max-w-[85%] rounded-lg bg-blue-600/20 border border-blue-700/30 px-3 py-2 text-sm text-neutral-200 whitespace-pre-wrap">
             {msg.text}
           </div>
         </div>
