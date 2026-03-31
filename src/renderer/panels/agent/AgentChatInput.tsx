@@ -2,6 +2,7 @@
  * Prompt input for the Agent SDK chat view with slash command autocomplete.
  */
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import type { SdkModelInfo } from '../../../preload/apis/types'
 
 // Commands we handle ourselves (not in the SDK)
 const LOCAL_COMMANDS = [
@@ -14,6 +15,16 @@ interface CommandInfo {
   description: string
 }
 
+type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk'
+
+const PERMISSION_MODE_LABELS: Record<PermissionMode, string> = {
+  default: 'Default',
+  acceptEdits: 'Accept edits',
+  bypassPermissions: 'Bypass permissions',
+  plan: 'Plan only',
+  dontAsk: "Don't ask",
+}
+
 interface AgentChatInputProps {
   onSubmit: (prompt: string) => void
   onQueue: (prompt: string) => void
@@ -22,9 +33,16 @@ interface AgentChatInputProps {
   disabled?: boolean
   sessionId: string
   availableCommands?: CommandInfo[]
+  model?: string
+  effort?: string
+  availableModels?: SdkModelInfo[]
+  onModelChange?: (model: string) => void
+  onEffortChange?: (effort: string) => void
+  permissionMode?: PermissionMode
+  onPermissionModeChange?: (mode: PermissionMode) => void
 }
 
-export function AgentChatInput({ onSubmit, onQueue, onStop, isRunning, disabled, sessionId, availableCommands }: AgentChatInputProps) {
+export function AgentChatInput({ onSubmit, onQueue, onStop, isRunning, disabled, sessionId, availableCommands, model, effort, availableModels, onModelChange, onEffortChange, permissionMode, onPermissionModeChange }: AgentChatInputProps) {
   const [value, setValue] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -121,6 +139,11 @@ export function AgentChatInput({ onSubmit, onQueue, onStop, isRunning, disabled,
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }, [])
 
+  // Compute effort levels for the selected model
+  const selectedModelInfo = availableModels?.find(m => m.value === model)
+  const effortLevels = selectedModelInfo?.supportedEffortLevels ?? []
+  const showEffort = (availableModels && availableModels.length > 0) && (selectedModelInfo?.supportsEffort ?? false) && effortLevels.length > 0
+
   return (
     <div className="border-t border-neutral-700 bg-neutral-900 px-3 py-2">
       {/* Autocomplete dropdown */}
@@ -178,6 +201,48 @@ export function AgentChatInput({ onSubmit, onQueue, onStop, isRunning, disabled,
           </button>
         )}
       </div>
+      {/* Model / effort toolbar */}
+      {availableModels && availableModels.length > 0 && (
+        <div className="mt-1.5 flex items-center gap-1.5">
+          {/* Model picker */}
+          <select
+            value={model ?? ''}
+            onChange={e => onModelChange?.(e.target.value)}
+            className="rounded border border-neutral-700 bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300 hover:border-neutral-500 focus:border-blue-500 focus:outline-none"
+          >
+            {availableModels.map(m => (
+              <option key={m.value} value={m.value}>{m.displayName}</option>
+            ))}
+          </select>
+
+          {/* Effort picker — only shown when the selected model supports effort */}
+          {showEffort && (
+            <select
+              value={effort ?? ''}
+              onChange={e => onEffortChange?.(e.target.value)}
+              className="rounded border border-neutral-700 bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300 hover:border-neutral-500 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">Auto effort</option>
+              {effortLevels.map(level => (
+                <option key={level} value={level}>{level}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Permission mode picker */}
+          {onPermissionModeChange && (
+            <select
+              value={permissionMode ?? 'default'}
+              onChange={e => onPermissionModeChange(e.target.value as PermissionMode)}
+              className="rounded border border-neutral-700 bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300 hover:border-neutral-500 focus:border-blue-500 focus:outline-none"
+            >
+              {(Object.keys(PERMISSION_MODE_LABELS) as PermissionMode[]).map(mode => (
+                <option key={mode} value={mode}>{PERMISSION_MODE_LABELS[mode]}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
     </div>
   )
 }

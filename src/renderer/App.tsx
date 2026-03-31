@@ -230,7 +230,7 @@ function AppContent() {
   const {
     handleNewSession, handleNewSessionComplete, handleCancelNewSession, handleDeleteSession,
     handleStartBranchSession, handleStartExistingBranchSession, refreshPrStatus,
-    getAgentCommand, getAgentEnv, getRepoIsolation, getAgentConnectionMode, getAgentSkipApproval, handleLayoutSizeChange,
+    getAgentCommand, getAgentEnv, getRepoIsolation, getAgentConnectionMode, getAgentModel, getAgentEffort, getAgentSkipApproval, handleLayoutSizeChange,
     handleFileViewerPositionChange, handleSelectSession, handleTogglePanel, handleToggleFileViewer,
   } = useAppCallbacks({
     sessions, activeSessionId, agents, repos, addSession, addInitializingSession,
@@ -274,7 +274,7 @@ function AppContent() {
     removeSession: (id, deleteWorktree) => { handleDeleteSession(id, deleteWorktree) },
     refreshPrStatus, archiveSession, unarchiveSession,
     handleToggleFileViewer, handleFileViewerPositionChange,
-    fetchGitStatus, getAgentCommand, getAgentEnv, getRepoIsolation, getAgentConnectionMode, getAgentSkipApproval,
+    fetchGitStatus, getAgentCommand, getAgentEnv, getRepoIsolation, getAgentConnectionMode, getAgentModel, getAgentEffort, getAgentSkipApproval,
     globalPanelVisibility, toggleGlobalPanel, selectFile, setExplorerFilter,
     updatePrState,
     setPanelVisibility, setToolbarPanels, closeCommandsEditor, repos,

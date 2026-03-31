@@ -75,7 +75,7 @@ function wirePtyEvents(ctx: HandlerContext, ptyProcess: IPty, id: string, sender
     }
   })
 
-  const exitDisposable = ptyProcess.onExit(({ exitCode }) => {
+  const exitDisposable = ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
     try {
       const ownerWindow = ctx.ptyOwnerWindows.get(id) || ctx.mainWindow
       if (ownerWindow && !ownerWindow.isDestroyed()) {

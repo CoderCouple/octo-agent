@@ -160,6 +160,37 @@ export async function handleStatus(
   senderWindow.webContents.send(`agentSdk:done:${sessionId}`, sdkSessionId ?? '')
 }
 
+export type SdkModelInfo = {
+  value: string
+  displayName: string
+  description: string
+  supportsEffort?: boolean
+  supportedEffortLevels?: ('low' | 'medium' | 'high' | 'max')[]
+  supportsAdaptiveThinking?: boolean
+}
+
+export async function handleFetchModels(agentEnv?: Record<string, string>): Promise<SdkModelInfo[]> {
+  return withConfigDir(agentEnv, async () => {
+    try {
+      const { query: sdkQuery } = await import('@anthropic-ai/claude-agent-sdk')
+      const q = sdkQuery({
+        prompt: '/cost',
+        options: {
+          pathToClaudeCodeExecutable: resolveAgentSdkCliPath(),
+          env: process.env,
+          settingSources: ['user'],
+          maxTurns: 0,
+        },
+      })
+      const models = await q.supportedModels() as SdkModelInfo[]
+      q.close()
+      return models
+    } catch {
+      return []
+    }
+  })
+}
+
 export async function handleFetchCommands(agentEnv?: Record<string, string>): Promise<{ name: string; description: string }[]> {
   return withConfigDir(agentEnv, async () => {
     try {

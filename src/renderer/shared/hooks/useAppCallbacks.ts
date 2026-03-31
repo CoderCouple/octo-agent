@@ -126,6 +126,18 @@ export function useAppCallbacks({
     return agent?.connectionMode
   }, [agents])
 
+  const getAgentModel = useCallback((session: Session): string | undefined => {
+    if (!session.agentId) return undefined
+    const agent = agents.find((a) => a.id === session.agentId)
+    return agent?.model
+  }, [agents])
+
+  const getAgentEffort = useCallback((session: Session): 'low' | 'medium' | 'high' | 'max' | undefined => {
+    if (!session.agentId) return undefined
+    const agent = agents.find((a) => a.id === session.agentId)
+    return agent?.effort
+  }, [agents])
+
   const getAgentSkipApproval = useCallback((session: Session): boolean => {
     // Match repo by ID, or fall back to directory matching (same as getAgentCommand)
     const repo = session.repoId
@@ -217,6 +229,8 @@ export function useAppCallbacks({
     getAgentEnv,
     getRepoIsolation,
     getAgentConnectionMode,
+    getAgentModel,
+    getAgentEffort,
     getAgentSkipApproval,
     handleLayoutSizeChange,
     handleFileViewerPositionChange,

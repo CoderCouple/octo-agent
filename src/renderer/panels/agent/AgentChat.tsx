@@ -4,16 +4,16 @@
  * Replaces the xterm Terminal for Claude sessions using the Agent SDK,
  * rendering structured messages instead of terminal output.
  */
-import { useRef, useEffect, useCallback, memo } from 'react'
+import { useRef, useEffect, useCallback, memo, useState } from 'react'
 import { useAgentChatStore } from '../../store/agentChat'
 import { useSessionStore } from '../../store/sessions'
 import { AgentChatMessage, ToolGroupBlock } from './AgentChatMessage'
 import type { AgentSdkMessage } from '../../../shared/agentSdkTypes'
 import { AgentChatInput } from './AgentChatInput'
 import { PermissionRequest } from './AgentPermissionRequest'
+import { useSdkModels, DEFAULT_MODEL } from '../../shared/hooks/useSdkModels'
 import { formatElapsedTime } from '../../shared/utils/formatTime'
 import { useElapsedSeconds } from '../../shared/hooks/useElapsedSeconds'
-
 import { useAgentSdk } from './hooks/useAgentSdk'
 
 interface AgentChatProps {
@@ -23,9 +23,28 @@ interface AgentChatProps {
   skipApproval: boolean
   env?: Record<string, string>
   isRestored?: boolean
+  model?: string
+  effort?: 'low' | 'medium' | 'high' | 'max'
 }
 
-function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: AgentChatProps) {
+function EmptyState({ hasSdkSession }: { hasSdkSession: boolean }) {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="text-center text-neutral-500">
+        <p className="text-sm">
+          {hasSdkSession
+            ? 'Previous session will be resumed. Send a message to continue.'
+            : 'Send a message to start working with Claude.'}
+        </p>
+        <p className="mt-2 text-xs text-neutral-600">
+          Enter to send, Shift+Enter for newline
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env, model: modelProp, effort: effortProp }: AgentChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   // Track whether to auto-scroll. We check the position BEFORE new content
@@ -33,6 +52,13 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: Age
   // sets it back to true, defeating the purpose.
   const shouldAutoScrollRef = useRef(true)
   const prevMessageCountRef = useRef(0)
+
+  const [model, setModel] = useState(modelProp ?? DEFAULT_MODEL)
+  const [effort, setEffort] = useState(effortProp ?? '')
+  const [permissionMode, setPermissionMode] = useState<'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk'>(
+    skipApproval ? 'bypassPermissions' : 'default'
+  )
+  const { models } = useSdkModels()
 
   const chatSession = useAgentChatStore((s) => s.getSession(sessionId))
   const { messages, state, pendingPermission } = chatSession
@@ -50,8 +76,10 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: Age
     sessionId,
     cwd,
     sdkSessionId,
-    skipApproval,
+    permissionMode,
     env,
+    model,
+    effort: (effort || undefined) as 'low' | 'medium' | 'high' | 'max' | undefined,
   })
 
   // Before new messages render, snapshot whether we're at the bottom
@@ -100,20 +128,7 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: Age
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto px-4 py-3"
       >
-        {messages.length === 0 && !isRunning && (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center text-neutral-500">
-              <p className="text-sm">
-                {hasSdkSession
-                  ? 'Previous session will be resumed. Send a message to continue.'
-                  : 'Send a message to start working with Claude.'}
-              </p>
-              <p className="mt-2 text-xs text-neutral-600">
-                Enter to send, Shift+Enter for newline
-              </p>
-            </div>
-          </div>
-        )}
+        {messages.length === 0 && !isRunning && <EmptyState hasSdkSession={hasSdkSession} />}
 
         {/* Load earlier messages button */}
         {historyMeta && (
@@ -246,6 +261,13 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: Age
         disabled={state === 'awaiting_permission'}
         sessionId={sessionId}
         availableCommands={availableCommands}
+        model={model}
+        effort={effort}
+        availableModels={models}
+        onModelChange={setModel}
+        onEffortChange={setEffort}
+        permissionMode={permissionMode}
+        onPermissionModeChange={setPermissionMode}
       />
     </div>
   )

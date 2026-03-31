@@ -117,6 +117,7 @@ function InlineCreateInput({
 }
 
 interface TreeNodeItemProps {
+  key?: string | number | bigint | null
   node: TreeNode
   depth: number
   isExpanded: boolean

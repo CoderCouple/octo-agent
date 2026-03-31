@@ -101,7 +101,7 @@ function getToolMarkdownContent(toolName: string, input: Record<string, unknown>
 }
 
 /** Collapsible content block — shows ~10 lines by default, expandable. */
-function CollapsibleContent({ children, maxCollapsedHeight = 200 }: { children: React.ReactNode; maxCollapsedHeight?: number }) {
+function CollapsibleContent({ children, maxCollapsedHeight = 200 }: { children?: React.ReactNode; maxCollapsedHeight?: number }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const [needsExpand, setNeedsExpand] = useState(false)
@@ -288,7 +288,7 @@ function TodoBlock({ input }: { input: Record<string, unknown> }) {
   )
 }
 
-function ToolUseBlock({ msg, toolResult, isLast, onApprovePlan, cwd, onOpenFile }: { msg: AgentSdkMessage; toolResult?: AgentSdkMessage; isLast?: boolean; onApprovePlan?: () => void; cwd?: string; onOpenFile?: (path: string) => void }) {
+function ToolUseBlock({ msg, toolResult, isLast, onApprovePlan, cwd, onOpenFile }: { key?: string | number | bigint | null; msg: AgentSdkMessage; toolResult?: AgentSdkMessage; isLast?: boolean; onApprovePlan?: () => void; cwd?: string; onOpenFile?: (path: string) => void }) {
   const [expanded, setExpanded] = useState(false)
   const input = msg.toolInput ?? {}
   const toolName = msg.toolName ?? ''
@@ -418,6 +418,7 @@ export const AgentChatMessage = memo(AgentChatMessageInner)
  * collapsible block, summarized by the most recent tool call.
  */
 export function ToolGroupBlock({ items }: {
+  key?: string | number | bigint | null
   items: { msg: AgentSdkMessage; toolResult?: AgentSdkMessage }[]
 }) {
   const [expanded, setExpanded] = useState(false)

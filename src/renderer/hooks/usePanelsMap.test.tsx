@@ -92,6 +92,8 @@ function makeConfig(overrides: Partial<PanelsMapConfig> = {}): PanelsMapConfig {
     getAgentEnv: vi.fn().mockReturnValue(undefined),
     getRepoIsolation: vi.fn().mockReturnValue(undefined),
     getAgentConnectionMode: vi.fn().mockReturnValue(undefined),
+    getAgentModel: vi.fn().mockReturnValue(undefined),
+    getAgentEffort: vi.fn().mockReturnValue(undefined),
     getAgentSkipApproval: vi.fn().mockReturnValue(false),
     globalPanelVisibility: {
       [PANEL_IDS.SIDEBAR]: true,

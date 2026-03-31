@@ -235,7 +235,7 @@ function createWindow(profileId?: string): BrowserWindow {
   })
 
   // Intercept window.open() calls and redirect to external browser
-  window.webContents.setWindowOpenHandler(({ url }) => {
+  window.webContents.setWindowOpenHandler(({ url }: { url: string }) => {
     void shell.openExternal(url)
     return { action: 'deny' }
   })

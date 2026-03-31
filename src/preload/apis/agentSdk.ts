@@ -3,10 +3,11 @@
  */
 import { ipcRenderer } from 'electron'
 import type { AgentSdkMessage, AgentSdkPermissionRequest } from '../../shared/agentSdkTypes'
+import type { SdkModelInfo, PermissionMode } from './types'
 
 export type AgentSdkApi = {
-  start: (options: { id: string; prompt: string; cwd: string; sdkSessionId?: string; skipApproval: boolean; env?: Record<string, string> }) => Promise<{ id: string }>
-  send: (id: string, prompt: string, options?: { sdkSessionId?: string; cwd?: string; skipApproval?: boolean; env?: Record<string, string> }) => Promise<void>
+  start: (options: { id: string; prompt: string; cwd: string; sdkSessionId?: string; permissionMode?: PermissionMode; env?: Record<string, string>; model?: string; effort?: 'low' | 'medium' | 'high' | 'max' }) => Promise<{ id: string }>
+  send: (id: string, prompt: string, options?: { sdkSessionId?: string; cwd?: string; permissionMode?: PermissionMode; env?: Record<string, string>; model?: string; effort?: 'low' | 'medium' | 'high' | 'max' }) => Promise<void>
   inject: (id: string, prompt: string) => Promise<void>
   stop: (id: string) => Promise<void>
   respondToPermission: (id: string, toolUseId: string, allowed: boolean, updatedInput?: Record<string, unknown>) => Promise<void>
@@ -19,6 +20,7 @@ export type AgentSdkApi = {
   login: (sessionId: string) => Promise<void>
   status: (sessionId: string, agentEnv?: Record<string, string>) => Promise<void>
   commands: (agentEnv?: Record<string, string>) => Promise<{ name: string; description: string }[]>
+  models: (agentEnv?: Record<string, string>) => Promise<SdkModelInfo[]>
 }
 
 export const agentSdkApi: AgentSdkApi = {
@@ -56,4 +58,5 @@ export const agentSdkApi: AgentSdkApi = {
   login: (sessionId) => ipcRenderer.invoke('agentSdk:login', sessionId),
   status: (sessionId, agentEnv) => ipcRenderer.invoke('agentSdk:status', sessionId, agentEnv),
   commands: (agentEnv) => ipcRenderer.invoke('agentSdk:commands', agentEnv),
+  models: (agentEnv) => ipcRenderer.invoke('agentSdk:models', agentEnv),
 }

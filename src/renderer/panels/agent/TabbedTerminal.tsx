@@ -121,6 +121,8 @@ interface TabbedTerminalProps {
   connectionMode?: 'terminal' | 'api'
   skipApproval?: boolean
   sdkSessionId?: string
+  agentModel?: string
+  agentEffort?: 'low' | 'medium' | 'high' | 'max'
 }
 
 /** Info received when a devcontainer with postAttachCommand is ready. */
@@ -183,7 +185,7 @@ function tabPanelClass(tabId: string, activeTabId: string): string {
 }
 
 /** Renders the terminal panels (Agent, Services, Docker, user tabs). */
-const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, activeTabId, agentCommand, agentEnv, agentInstalled, isRestored, isolated, repoRootDir, servicesInfo, userTabs, connectionMode, skipApproval, sdkSessionId }: {
+const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, activeTabId, agentCommand, agentEnv, agentInstalled, isRestored, isolated, repoRootDir, servicesInfo, userTabs, connectionMode, skipApproval, sdkSessionId, agentModel, agentEffort }: {
   sessionId: string; cwd: string; activeTabId: string
   agentCommand?: string; agentEnv?: Record<string, string>; agentInstalled: boolean
   isRestored?: boolean
@@ -192,6 +194,8 @@ const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, acti
   userTabs: TerminalTab[]
   connectionMode?: 'terminal' | 'api'
   skipApproval?: boolean
+  agentModel?: string
+  agentEffort?: 'low' | 'medium' | 'high' | 'max'
   sdkSessionId?: string
 }) {
   // API mode runs on the host — incompatible with devcontainers (which need docker exec)
@@ -209,6 +213,8 @@ const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, acti
               skipApproval={skipApproval ?? false}
               env={agentEnv}
               isRestored={isRestored}
+              model={agentModel}
+              effort={agentEffort}
             />
           ) : (
             <Terminal
@@ -255,7 +261,7 @@ const TerminalPanels = React.memo(function TerminalPanels({ sessionId, cwd, acti
   )
 })
 
-export default function TabbedTerminal({ sessionId, cwd, agentCommand, agentEnv, isRestored, isolated, repoRootDir, connectionMode, skipApproval, sdkSessionId }: TabbedTerminalProps) {
+export default function TabbedTerminal({ sessionId, cwd, agentCommand, agentEnv, isRestored, isolated, repoRootDir, connectionMode, skipApproval, sdkSessionId, agentModel, agentEffort }: TabbedTerminalProps) {
   // Targeted selector: only re-render when this session's terminalTabs change
   const terminalTabs = useSessionStore((state) => {
     const session = state.sessions.find((s) => s.id === sessionId)
@@ -433,6 +439,8 @@ export default function TabbedTerminal({ sessionId, cwd, agentCommand, agentEnv,
         servicesInfo={servicesInfo} userTabs={userTabs}
         connectionMode={connectionMode} skipApproval={skipApproval}
         sdkSessionId={sdkSessionId}
+        agentModel={agentModel}
+        agentEffort={agentEffort}
       />
     </div>
   )

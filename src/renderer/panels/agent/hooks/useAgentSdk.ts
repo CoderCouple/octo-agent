@@ -19,8 +19,10 @@ interface UseAgentSdkOptions {
   sessionId: string
   cwd: string
   sdkSessionId?: string
-  skipApproval: boolean
+  permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk'
   env?: Record<string, string>
+  model?: string
+  effort?: 'low' | 'medium' | 'high' | 'max'
 }
 
 interface CommandInfo {
@@ -44,7 +46,7 @@ interface UseAgentSdkReturn {
 }
 
 export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
-  const { sessionId, cwd, sdkSessionId, skipApproval, env } = options
+  const { sessionId, cwd, sdkSessionId, permissionMode, env, model, effort } = options
   const isRunningRef = useRef(false)
   const hasStartedRef = useRef(false)
   const [availableCommands, setAvailableCommands] = useState<CommandInfo[]>([])
@@ -163,9 +165,9 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
 
     if (hasStartedRef.current) {
       // V2 session is alive in main process — send directly.
-      // Pass cwd/env/skipApproval so if the main process lost the session
+      // Pass cwd/env/permissionMode so if the main process lost the session
       // (e.g. after hot reload), it can start a new one with correct params.
-      void window.agentSdk.send(sessionId, prompt, { cwd, skipApproval, env,
+      void window.agentSdk.send(sessionId, prompt, { cwd, permissionMode, env, model, effort,
         sdkSessionId: useSessionStore.getState().sessions.find(s => s.id === sessionId)?.sdkSessionId })
     } else {
       // First message — create the V2 session
@@ -177,11 +179,13 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
         prompt,
         cwd,
         sdkSessionId: resumeId,
-        skipApproval,
+        permissionMode,
         env,
+        model,
+        effort,
       })
     }
-  }, [sessionId, cwd, sdkSessionId, skipApproval, env])
+  }, [sessionId, cwd, sdkSessionId, permissionMode, env, model, effort])
 
   const stopAgent = useCallback(() => {
     void window.agentSdk.stop(sessionId)

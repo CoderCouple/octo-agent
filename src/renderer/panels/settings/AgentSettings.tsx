@@ -10,6 +10,7 @@ import { useRepoStore } from '../../store/repos'
 import { useSessionStore } from '../../store/sessions'
 import type { EnvVarEditorRef } from './EnvVarEditor'
 import { AgentSettingsAgentTab } from './AgentSettingsAgentTab'
+import { DEFAULT_MODEL } from '../../shared/hooks/useSdkModels'
 import { SettingsRootScreen } from './SettingsRootScreen'
 import { SettingsRepoScreen } from './SettingsRepoScreen'
 import { PANEL_IDS } from '../../panels/system/types'
@@ -33,11 +34,13 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
   const [env, setEnv] = useState<Record<string, string>>({})
   const [skipApprovalFlag, setSkipApprovalFlag] = useState('')
   const [connectionMode, setConnectionMode] = useState<'terminal' | 'api'>('terminal')
+  const [model, setModel] = useState(DEFAULT_MODEL)
+  const [effort, setEffort] = useState('')
   const envEditorRef = useRef<EnvVarEditorRef>(null)
 
   const resetForm = useCallback(() => {
     setName(''); setCommand(''); setColor(''); setEnv({})
-    setSkipApprovalFlag(''); setConnectionMode('terminal')
+    setSkipApprovalFlag(''); setConnectionMode('terminal'); setModel(DEFAULT_MODEL); setEffort('')
     setShowAddForm(false); setEditingId(null)
   }, [])
 
@@ -49,6 +52,8 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
       skipApprovalFlag: skipApprovalFlag.trim() || undefined,
       connectionMode: connectionMode !== 'terminal' ? connectionMode : undefined,
+      model: connectionMode === 'api' ? model : undefined,
+      effort: connectionMode === 'api' && effort ? effort as 'low' | 'medium' | 'high' | 'max' : undefined,
     })
     resetForm()
   }
@@ -57,7 +62,10 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
     setEditingId(agent.id); setName(agent.name); setCommand(agent.command)
     setColor(agent.color || ''); setEnv(agent.env || {})
     setSkipApprovalFlag(agent.skipApprovalFlag || '')
-    setConnectionMode(agent.connectionMode ?? 'terminal'); setShowAddForm(false)
+    setConnectionMode(agent.connectionMode ?? 'terminal')
+    setModel(agent.model ?? DEFAULT_MODEL)
+    setEffort(agent.effort ?? '')
+    setShowAddForm(false)
   }
 
   const handleUpdate = () => {
@@ -68,6 +76,8 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
       env: Object.keys(finalEnv).length > 0 ? finalEnv : undefined,
       skipApprovalFlag: skipApprovalFlag.trim() || undefined,
       connectionMode: connectionMode !== 'terminal' ? connectionMode : undefined,
+      model: connectionMode === 'api' ? model : undefined,
+      effort: connectionMode === 'api' && effort ? effort as 'low' | 'medium' | 'high' | 'max' : undefined,
     })
     resetForm()
   }
@@ -78,8 +88,8 @@ function useAgentForm(addAgent: ReturnType<typeof useAgentStore.getState>['addAg
   }
 
   return {
-    editingId, showAddForm, name, command, color, env, skipApprovalFlag, connectionMode, envEditorRef,
-    setName, setCommand, setColor, setEnv, setSkipApprovalFlag, setConnectionMode,
+    editingId, showAddForm, name, command, color, env, skipApprovalFlag, connectionMode, model, effort, envEditorRef,
+    setName, setCommand, setColor, setEnv, setSkipApprovalFlag, setConnectionMode, setModel, setEffort,
     setShowAddForm, resetForm, handleAdd, handleEdit, handleUpdate, handleDelete,
   }
 }
@@ -139,11 +149,15 @@ export default function AgentSettings({ onClose }: AgentSettingsProps) {
             name={form.name} command={form.command} color={form.color} env={form.env}
             skipApprovalFlag={form.skipApprovalFlag}
             connectionMode={form.connectionMode}
+            model={form.model}
+            effort={form.effort}
             envEditorRef={form.envEditorRef}
             onNameChange={form.setName} onCommandChange={form.setCommand}
             onColorChange={form.setColor} onEnvChange={form.setEnv}
             onSkipApprovalFlagChange={form.setSkipApprovalFlag}
             onConnectionModeChange={form.setConnectionMode}
+            onModelChange={form.setModel}
+            onEffortChange={form.setEffort}
             onEdit={form.handleEdit} onUpdate={form.handleUpdate}
             onDelete={form.handleDelete} onAdd={form.handleAdd}
             onShowAddForm={() => form.setShowAddForm(true)} onCancel={form.resetForm}

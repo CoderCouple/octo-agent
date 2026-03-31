@@ -258,11 +258,12 @@ async function handleListBranches(ctx: HandlerContext, repoPath: string) {
 
       const isRemote = name.startsWith('remotes/')
       const cleanName = isRemote ? name.replace('remotes/', '') : name
+      const branchData = data as { current: boolean }
 
       branches.push({
         name: cleanName,
         isRemote,
-        current: data.current,
+        current: branchData.current,
       })
     }
 

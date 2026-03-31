@@ -14,7 +14,8 @@ import { HandlerContext } from './types'
 import type { AgentSdkMessage, AgentSdkPermissionRequest } from '../../shared/agentSdkTypes'
 import {
   expandHome, nextMessageId, sendMsg, resolveAgentSdkCliPath,
-  handleLoadHistory, handleStatus, handleFetchCommands, handleLogin,
+  handleLoadHistory, handleStatus, handleFetchCommands, handleFetchModels, handleLogin,
+  type SdkModelInfo,
 } from './agentSdkHelpers'
 
 interface PendingPermission {
@@ -206,12 +207,14 @@ async function startSession(
   win: BrowserWindow,
   options: {
     sdkSessionId?: string
-    skipApproval: boolean
+    permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk'
     env?: Record<string, string>
+    model?: string
+    effort?: 'low' | 'medium' | 'high' | 'max'
   },
 ): Promise<void> {
   const cliPath = resolveAgentSdkCliPath()
-  console.log('[agentSdk] startSession (V2)', sessionId, 'cwd:', cwd, 'skipApproval:', options.skipApproval)
+  console.log('[agentSdk] startSession (V2)', sessionId, 'cwd:', cwd, 'permissionMode:', options.permissionMode ?? 'default')
   const {
     unstable_v2_createSession,
     unstable_v2_resumeSession,
@@ -230,15 +233,20 @@ async function startSession(
   // The V2 types don't declare it yet (unstable), but the underlying
   // engine respects it (same as V1 Options.cwd).
   const sessionOptions: Record<string, unknown> = {
-    model: 'claude-sonnet-4-6',
+    model: options.model ?? 'default',
     pathToClaudeCodeExecutable: cliPath,
     cwd,
     env,
   }
+  if (options.effort) {
+    sessionOptions.effort = options.effort
+  }
 
-  if (options.skipApproval) {
-    sessionOptions.permissionMode = 'bypassPermissions'
-  } else {
+  const mode = options.permissionMode ?? 'default'
+  sessionOptions.permissionMode = mode
+  if (mode === 'bypassPermissions') {
+    sessionOptions.allowDangerouslySkipPermissions = true
+  } else if (mode === 'default') {
     sessionOptions.canUseTool = async (
       toolName: string,
       input: Record<string, unknown>,
@@ -400,8 +408,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     prompt: string
     cwd: string
     sdkSessionId?: string
-    skipApproval: boolean
+    permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk'
     env?: Record<string, string>
+    model?: string
+    effort?: 'low' | 'medium' | 'high' | 'max'
   }) => {
     if (ctx.isE2ETest) {
       const senderWindow = BrowserWindow.fromWebContents(_event.sender)
@@ -422,8 +432,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
     void startSession(options.id, options.prompt, options.cwd, senderWindow, {
       sdkSessionId: options.sdkSessionId,
-      skipApproval: options.skipApproval,
+      permissionMode: options.permissionMode,
       env: options.env,
+      model: options.model,
+      effort: options.effort,
     })
 
     return { id: options.id }
@@ -432,7 +444,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
   // Send a follow-up message to an existing session.
   // If no session exists, starts a new one.
   ipcMain.handle('agentSdk:send', async (_event, id: string, prompt: string, options?: {
-    sdkSessionId?: string; cwd?: string; skipApproval?: boolean; env?: Record<string, string>
+    sdkSessionId?: string; cwd?: string; permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk'; env?: Record<string, string>; model?: string; effort?: 'low' | 'medium' | 'high' | 'max'
   }) => {
     if (ctx.isE2ETest) {
       const senderWindow = BrowserWindow.fromWebContents(_event.sender)
@@ -464,8 +476,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     console.log('[agentSdk] send: no active session, starting new. cwd:', cwd)
     void startSession(id, prompt, cwd, senderWindow, {
       sdkSessionId: options?.sdkSessionId,
-      skipApproval: options?.skipApproval ?? false,
+      permissionMode: options?.permissionMode,
       env: options?.env,
+      model: options?.model,
+      effort: options?.effort,
     })
   })
 
@@ -546,5 +560,10 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
   ipcMain.handle('agentSdk:commands', async (_event, agentEnv?: Record<string, string>) => {
     return handleFetchCommands(agentEnv)
+  })
+
+  ipcMain.handle('agentSdk:models', async (_event, agentEnv?: Record<string, string>): Promise<SdkModelInfo[]> => {
+    if (ctx.isE2ETest) return []
+    return handleFetchModels(agentEnv)
   })
 }
