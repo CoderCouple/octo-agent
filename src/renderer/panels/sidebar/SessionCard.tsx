@@ -9,6 +9,8 @@ import { memo, useEffect, useState } from 'react'
 import { useSessionStore } from '../../store/sessions'
 import { useShallow } from 'zustand/react/shallow'
 import type { SessionStatus, BranchStatus } from '../../store/sessions'
+import { formatElapsedTime } from '../../shared/utils/formatTime'
+import { useElapsedSeconds } from '../../shared/hooks/useElapsedSeconds'
 
 const statusLabels: Record<SessionStatus, string> = {
   working: 'Working',
@@ -133,6 +135,8 @@ export default memo(function SessionCard({
     }
   }, [session?.status])
 
+  const elapsedSeconds = useElapsedSeconds(sessionId)
+
   if (!session) return null
 
   const displayStatus: SessionStatus = session.status === 'initializing' ? 'initializing'
@@ -239,14 +243,20 @@ export default memo(function SessionCard({
           {session.initError}
         </div>
       ) : session.lastMessage ? (
-        <div className={`text-xs mt-1 truncate ${
+        <div className={`text-xs mt-1 flex items-center gap-1.5 ${
           isUnread ? 'text-text-secondary' : 'text-text-secondary/60'
         }`}>
-          "{session.lastMessage}"
+          <span className="truncate">"{session.lastMessage}"</span>
+          {showWorking && elapsedSeconds > 0 && (
+            <span className="flex-shrink-0 text-text-secondary/40">{formatElapsedTime(elapsedSeconds)}</span>
+          )}
         </div>
       ) : (
-        <div className="text-xs text-text-secondary/60 mt-1 truncate">
-          {statusLabels[displayStatus]}
+        <div className="text-xs text-text-secondary/60 mt-1 flex items-center gap-1.5">
+          <span className="truncate">{statusLabels[displayStatus]}</span>
+          {showWorking && elapsedSeconds > 0 && (
+            <span className="flex-shrink-0 text-text-secondary/40">{formatElapsedTime(elapsedSeconds)}</span>
+          )}
         </div>
       )}
     </div>

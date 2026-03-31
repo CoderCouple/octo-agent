@@ -11,6 +11,8 @@ import { AgentChatMessage, ToolGroupBlock } from './AgentChatMessage'
 import type { AgentSdkMessage } from '../../../shared/agentSdkTypes'
 import { AgentChatInput } from './AgentChatInput'
 import { PermissionRequest } from './AgentPermissionRequest'
+import { formatElapsedTime } from '../../shared/utils/formatTime'
+import { useElapsedSeconds } from '../../shared/hooks/useElapsedSeconds'
 
 import { useAgentSdk } from './hooks/useAgentSdk'
 
@@ -89,6 +91,7 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: Age
   }, [messages])
 
   const isRunning = state === 'running' || state === 'awaiting_permission'
+  const elapsedSeconds = useElapsedSeconds(sessionId)
 
   return (
     <div className="flex h-full flex-col bg-[#1a1a1a]">
@@ -213,10 +216,13 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: Age
         })()}
 
         {/* Loading indicator */}
-        {state === 'running' && (
+        {isRunning && (
           <div className="my-2 flex items-center gap-2 text-xs text-neutral-400">
             <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
             Working...
+            {elapsedSeconds > 0 && (
+              <span className="text-neutral-500">{formatElapsedTime(elapsedSeconds)}</span>
+            )}
           </div>
         )}
 
