@@ -23,6 +23,23 @@ function formatElapsedTime(seconds: number): string {
   return `${h}h ${String(m % 60).padStart(2, '0')}m`
 }
 
+function useElapsedSeconds(sessionId: string): number {
+  const workingStartTime = useSessionStore((s) => {
+    const sess = s.sessions.find(ss => ss.id === sessionId)
+    return sess?.workingStartTime ?? null
+  })
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  useEffect(() => {
+    if (!workingStartTime) { setElapsedSeconds(0); return }
+    setElapsedSeconds(Math.floor((Date.now() - workingStartTime) / 1000))
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - workingStartTime) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [workingStartTime])
+  return elapsedSeconds
+}
+
 interface AgentChatProps {
   sessionId: string
   cwd: string
@@ -98,24 +115,7 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env }: Age
   }, [messages])
 
   const isRunning = state === 'running' || state === 'awaiting_permission'
-
-  const workingStartTime = useSessionStore((s) => {
-    const sess = s.sessions.find(ss => ss.id === sessionId)
-    return sess?.workingStartTime ?? null
-  })
-
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  useEffect(() => {
-    if (!workingStartTime) {
-      setElapsedSeconds(0)
-      return
-    }
-    setElapsedSeconds(Math.floor((Date.now() - workingStartTime) / 1000))
-    const interval = setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - workingStartTime) / 1000))
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [workingStartTime])
+  const elapsedSeconds = useElapsedSeconds(sessionId)
 
   return (
     <div className="flex h-full flex-col bg-[#1a1a1a]">
