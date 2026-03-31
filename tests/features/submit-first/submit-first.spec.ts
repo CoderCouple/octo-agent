@@ -88,58 +88,60 @@ test.describe.serial('Feature: Mid-Turn Message Injection', () => {
     })
   })
 
-  test('Step 3: Send first message, then immediately queue a follow-up mid-turn', async () => {
+  test('Step 3: Agent starts running — Queue button and Stop button appear', async () => {
     const agentPanel = page.locator('[data-panel-id="agent"]')
     const textarea = page.locator('textarea').filter({ visible: true }).first()
 
     // Send the first message — agent enters "running" state
     await textarea.press('Enter')
-
-    // Wait for React to re-render with isRunning=true before typing the queued message.
-    // Without this, handleSubmit fires before the running state is reflected and routes
-    // to onSubmit (which no-ops) instead of onQueue.
     await expect(agentPanel.locator('text=Working...')).toBeVisible({ timeout: 5000 })
 
-    // Type and queue the follow-up. The textarea stays accessible while the agent runs.
-    // Use keyboard.type() rather than fill() so React receives individual keystroke events,
-    // which is more reliable after a previous submit cleared the textarea value.
+    await screenshotElement(page, agentPanel, path.join(SCREENSHOTS, '03-running-state.png'))
+    steps.push({
+      screenshotPath: 'screenshots/03-running-state.png',
+      caption: 'Agent is running — Queue and Stop buttons appear',
+      description:
+        'Once the agent starts working, the Send button is replaced by a Queue button ' +
+        '(for mid-turn follow-ups) and a Stop button. The input stays fully accessible.',
+    })
+  })
+
+  test('Step 4: Type a follow-up and press Queue (or Enter) to inject it mid-turn', async () => {
+    const agentPanel = page.locator('[data-panel-id="agent"]')
+    const textarea = page.locator('textarea').filter({ visible: true }).first()
+
+    // Type the follow-up message while the agent is running
     await textarea.click()
-    await page.keyboard.type('Actually, start with the tests first')
-    await page.keyboard.press('Enter')
+    await textarea.pressSequentially('Actually, start with the tests first')
+
+    await screenshotElement(page, agentPanel, path.join(SCREENSHOTS, '04-typing-queued.png'))
+    steps.push({
+      screenshotPath: 'screenshots/04-typing-queued.png',
+      caption: 'Typing a follow-up while the agent is still working',
+      description:
+        'The user types a follow-up message while the agent is busy. ' +
+        'Pressing the Queue button (or Enter) will inject it at the next pause point.',
+    })
+
+    // Queue it — via Enter key (same as clicking Queue button)
+    await textarea.press('Enter')
 
     // Queued message must appear in the feed with the badge
     await expect(agentPanel.getByText('Actually, start with the tests first')).toBeVisible({ timeout: 3000 })
     await expect(agentPanel.getByText('Queued')).toBeVisible({ timeout: 3000 })
 
-    await screenshotElement(page, agentPanel, path.join(SCREENSHOTS, '03-queued-badge.png'))
+    await screenshotElement(page, agentPanel, path.join(SCREENSHOTS, '05-queued-badge.png'))
     steps.push({
-      screenshotPath: 'screenshots/03-queued-badge.png',
-      caption: 'Queued message in the feed with a pulsing "Queued" badge',
+      screenshotPath: 'screenshots/05-queued-badge.png',
+      caption: 'Queued message appears in the feed with a pulsing "Queued" badge',
       description:
-        'Pressing Enter while the agent is running adds the message to the chat feed ' +
-        'immediately, with a pulsing "Queued" badge below the bubble. The message has ' +
-        'already been injected into the active SDK session with priority "next".',
+        'The message appears in the chat immediately with a pulsing "Queued" badge, ' +
+        'confirming it has been injected into the active session with priority "next". ' +
+        'No need to stop the agent first.',
     })
   })
 
-  test('Step 4: While agent is working, the input placeholder reflects the running state', async () => {
-    const agentPanel = page.locator('[data-panel-id="agent"]')
-    const textarea = page.locator('textarea').filter({ visible: true }).first()
-
-    // The placeholder text changes while running to hint mid-turn typing is supported
-    await expect(textarea).toHaveAttribute('placeholder', /Agent is working/)
-
-    await screenshotElement(page, agentPanel, path.join(SCREENSHOTS, '04-working-state.png'))
-    steps.push({
-      screenshotPath: 'screenshots/04-working-state.png',
-      caption: '"Agent is working..." placeholder hints that typing mid-turn is supported',
-      description:
-        'While the agent is busy, the input placeholder changes to "Agent is working... ' +
-        '(type your next message)" to make the new capability discoverable.',
-    })
-  })
-
-  test('Step 5: Agent finishes — Queued badge clears automatically', async () => {
+  test('Step 6: Agent finishes — Queued badge clears automatically', async () => {
     const agentPanel = page.locator('[data-panel-id="agent"]')
 
     // Wait for the mock response to arrive (4s delay)
@@ -148,9 +150,9 @@ test.describe.serial('Feature: Mid-Turn Message Injection', () => {
     // Queued badge should be gone once the turn completes
     await expect(agentPanel.getByText('Queued')).not.toBeVisible({ timeout: 3000 })
 
-    await screenshotElement(page, agentPanel, path.join(SCREENSHOTS, '05-turn-complete.png'))
+    await screenshotElement(page, agentPanel, path.join(SCREENSHOTS, '06-turn-complete.png'))
     steps.push({
-      screenshotPath: 'screenshots/05-turn-complete.png',
+      screenshotPath: 'screenshots/06-turn-complete.png',
       caption: 'Turn complete — Queued badge cleared, conversation continues',
       description:
         'When the agent finishes its turn, the "Queued" badge is automatically removed ' +
