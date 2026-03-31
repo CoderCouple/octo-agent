@@ -21,9 +21,17 @@ interface PendingPermission {
   resolve: (result: { behavior: 'allow' } | { behavior: 'deny'; message: string }) => void
 }
 
+interface InjectPayload {
+  type: 'user'
+  message: { role: 'user'; content: { type: 'text'; text: string }[] }
+  parent_tool_use_id: null
+  priority: 'next'
+  session_id: string
+}
+
 interface ActiveSession {
   sdkSession: {
-    send(message: string): Promise<void>
+    send(message: string | InjectPayload): Promise<void>
     stream(): AsyncGenerator<unknown, void>
     close(): void
     readonly sessionId: string
@@ -339,7 +347,9 @@ const mockInitSent = new Set<string>()
 
 /**
  * Send a canned mock agent response sequence for E2E tests.
- * Fires system init (first turn only), a text reply, and a result/done — all synchronously via IPC.
+ * Fires system init (first turn only), a text reply, and a result/done.
+ * When E2E_AGENT_RESPONSE_DELAY_MS is set, the text+result+done are
+ * deferred by that many milliseconds so tests can inject mid-turn messages.
  */
 function sendMockAgentResponse(win: BrowserWindow, sessionId: string, prompt: string): void {
   if (!mockInitSent.has(sessionId)) {
@@ -353,25 +363,35 @@ function sendMockAgentResponse(win: BrowserWindow, sessionId: string, prompt: st
     win.webContents.send(`agentSdk:message:${sessionId}`, initMsg)
   }
 
-  const textMsg: AgentSdkMessage = {
-    id: nextMessageId(),
-    type: 'text',
-    timestamp: Date.now(),
-    text: resolveMockResponseText(prompt),
-  }
-  win.webContents.send(`agentSdk:message:${sessionId}`, textMsg)
+  const delayMs = parseInt(process.env.E2E_AGENT_RESPONSE_DELAY_MS ?? '0', 10)
 
-  const resultMsg: AgentSdkMessage = {
-    id: nextMessageId(),
-    type: 'result',
-    timestamp: Date.now(),
-    result: 'Task completed successfully.',
-    costUsd: 0.01,
-    durationMs: 2000,
-    numTurns: 1,
+  const sendResponse = () => {
+    const textMsg: AgentSdkMessage = {
+      id: nextMessageId(),
+      type: 'text',
+      timestamp: Date.now(),
+      text: resolveMockResponseText(prompt),
+    }
+    win.webContents.send(`agentSdk:message:${sessionId}`, textMsg)
+
+    const resultMsg: AgentSdkMessage = {
+      id: nextMessageId(),
+      type: 'result',
+      timestamp: Date.now(),
+      result: 'Task completed successfully.',
+      costUsd: 0.01,
+      durationMs: 2000,
+      numTurns: 1,
+    }
+    win.webContents.send(`agentSdk:message:${sessionId}`, resultMsg)
+    win.webContents.send(`agentSdk:done:${sessionId}`, 'mock-session-id')
   }
-  win.webContents.send(`agentSdk:message:${sessionId}`, resultMsg)
-  win.webContents.send(`agentSdk:done:${sessionId}`, 'mock-session-id')
+
+  if (delayMs > 0) {
+    setTimeout(sendResponse, delayMs)
+  } else {
+    sendResponse()
+  }
 }
 
 export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
@@ -454,6 +474,34 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     if (session) {
       session.sdkSession.close()
       activeSessions.delete(id)
+    }
+  })
+
+  // Inject a message mid-turn with priority 'next'. The stream for the current
+  // turn is already running — we just enqueue the message; no new stream needed.
+  ipcMain.handle('agentSdk:inject', async (_event, id: string, prompt: string) => {
+    const session = activeSessions.get(id)
+    if (!session) {
+      console.warn('[agentSdk] inject: no active session for', id)
+      return
+    }
+    if (!session.sdkSessionId) {
+      console.warn('[agentSdk] inject: sdkSessionId not yet known for', id)
+      return
+    }
+    console.log('[agentSdk] inject: queuing mid-turn message for', id)
+    try {
+      await session.sdkSession.send({
+        type: 'user',
+        message: { role: 'user', content: [{ type: 'text', text: prompt }] },
+        parent_tool_use_id: null,
+        priority: 'next',
+        session_id: session.sdkSessionId,
+      })
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('[agentSdk] inject error:', errorMessage)
+      session.ownerWindow.webContents.send(`agentSdk:error:${id}`, errorMessage)
     }
   })
 

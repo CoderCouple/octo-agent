@@ -16,6 +16,7 @@ interface CommandInfo {
 
 interface AgentChatInputProps {
   onSubmit: (prompt: string) => void
+  onQueue: (prompt: string) => void
   onStop: () => void
   isRunning: boolean
   disabled?: boolean
@@ -23,7 +24,7 @@ interface AgentChatInputProps {
   availableCommands?: CommandInfo[]
 }
 
-export function AgentChatInput({ onSubmit, onStop, isRunning, disabled, sessionId, availableCommands }: AgentChatInputProps) {
+export function AgentChatInput({ onSubmit, onQueue, onStop, isRunning, disabled, sessionId, availableCommands }: AgentChatInputProps) {
   const [value, setValue] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -62,13 +63,19 @@ export function AgentChatInput({ onSubmit, onStop, isRunning, disabled, sessionI
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim()
-    if (!trimmed || isRunning || disabled) return
+    if (!trimmed || disabled) return
+    if (isRunning) {
+      onQueue(trimmed)
+      setValue('')
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
+      return
+    }
     onSubmit(trimmed)
     setValue('')
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
-  }, [value, isRunning, disabled, onSubmit])
+  }, [value, isRunning, disabled, onSubmit, onQueue])
 
   const selectCommand = useCallback((name: string) => {
     const cmd = `/${name}`
@@ -146,12 +153,21 @@ export function AgentChatInput({ onSubmit, onStop, isRunning, disabled, sessionI
           className="flex-1 resize-none rounded border border-neutral-600 bg-neutral-800 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 focus:border-blue-500 focus:outline-none disabled:opacity-50"
         />
         {isRunning ? (
-          <button
-            onClick={onStop}
-            className="rounded bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500"
-          >
-            Stop
-          </button>
+          <>
+            <button
+              onClick={handleSubmit}
+              disabled={!value.trim()}
+              className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600"
+            >
+              Queue
+            </button>
+            <button
+              onClick={onStop}
+              className="rounded bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500"
+            >
+              Stop
+            </button>
+          </>
         ) : (
           <button
             onClick={handleSubmit}

@@ -10,6 +10,11 @@ import { useAgentChatStore } from '../../../store/agentChat'
 import { useSessionStore } from '../../../store/sessions'
 import type { AgentSdkMessage } from '../../../../shared/agentSdkTypes'
 
+let userMsgCounter = 0
+function nextUserMsgId(): string {
+  return `user-${String(++userMsgCounter)}-${String(Date.now())}`
+}
+
 interface UseAgentSdkOptions {
   sessionId: string
   cwd: string
@@ -30,6 +35,7 @@ interface HistoryMeta {
 
 interface UseAgentSdkReturn {
   sendPrompt: (prompt: string) => void
+  queuePrompt: (prompt: string) => void
   stopAgent: () => void
   respondToPermission: (toolUseId: string, allowed: boolean, updatedInput?: Record<string, unknown>) => void
   availableCommands: CommandInfo[]
@@ -81,6 +87,7 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
 
     const unsubDone = window.agentSdk.onDone(sessionId, (returnedSdkSessionId: string) => {
       isRunningRef.current = false
+      useAgentChatStore.getState().clearQueuedFlag(sessionId)
       useAgentChatStore.getState().setState(sessionId, 'idle')
       useSessionStore.getState().updateAgentMonitor(sessionId, { status: 'idle' })
       if (returnedSdkSessionId && returnedSdkSessionId.length > 0) {
@@ -127,7 +134,7 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     // Intercept commands the SDK doesn't support
     if (trimmed === '/login') {
       useAgentChatStore.getState().addMessage(sessionId, {
-        id: `user-${String(Date.now())}`, type: 'text', timestamp: Date.now(), text: trimmed,
+        id: nextUserMsgId(), type: 'text', timestamp: Date.now(), text: trimmed,
       })
       isRunningRef.current = true
       useAgentChatStore.getState().setState(sessionId, 'running')
@@ -136,7 +143,7 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     }
     if (trimmed === '/status') {
       useAgentChatStore.getState().addMessage(sessionId, {
-        id: `user-${String(Date.now())}`, type: 'text', timestamp: Date.now(), text: trimmed,
+        id: nextUserMsgId(), type: 'text', timestamp: Date.now(), text: trimmed,
       })
       void window.agentSdk.status(sessionId, env)
       return
@@ -148,7 +155,7 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     useSessionStore.getState().updateAgentMonitor(sessionId, { status: 'working' })
 
     useAgentChatStore.getState().addMessage(sessionId, {
-      id: `user-${String(Date.now())}`,
+      id: nextUserMsgId(),
       type: 'text',
       timestamp: Date.now(),
       text: prompt,
@@ -202,5 +209,19 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     }
   }, [sessionId, env])
 
-  return { sendPrompt, stopAgent, respondToPermission, availableCommands, historyMeta, loadFullHistory }
+  const queuePrompt = useCallback((prompt: string) => {
+    const trimmed = prompt.trim()
+    if (!trimmed || !isRunningRef.current) return
+    useAgentChatStore.getState().addMessage(sessionId, {
+      id: nextUserMsgId(),
+      type: 'text',
+      timestamp: Date.now(),
+      text: trimmed,
+      queued: true,
+    })
+    // The main process guards against missing sdkSessionId / inactive sessions.
+    void window.agentSdk.inject(sessionId, trimmed)
+  }, [sessionId])
+
+  return { sendPrompt, queuePrompt, stopAgent, respondToPermission, availableCommands, historyMeta, loadFullHistory }
 }

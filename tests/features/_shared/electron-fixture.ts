@@ -96,7 +96,16 @@ interface ResetOptions {
    *   agentResponses: [{ match: 'hello', response: 'Hi there!' }]
    */
   agentResponses?: { match: string; response: string }[]
+  /**
+   * Delay in milliseconds before the mock agent sends its response.
+   * Use this to test mid-turn injection — the delay gives tests time to type
+   * and queue a message while the agent appears to be working.
+   */
+  agentResponseDelayMs?: number
 }
+
+/** Converts an optional number to a string for env var transport; returns '' for undefined. */
+const optNum = (n: number | undefined) => n !== undefined ? String(n) : ''
 
 /**
  * Reload the renderer to get fresh app state for a new feature.
@@ -117,9 +126,10 @@ export async function resetApp(opts?: ResetOptions): Promise<{ electronApp: Elec
     isMerged: opts?.mockIsMerged ? 'true' : '',
     hasBranchCommits: opts?.mockHasBranchCommits ? 'true' : '',
     gitClean: opts?.mockGitClean ? 'true' : '',
-    gitAhead: opts?.mockGitAhead !== undefined ? String(opts.mockGitAhead) : '',
+    gitAhead: optNum(opts?.mockGitAhead),
     gitTracking: opts?.mockGitTracking ?? '',
     agentResponses: opts?.agentResponses ? JSON.stringify(opts.agentResponses) : '',
+    agentResponseDelayMs: optNum(opts?.agentResponseDelayMs),
   }
   await electronApp.evaluate((_electron, env) => {
     process.env.E2E_SCENARIO = env.sc
@@ -132,6 +142,7 @@ export async function resetApp(opts?: ResetOptions): Promise<{ electronApp: Elec
     setOrDelete('E2E_MOCK_GIT_AHEAD', env.gitAhead)
     setOrDelete('E2E_MOCK_GIT_TRACKING', env.gitTracking)
     setOrDelete('E2E_AGENT_RESPONSES', env.agentResponses)
+    setOrDelete('E2E_AGENT_RESPONSE_DELAY_MS', env.agentResponseDelayMs)
   }, envOverrides)
 
   if (isFirstCall) {
