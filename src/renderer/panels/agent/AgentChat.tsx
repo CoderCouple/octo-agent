@@ -234,7 +234,20 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env, model
         {isRunning && (
           <div className="my-2 flex items-center gap-2 text-xs text-neutral-400">
             <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
-            Working...
+            {(() => {
+              // Find the last tool_use without a matching tool_result to show tool-specific status
+              const lastToolUse = [...messages].reverse().find(m => m.type === 'tool_use')
+              const hasResult = lastToolUse?.toolUseId
+                ? messages.some(m => m.type === 'tool_result' && m.toolUseId === lastToolUse.toolUseId)
+                : true
+              if (lastToolUse && !hasResult) {
+                return <>Waiting for tool: {lastToolUse.toolName}</>
+              }
+              if (state === 'awaiting_permission') {
+                return <>Awaiting permission...</>
+              }
+              return <>Working...</>
+            })()}
             {elapsedSeconds > 0 && (
               <span className="text-neutral-500">{formatElapsedTime(elapsedSeconds)}</span>
             )}
@@ -257,7 +270,7 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env, model
         onSubmit={sendPrompt}
         onQueue={queuePrompt}
         onStop={stopAgent}
-        isRunning={state === 'running'}
+        isRunning={state === 'running' || state === 'awaiting_permission'}
         disabled={state === 'awaiting_permission'}
         sessionId={sessionId}
         availableCommands={availableCommands}
