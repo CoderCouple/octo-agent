@@ -128,8 +128,26 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
     }
   }, [sessionId])
 
+  const queuePrompt = useCallback((prompt: string) => {
+    const trimmed = prompt.trim()
+    if (!trimmed || !isRunningRef.current) return
+    useAgentChatStore.getState().addMessage(sessionId, {
+      id: nextUserMsgId(),
+      type: 'text',
+      timestamp: Date.now(),
+      text: trimmed,
+      queued: true,
+    })
+    // The main process guards against missing sdkSessionId / inactive sessions.
+    void window.agentSdk.inject(sessionId, trimmed)
+  }, [sessionId])
+
   const sendPrompt = useCallback((prompt: string) => {
-    if (isRunningRef.current) return
+    if (isRunningRef.current) {
+      // Agent is still running (e.g. executing a tool) — queue instead of dropping
+      queuePrompt(prompt)
+      return
+    }
 
     const trimmed = prompt.trim()
 
@@ -185,7 +203,7 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
         effort,
       })
     }
-  }, [sessionId, cwd, sdkSessionId, permissionMode, env, model, effort])
+  }, [sessionId, cwd, sdkSessionId, permissionMode, env, model, effort, queuePrompt])
 
   const stopAgent = useCallback(() => {
     void window.agentSdk.stop(sessionId)
@@ -212,20 +230,6 @@ export function useAgentSdk(options: UseAgentSdkOptions): UseAgentSdkReturn {
       void window.agentSdk.loadHistory(sdkId, sessionId, env, 9999)
     }
   }, [sessionId, env])
-
-  const queuePrompt = useCallback((prompt: string) => {
-    const trimmed = prompt.trim()
-    if (!trimmed || !isRunningRef.current) return
-    useAgentChatStore.getState().addMessage(sessionId, {
-      id: nextUserMsgId(),
-      type: 'text',
-      timestamp: Date.now(),
-      text: trimmed,
-      queued: true,
-    })
-    // The main process guards against missing sdkSessionId / inactive sessions.
-    void window.agentSdk.inject(sessionId, trimmed)
-  }, [sessionId])
 
   return { sendPrompt, queuePrompt, stopAgent, respondToPermission, availableCommands, historyMeta, loadFullHistory }
 }

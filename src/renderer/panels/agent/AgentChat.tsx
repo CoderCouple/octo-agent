@@ -44,6 +44,16 @@ function EmptyState({ hasSdkSession }: { hasSdkSession: boolean }) {
   )
 }
 
+function agentStatusLabel(messages: AgentSdkMessage[], state: string): string {
+  const lastToolUse = [...messages].reverse().find(m => m.type === 'tool_use')
+  const hasResult = lastToolUse?.toolUseId
+    ? messages.some(m => m.type === 'tool_result' && m.toolUseId === lastToolUse.toolUseId)
+    : true
+  if (lastToolUse && !hasResult) return `Waiting for tool: ${lastToolUse.toolName ?? 'unknown'}`
+  if (state === 'awaiting_permission') return 'Awaiting permission...'
+  return 'Working...'
+}
+
 function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env, model: modelProp, effort: effortProp }: AgentChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -234,7 +244,7 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env, model
         {isRunning && (
           <div className="my-2 flex items-center gap-2 text-xs text-neutral-400">
             <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
-            Working...
+            {agentStatusLabel(messages, state)}
             {elapsedSeconds > 0 && (
               <span className="text-neutral-500">{formatElapsedTime(elapsedSeconds)}</span>
             )}
@@ -257,7 +267,7 @@ function AgentChatInner({ sessionId, cwd, sdkSessionId, skipApproval, env, model
         onSubmit={sendPrompt}
         onQueue={queuePrompt}
         onStop={stopAgent}
-        isRunning={state === 'running'}
+        isRunning={state === 'running' || state === 'awaiting_permission'}
         disabled={state === 'awaiting_permission'}
         sessionId={sessionId}
         availableCommands={availableCommands}
