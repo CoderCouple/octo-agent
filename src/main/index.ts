@@ -23,6 +23,10 @@ import { resolveShellEnv } from './shellEnv'
 import { writeCrashLog, appendErrorLog } from './crashLog'
 import { disposePtyListenersForWindow, disposeAllPtyListeners } from './handlers/pty'
 import { Gateway } from './gateway'
+import { Supervisor } from './supervisor'
+import { startHookServer } from './gateway/adapters/hookAdapter'
+import { startPhoneServer } from './gateway/adapters/phoneAdapter'
+import type { AgentEvent, Decision } from '../shared/types'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
 app.name = 'OctoAgent'
@@ -97,8 +101,9 @@ const watcherOwnerWindows = new Map<string, BrowserWindow>()
 const dockerContainers = new Map<string, import('./handlers/types').DockerContainerState>()
 let mainWindow: BrowserWindow | null = null
 
-// OctoAgent gateway
+// OctoAgent gateway and supervisor
 const gateway = new Gateway()
+const supervisor = new Supervisor()
 
 function createWindow(profileId?: string): BrowserWindow {
   const window = new BrowserWindow({
@@ -488,6 +493,43 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
 
     // Start the OctoAgent gateway
     await gateway.start()
+
+    // Wire supervisor → gateway: broadcast events to WS clients
+    supervisor.on('agentEvent', (event: AgentEvent) => {
+      gateway.emitAgentEvent(event)
+    })
+    supervisor.on('decision', (decision: Decision) => {
+      gateway.emitSessionEvent(decision.sessionId, 'decision', decision as unknown as Record<string, unknown>)
+    })
+    supervisor.on('decisionResolved', (decision: Decision) => {
+      gateway.emitSessionEvent(decision.sessionId, 'decision', decision as unknown as Record<string, unknown>)
+    })
+
+    // Wire gateway → supervisor: route requests
+    gateway.setRouteHandlers({
+      onSend: (_clientId, frame) => {
+        if (frame.sessionId && frame.payload?.text) {
+          supervisor.handleUserMessage(frame.sessionId, frame.payload.text as string)
+        }
+      },
+      onResolve: (_clientId, frame) => {
+        const decisionId = frame.payload?.decisionId as string | undefined
+        const resolution = frame.payload?.resolution as string | undefined
+        if (decisionId && resolution) {
+          supervisor.resolveDecision(decisionId, resolution)
+        }
+      },
+    })
+
+    // Start hook adapter (for Claude Code hooks → supervisor)
+    await startHookServer((message) => {
+      supervisor.handleInbound(message)
+    })
+
+    // Start phone adapter (for phone push decisions)
+    await startPhoneServer((decisionId, resolution) => {
+      supervisor.resolveDecision(decisionId, resolution)
+    })
 
     // Build the application menu
     buildAppMenu()
