@@ -70,6 +70,11 @@ ipcRenderer.on('agent:restart', () => {
   window.dispatchEvent(new CustomEvent('agent:restart'))
 })
 
+// Forward webview find-in-page request (Cmd/Ctrl+F pressed inside a <webview>)
+ipcRenderer.on('webview:find-in-page', () => {
+  window.dispatchEvent(new CustomEvent('webview:find-in-page'))
+})
+
 // Expose all APIs to the renderer process via context bridge
 contextBridge.exposeInMainWorld('pty', ptyApi)
 contextBridge.exposeInMainWorld('dialog', dialogApi)

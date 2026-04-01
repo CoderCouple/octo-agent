@@ -86,6 +86,15 @@ function WebviewViewerComponent({ filePath, onEditorReady }: FileViewerComponent
     return () => container?.removeEventListener('keydown', handleKeyDown, true)
   }, [openFindBar])
 
+  // Handle Cmd+F when the webview itself has focus. Keyboard events inside
+  // a <webview> don't propagate to the embedder DOM, so the main process
+  // intercepts them via before-input-event and forwards as a CustomEvent.
+  useEffect(() => {
+    const handler = () => openFindBar()
+    window.addEventListener('webview:find-in-page', handler)
+    return () => window.removeEventListener('webview:find-in-page', handler)
+  }, [openFindBar])
+
   // Run findInPage when query changes
   const findActiveRef = useRef(false)
   useEffect(() => {
@@ -152,6 +161,16 @@ function WebviewViewerComponent({ filePath, onEditorReady }: FileViewerComponent
         <div className="flex-1 mx-1 px-2 py-0.5 text-xs text-text-secondary bg-bg-secondary rounded truncate font-mono">
           {currentUrl}
         </div>
+        <button
+          onClick={openFindBar}
+          className="p-1 rounded text-text-secondary hover:text-text-primary transition-colors"
+          title="Find in page (Cmd+F)"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
         <button
           onClick={() => void window.shell.openExternal(currentUrl)}
           className="p-1 rounded text-text-secondary hover:text-text-primary transition-colors"

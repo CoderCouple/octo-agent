@@ -143,6 +143,18 @@ function createWindow(profileId?: string): BrowserWindow {
     }
   })
 
+  // Forward Cmd/Ctrl+F from webview guests to the renderer so it can open
+  // the find-in-page bar (keyboard events inside a <webview> don't propagate
+  // to the embedder DOM).
+  window.webContents.on('did-attach-webview', (_event, webContents) => {
+    webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && input.key.toLowerCase() === 'f' && (input.meta || input.control) && !input.alt && !input.shift) {
+        event.preventDefault()
+        window.webContents.send('webview:find-in-page')
+      }
+    })
+  })
+
   // Track the first window as mainWindow for backwards compat
   if (!mainWindow) {
     mainWindow = window
