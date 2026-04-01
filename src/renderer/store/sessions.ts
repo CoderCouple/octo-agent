@@ -105,6 +105,10 @@ export interface Session {
   lastKnownPrUrl?: string
   // Archive state (persisted)
   isArchived: boolean
+  // OctoAgent: agent type and persona (persisted)
+  agentType?: 'claude-code' | 'gemini' | 'codex'
+  personaId?: string
+  agentStatus?: 'running' | 'paused' | 'done' | 'error'
   // Agent SDK session ID for resume (persisted)
   sdkSessionId?: string
   // Whether this session was loaded from config (runtime only, not persisted)

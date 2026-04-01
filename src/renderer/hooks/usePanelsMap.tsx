@@ -11,6 +11,8 @@ import AgentSettings from '../panels/settings/AgentSettings'
 import SessionList from '../panels/sidebar/SessionList'
 import WelcomeScreen from '../panels/agent/WelcomeScreen'
 import TutorialPanel from '../panels/tutorial/TutorialPanel'
+import { ChatPanel } from '../components/ChatPanel'
+import { AttentionQueue } from '../components/AttentionQueue'
 import { useSessionStore, type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
 import { useIssuePlanDetection } from '../panels/explorer/hooks/useIssuePlanDetection'
@@ -343,22 +345,33 @@ export function usePanelsMap(config: PanelsMapConfig) {
   const fileViewerPanel = useFileViewerPanel(config)
 
   const sidebarPanel = useMemo(() => (
-    <SessionList
-      repos={repos}
-      onSelectSession={handleSelectSession}
-      onNewSession={handleNewSession}
-      onDeleteSession={removeSession}
-      onRefreshPrStatus={refreshPrStatus}
-      onArchiveSession={archiveSession}
-      onUnarchiveSession={unarchiveSession}
-    />
+    <div className="h-full flex flex-col">
+      <AttentionQueue />
+      <div className="flex-1 min-h-0">
+        <SessionList
+          repos={repos}
+          onSelectSession={handleSelectSession}
+          onNewSession={handleNewSession}
+          onDeleteSession={removeSession}
+          onRefreshPrStatus={refreshPrStatus}
+          onArchiveSession={archiveSession}
+          onUnarchiveSession={unarchiveSession}
+        />
+      </div>
+    </div>
   ), [repos, handleSelectSession, handleNewSession, removeSession, refreshPrStatus, archiveSession, unarchiveSession])
+
+  const chatPanel = useMemo(() => {
+    if (!config.activeSessionId) return null
+    return <ChatPanel sessionId={config.activeSessionId} />
+  }, [config.activeSessionId])
 
   const panelsMap = useMemo(() => ({
     [PANEL_IDS.SIDEBAR]: sidebarPanel,
     [PANEL_IDS.AGENT]: terminalPanel,
     [PANEL_IDS.EXPLORER]: explorerPanel,
     [PANEL_IDS.FILE_VIEWER]: fileViewerPanel,
+    [PANEL_IDS.CHAT]: chatPanel,
     [PANEL_IDS.SETTINGS]: globalPanelVisibility[PANEL_IDS.SETTINGS] ? (
       <AgentSettings onClose={() => {
         toggleGlobalPanel(PANEL_IDS.SETTINGS)
@@ -371,6 +384,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
     sidebarPanel,
     terminalPanel,
     explorerPanel, fileViewerPanel,
+    chatPanel,
     globalPanelVisibility,
   ])
 
