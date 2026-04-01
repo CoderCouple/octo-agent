@@ -8,19 +8,50 @@
  */
 import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
-import type { AgentEvent, InboundMessage, Decision } from '../../shared/types'
+import type { AgentEvent, InboundMessage, Decision, Persona, SessionMeta } from '../../shared/types'
 import { SessionQueue } from './sessionQueue'
 import { processHook, processPty } from './parsers/claudeCode'
-import { appendTranscript, flush } from './sessionMemory'
+import { appendTranscript, flush, readTranscript, readMemory } from './sessionMemory'
 import { createDecision, resolveDecision as resolveHitlDecision, clearSessionDecisions } from './hitl'
-import { record as recordFile, clearSession as clearConflictSession } from './conflictDetector'
+import { record as recordFile, clearSession as clearConflictSession, getSessionFiles } from './conflictDetector'
+import { generateBriefing } from './briefingEngine'
+import { generateReport } from './reportGenerator'
 
 export class Supervisor extends EventEmitter {
   private queue = new SessionQueue()
+  /** Active sessions tracked by the supervisor. */
+  private sessions = new Map<string, SessionMeta>()
+  /** Personas loaded from ~/.octoagent/personas/. */
+  private personas = new Map<string, Persona>()
 
   constructor() {
     super()
     this.setMaxListeners(50)
+  }
+
+  /** Register a session with the supervisor. */
+  registerSession(meta: SessionMeta): void {
+    this.sessions.set(meta.id, meta)
+  }
+
+  /** Unregister a session. */
+  unregisterSession(sessionId: string): void {
+    this.sessions.delete(sessionId)
+  }
+
+  /** Get all active sessions. */
+  getActiveSessions(): SessionMeta[] {
+    return [...this.sessions.values()]
+  }
+
+  /** Load a persona (from disk or config). */
+  loadPersona(persona: Persona): void {
+    this.personas.set(persona.id, persona)
+  }
+
+  /** Get a persona by ID. */
+  getPersona(personaId: string): Persona | undefined {
+    return this.personas.get(personaId)
   }
 
   /**
@@ -49,13 +80,22 @@ export class Supervisor extends EventEmitter {
     // Invariant #4: Every action logged
     appendTranscript(event)
 
+    // Update session status
+    const meta = this.sessions.get(event.sessionId)
+    if (meta) {
+      if (event.type === 'working') meta.status = 'active'
+      else if (event.type === 'done') meta.status = 'done'
+      else if (event.type === 'error') meta.status = 'error'
+      else if (event.type === 'idle') meta.status = 'idle'
+    }
+
     // Check for file conflicts on fileChanged events
     if (event.type === 'fileChanged') {
       const filePath = event.data.filePath as string | undefined
       if (filePath) {
         const conflicts = recordFile(event.sessionId, filePath)
         if (conflicts.length > 0) {
-          // Emit conflict event
+          // Emit conflict event with hard stop
           const conflictEvent: AgentEvent = {
             id: randomUUID(),
             sessionId: event.sessionId,
@@ -65,11 +105,24 @@ export class Supervisor extends EventEmitter {
           }
           appendTranscript(conflictEvent)
           this.emit('agentEvent', conflictEvent)
+
+          // Also notify the conflicting session
+          for (const conflictSessionId of conflicts) {
+            const notifyEvent: AgentEvent = {
+              id: randomUUID(),
+              sessionId: conflictSessionId,
+              type: 'conflict',
+              timestamp: Date.now(),
+              data: { filePath, conflictingSessions: [event.sessionId] },
+            }
+            appendTranscript(notifyEvent)
+            this.emit('agentEvent', notifyEvent)
+          }
         }
       }
     }
 
-    // Handle waiting for input → create decision
+    // Handle waiting for input -> create decision
     if (event.type === 'waitingForInput') {
       const decision = createDecision({
         sessionId: event.sessionId,
@@ -81,12 +134,36 @@ export class Supervisor extends EventEmitter {
       this.emit('decision', decision)
     }
 
-    // Handle session done → flush memory
+    // Handle session done -> flush memory, check for all-done
     if (event.type === 'done') {
       void this.queue.enqueue(event.sessionId, async () => {
         // Invariant #3: Flush before discard
         await flush(event.sessionId)
         clearSessionDecisions(event.sessionId)
+
+        // Emit memoryUpdate so renderer shows the summary
+        this.emit('memoryUpdate', {
+          sessionId: event.sessionId,
+          summary: readMemory(event.sessionId) ?? 'Memory saved',
+        })
+
+        // Check if ALL sessions are done -> generate report
+        const activeSessions = this.getActiveSessions()
+        const allDone = activeSessions.length > 0 &&
+          activeSessions.every((s) => s.status === 'done' || s.status === 'idle')
+
+        if (allDone && activeSessions.length > 0) {
+          const sessionIds = activeSessions.map((s) => s.id)
+          try {
+            const report = await generateReport({ sessionIds })
+            this.emit('report', {
+              sessionIds,
+              content: report,
+            })
+          } catch (err) {
+            console.error('[Supervisor] Report generation failed:', err)
+          }
+        }
       })
     }
 
@@ -96,7 +173,6 @@ export class Supervisor extends EventEmitter {
 
   /**
    * Handle a user message sent to an agent session (e.g. from chat input).
-   * Returns a message event.
    */
   handleUserMessage(sessionId: string, text: string): void {
     const event: AgentEvent = {
@@ -122,12 +198,55 @@ export class Supervisor extends EventEmitter {
   }
 
   /**
+   * Generate a briefing for a target session from source sessions.
+   */
+  async briefSession(opts: {
+    targetSessionId: string
+    sourceSessionIds: string[]
+    additionalContext?: string
+  }): Promise<string> {
+    const meta = this.sessions.get(opts.targetSessionId)
+    const persona = meta?.personaId ? this.personas.get(meta.personaId) : undefined
+
+    const briefing = await generateBriefing({
+      targetSessionId: opts.targetSessionId,
+      sourceSessionIds: opts.sourceSessionIds,
+      persona,
+      additionalContext: opts.additionalContext,
+    })
+
+    // Emit as an agent event so it appears in chat
+    const event: AgentEvent = {
+      id: randomUUID(),
+      sessionId: opts.targetSessionId,
+      type: 'message',
+      timestamp: Date.now(),
+      data: { from: 'briefing', text: briefing },
+    }
+    appendTranscript(event)
+    this.emit('agentEvent', event)
+
+    return briefing
+  }
+
+  /**
+   * Recover session state from disk on restart (invariant #5).
+   */
+  recoverSession(sessionId: string): { events: AgentEvent[]; memory: string | null; files: string[] } {
+    const events = readTranscript(sessionId)
+    const memory = readMemory(sessionId)
+    const files = getSessionFiles(sessionId)
+    return { events, memory, files }
+  }
+
+  /**
    * Clean up a session (e.g. on close).
    */
   async closeSession(sessionId: string): Promise<void> {
     await flush(sessionId)
     clearSessionDecisions(sessionId)
     clearConflictSession(sessionId)
+    this.sessions.delete(sessionId)
     this.queue.clear(sessionId)
   }
 }

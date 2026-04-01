@@ -504,6 +504,15 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
     supervisor.on('decisionResolved', (decision: Decision) => {
       gateway.emitSessionEvent(decision.sessionId, 'decision', decision as unknown as Record<string, unknown>)
     })
+    supervisor.on('memoryUpdate', (data: { sessionId: string; summary: string }) => {
+      gateway.emitSessionEvent(data.sessionId, 'memoryUpdate', { summary: data.summary })
+    })
+    supervisor.on('report', (data: { sessionIds: string[]; content: string }) => {
+      // Broadcast report to the first session (primary)
+      if (data.sessionIds.length > 0) {
+        gateway.emitSessionEvent(data.sessionIds[0], 'report', { content: data.content, sessionIds: data.sessionIds })
+      }
+    })
 
     // Wire gateway → supervisor: route requests
     gateway.setRouteHandlers({
@@ -517,6 +526,17 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
         const resolution = frame.payload?.resolution as string | undefined
         if (decisionId && resolution) {
           supervisor.resolveDecision(decisionId, resolution)
+        }
+      },
+      onBrief: (_clientId, frame) => {
+        const targetSessionId = frame.sessionId
+        const sourceSessionIds = frame.payload?.sourceSessionIds as string[] | undefined
+        if (targetSessionId && sourceSessionIds) {
+          void supervisor.briefSession({
+            targetSessionId,
+            sourceSessionIds,
+            additionalContext: frame.payload?.context as string | undefined,
+          })
         }
       },
     })
