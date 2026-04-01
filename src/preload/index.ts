@@ -92,6 +92,12 @@ contextBridge.exposeInMainWorld('devcontainer', devcontainerApi)
 contextBridge.exposeInMainWorld('windowControls', windowControlsApi)
 contextBridge.exposeInMainWorld('agentSdk', agentSdkApi)
 
+// OctoAgent gateway IPC
+const octoagentApi = {
+  getGatewayPort: (): Promise<number> => ipcRenderer.invoke('octoagent:getGatewayPort'),
+}
+contextBridge.exposeInMainWorld('octoagent', octoagentApi)
+
 declare global {
   interface Window {
     pty: PtyApi
@@ -112,5 +118,6 @@ declare global {
     devcontainer: DevcontainerApi
     windowControls: WindowControlsApi
     agentSdk: AgentSdkApi
+    octoagent: { getGatewayPort: () => Promise<number> }
   }
 }

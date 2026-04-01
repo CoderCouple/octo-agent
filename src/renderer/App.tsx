@@ -34,6 +34,7 @@ import { useMenuButton } from './shared/hooks/useMenuButton'
 import CrashRecoveryBanner from './shared/components/CrashRecoveryBanner'
 import { DialogErrorBanner } from './shared/components/ErrorBanner'
 import ExperimentalPlatformModal from './shared/components/ExperimentalPlatformModal'
+import { useGateway } from './hooks/useGateway'
 
 // Re-export types for backwards compatibility
 export type { Session, SessionStatus }
@@ -118,6 +119,9 @@ function TopBanners({ configLoadError, repoLoadError, appError, onDismissAppErro
 }
 
 function AppContent() {
+  // Connect to the OctoAgent gateway WebSocket
+  useGateway()
+
   const sessions = useSessionStore(s => s.sessions)
   const activeSessionId = useSessionStore(s => s.activeSessionId)
   const isLoading = useSessionStore(s => s.isLoading)

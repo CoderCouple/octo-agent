@@ -22,6 +22,7 @@ import { registerAllHandlers, HandlerContext, PROFILES_FILE } from './handlers'
 import { resolveShellEnv } from './shellEnv'
 import { writeCrashLog, appendErrorLog } from './crashLog'
 import { disposePtyListenersForWindow, disposeAllPtyListeners } from './handlers/pty'
+import { Gateway } from './gateway'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
 app.name = 'OctoAgent'
@@ -95,6 +96,9 @@ const watcherOwnerWindows = new Map<string, BrowserWindow>()
 // Track Docker containers for isolation
 const dockerContainers = new Map<string, import('./handlers/types').DockerContainerState>()
 let mainWindow: BrowserWindow | null = null
+
+// OctoAgent gateway
+const gateway = new Gateway()
 
 function createWindow(profileId?: string): BrowserWindow {
   const window = new BrowserWindow({
@@ -475,9 +479,15 @@ function buildAppMenu() {
   Menu.setApplicationMenu(menu)
 }
 
+// IPC handler for gateway port
+ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
+
 // App lifecycle
   void app.whenReady().then(async () => {
     await resolveShellEnv()
+
+    // Start the OctoAgent gateway
+    await gateway.start()
 
     // Build the application menu
     buildAppMenu()
@@ -507,6 +517,8 @@ function buildAppMenu() {
 
 
 app.on('window-all-closed', () => {
+  // Stop the gateway
+  void gateway.stop()
   // Dispose all native PTY event listeners before killing processes
   disposeAllPtyListeners()
   // Kill all PTY processes
