@@ -599,7 +599,14 @@ export function useTerminalSetup(
       s.lastInteractionRef.current = Date.now()
       if (isNowActive) {
         requestAnimationFrame(() => {
-          s.terminalRef.current?.focus()
+          // Fit the terminal to its container — the ResizeObserver skips
+          // inactive tabs, so dimensions may be stale or zero.
+          try { s.fitAddonRef.current?.fit() } catch { /* ignore */ }
+          const term = s.terminalRef.current
+          if (s.ptyIdRef.current && term && term.cols > 0 && term.rows > 0) {
+            void window.pty.resize(s.ptyIdRef.current, term.cols, term.rows)
+          }
+          term?.focus()
         })
       }
     })
