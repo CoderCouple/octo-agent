@@ -7,11 +7,11 @@
  * manages file navigation with unsaved-changes guards and global keyboard shortcuts.
  * The outer App component wraps AppContent in the PanelProvider context.
  */
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Layout from './layout/Layout'
 import NewSessionDialog from './features/sessions/NewSessionDialog'
 import PanelPicker from './shared/components/PanelPicker'
-import ProfileChip from './features/profiles/ProfileChip'
+
 import HelpModal from './shared/components/HelpModal'
 import ShortcutsModal from './shared/components/ShortcutsModal'
 import { useSessionStore, type Session, type SessionStatus, type LayoutSizes } from './store/sessions'
@@ -97,20 +97,8 @@ function GitMissingBanner() {
   return (
     <div className="bg-red-900/30 border-b border-red-500/30 px-4 py-2 text-xs text-red-300 flex items-center gap-2">
       <span className="font-medium">git is not installed.</span>
-      <span className="text-red-400">Broomy requires git to manage repositories.</span>
+      <span className="text-red-400">OctoAgent requires git to manage repositories.</span>
       <button onClick={() => window.shell.openExternal('https://git-scm.com/downloads')} className="text-accent hover:underline ml-1">Download git</button>
-    </div>
-  )
-}
-
-function GhMissingBanner() {
-  const { ghAvailable } = useRepoStore()
-  if (ghAvailable !== false) return null
-  return (
-    <div className="bg-yellow-900/30 border-b border-yellow-500/30 px-4 py-2 text-xs text-yellow-300 flex items-center gap-2">
-      <span className="font-medium">GitHub CLI (gh) is not installed.</span>
-      <span className="text-yellow-400">Install it for authentication, issues, and PR features.</span>
-      <button onClick={() => window.shell.openExternal('https://cli.github.com')} className="text-accent hover:underline ml-1">Install gh</button>
     </div>
   )
 }
@@ -122,49 +110,11 @@ function TopBanners({ configLoadError, repoLoadError, appError, onDismissAppErro
     <>
       <CrashRecoveryBanner />
       <GitMissingBanner />
-      <GhMissingBanner />
       {configLoadError && <DialogErrorBanner error={configLoadError} onDismiss={() => useSessionStore.setState({ configLoadError: null })} />}
       {repoLoadError && <DialogErrorBanner error={repoLoadError} onDismiss={() => useRepoStore.setState({ loadError: null })} />}
       {appError && <DialogErrorBanner error={appError} onDismiss={onDismissAppError} />}
     </>
   )
-}
-
-/** Refresh PR status on startup (once) and whenever an agent finishes work (working → idle). */
-function usePrAutoRefresh({ isLoading, sessions, refreshPrStatus, updatePrState }: {
-  isLoading: boolean
-  sessions: Session[]
-  refreshPrStatus: () => Promise<void>
-  updatePrState: (sessionId: string, prState: import('./features/git/branchStatus').PrState, prNumber?: number, prUrl?: string) => void
-}) {
-  const hasRefreshedOnStartup = useRef(false)
-  useEffect(() => {
-    if (!isLoading && sessions.length > 0 && !hasRefreshedOnStartup.current) {
-      hasRefreshedOnStartup.current = true
-      void refreshPrStatus()
-    }
-  }, [isLoading, sessions.length, refreshPrStatus])
-
-  // Derive a stable key from session unread states to avoid running on unrelated session changes
-  const unreadKey = useMemo(() => sessions.map(s => `${s.id}:${s.isUnread}`).join(','), [sessions])
-  const sessionsRef = useRef(sessions)
-  sessionsRef.current = sessions
-  const prevUnread = useRef<Record<string, boolean>>({})
-  useEffect(() => {
-    for (const session of sessionsRef.current) {
-      const wasUnread = prevUnread.current[session.id] ?? false
-      if (session.isUnread && !wasUnread) {
-        void window.gh.prStatus(session.directory).then((prResult) => {
-          if (prResult) {
-            updatePrState(session.id, prResult.state, prResult.number, prResult.url)
-          } else {
-            updatePrState(session.id, null)
-          }
-        }).catch(() => { /* ignore */ })
-      }
-      prevUnread.current[session.id] = session.isUnread
-    }
-  }, [unreadKey, updatePrState])
 }
 
 function AppContent() {
@@ -184,9 +134,8 @@ function AppContent() {
   } = useMemo(() => useSessionStore.getState(), [])
   const { agents, loadAgents } = useAgentStore()
   const { repos, loadRepos, loadError: repoLoadError, checkGhAvailability, checkGitAvailability } = useRepoStore()
-  const { currentProfileId, profiles, loadProfiles, switchProfile } = useProfileStore()
+  const { currentProfileId, loadProfiles, switchProfile } = useProfileStore()
   const { showHelpModal, setShowHelpModal, showShortcutsModal, setShowShortcutsModal } = useHelpMenu(currentProfileId)
-  const currentProfile = profiles.find((p) => p.id === currentProfileId)
   const activeSession = sessions.find((s) => s.id === activeSessionId)
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false)
   const [showPanelPicker, setShowPanelPicker] = useState(false)
@@ -215,8 +164,8 @@ function AppContent() {
     activeSession,
     activeSessionId: activeSessionId ?? null,
     currentProfileId,
-    currentProfile,
-    profiles,
+    currentProfile: undefined,
+    profiles: [],
     loadProfiles,
     loadSessions,
     loadAgents,
@@ -280,9 +229,6 @@ function AppContent() {
     setPanelVisibility, setToolbarPanels, closeCommandsEditor, repos,
   })
 
-  // Refresh PR status on startup and when agents finish work
-  usePrAutoRefresh({ isLoading, sessions, refreshPrStatus, updatePrState })
-
   if (isLoading) {
     return (
       <div className="h-screen w-screen bg-bg-primary flex items-center justify-center">
@@ -305,7 +251,6 @@ function AppContent() {
         onLayoutSizeChange={handleLayoutSizeChange}
         errorMessage={activeSession && !activeDirectoryExists ? `Folder not found: ${activeSession.directory}` : null}
         title={activeSession ? activeSession.name : undefined}
-        profileChip={<ProfileChip onSwitchProfile={handleSwitchProfile} />}
         activeSessionId={activeSessionId}
         onTogglePanel={handleTogglePanel}
         onToggleGlobalPanel={toggleGlobalPanel}

@@ -10,7 +10,7 @@ import { NewBranchView } from './NewBranchView'
 import { ExistingBranchView } from './ExistingBranchView'
 import { RepoSettingsView } from './RepoSettingsView'
 import { IssuesView } from './IssuesView'
-import { ReviewPrsView } from './ReviewPrsView'
+
 import { AgentPickerView } from './AgentPickerView'
 
 export function NewSessionDialog({ onComplete, onCancel, onStartBranch, onStartExistingBranch }: NewSessionDialogProps) {
@@ -92,7 +92,6 @@ export function NewSessionDialog({ onComplete, onCancel, onStartBranch, onStartE
             onExistingBranch={(repo) => setView({ type: 'existing-branch', repo })}
             onRepoSettings={(repo) => setView({ type: 'repo-settings', repo })}
             onIssues={(repo) => setView({ type: 'issues', repo })}
-            onReviewPrs={(repo) => setView({ type: 'review-prs', repo })}
             onOpenMain={(repo) => setView({ type: 'agent-picker', directory: `${repo.rootDir  }/main`, repoId: repo.id, repoName: repo.name })}
             onCancel={onCancel}
           />
@@ -138,13 +137,6 @@ export function NewSessionDialog({ onComplete, onCancel, onStartBranch, onStartE
             repo={view.repo}
             onBack={() => setView({ type: 'home' })}
             onSelectIssue={(issue) => setView({ type: 'new-branch', repo: view.repo, issue })}
-          />
-        )}
-        {view.type === 'review-prs' && (
-          <ReviewPrsView
-            repo={view.repo}
-            onBack={() => setView({ type: 'home' })}
-            onComplete={onComplete}
           />
         )}
         {view.type === 'agent-picker' && (

@@ -24,7 +24,7 @@ import { writeCrashLog, appendErrorLog } from './crashLog'
 import { disposePtyListenersForWindow, disposeAllPtyListeners } from './handlers/pty'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
-app.name = 'Broomy'
+app.name = 'OctoAgent'
 
 // Check if we're in development mode
 const isDev = process.env.ELECTRON_RENDERER_URL !== undefined
@@ -62,7 +62,7 @@ if (!isE2ETest) {
     try {
       appendErrorLog('main', error instanceof Error ? (error.stack ?? error.message) : String(error))
       writeCrashLog(error, 'main')
-      dialog.showErrorBox('Broomy crashed', error.message || String(error))
+      dialog.showErrorBox('OctoAgent crashed', error.message || String(error))
     } catch {
       // Best-effort — avoid infinite crash loops
     }
@@ -74,7 +74,7 @@ if (!isE2ETest) {
     try {
       appendErrorLog('main', reason instanceof Error ? (reason.stack ?? reason.message) : String(reason))
       writeCrashLog(reason, 'main')
-      dialog.showErrorBox('Broomy crashed', reason instanceof Error ? reason.message : String(reason))
+      dialog.showErrorBox('OctoAgent crashed', reason instanceof Error ? reason.message : String(reason))
     } catch {
       // Best-effort
     }
@@ -98,7 +98,7 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow(profileId?: string): BrowserWindow {
   const window = new BrowserWindow({
-    title: 'Broomy',
+    title: 'OctoAgent',
     width: 1400,
     height: 900,
     minWidth: 800,
@@ -334,7 +334,7 @@ async function checkForUpdatesFromMenu(): Promise<void> {
         })
       }
     } else {
-      void dialog.showMessageBox({ message: 'You are running the latest version of Broomy.' })
+      void dialog.showMessageBox({ message: 'You are running the latest version of OctoAgent.' })
     }
   } catch {
     void dialog.showMessageBox({ message: 'Could not check for updates. Please try again later.' })

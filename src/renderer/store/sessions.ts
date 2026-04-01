@@ -46,7 +46,7 @@ export interface LayoutSizes {
   tutorialPanelWidth: number
 }
 
-export type ExplorerFilter = 'files' | 'source-control' | 'search' | 'recent' | 'review'
+export type ExplorerFilter = 'files' | 'source-control' | 'search' | 'recent'
 
 // Panel visibility map type
 export type PanelVisibility = Record<string, boolean>

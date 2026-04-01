@@ -1,5 +1,5 @@
 {
-  "name": "Broomy",
+  "name": "OctoAgent",
   "version": "1.0.0",
   "description": "Multi-agent session manager for AI coding assistants",
   "author": "Rob Ennals <rob.ennals@gmail.com>",
@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.81",
+    "@anthropic-ai/sdk": "^0.81.0",
     "@monaco-editor/react": "^4.7.0",
     "@xterm/addon-canvas": "^0.7.0",
     "@xterm/addon-fit": "^0.10.0",
@@ -64,6 +65,7 @@
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "simple-git": "^3.22.0",
+    "ws": "^8.20.0",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
@@ -78,6 +80,7 @@
     "@types/path-browserify": "^1.0.3",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.16",

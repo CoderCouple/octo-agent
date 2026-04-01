@@ -12,7 +12,6 @@ function RepoRow({
   onNewBranch,
   onExistingBranch,
   onIssues,
-  onReviewPrs,
   onOpenMain,
   onRepoSettings,
 }: {
@@ -23,7 +22,6 @@ function RepoRow({
   onNewBranch: (repo: ManagedRepo) => void
   onExistingBranch: (repo: ManagedRepo) => void
   onIssues: (repo: ManagedRepo) => void
-  onReviewPrs: (repo: ManagedRepo) => void
   onOpenMain: (repo: ManagedRepo) => void
   onRepoSettings: (repo: ManagedRepo) => void
 }) {
@@ -49,11 +47,6 @@ function RepoRow({
             <u>I</u>ssues
           </button>
         )}
-        {ghAvailable && (
-          <button onClick={() => onReviewPrs(repo)} className="px-2 py-1 text-xs rounded bg-bg-tertiary hover:bg-purple-500/20 text-text-secondary hover:text-purple-400 transition-colors" title="Review pull requests">
-            <u>R</u>eview
-          </button>
-        )}
         <button onClick={() => onOpenMain(repo)} className="px-2 py-1 text-xs rounded bg-bg-tertiary hover:bg-accent/20 text-text-secondary hover:text-accent transition-colors" title="Open main branch">
           <u>O</u>pen
         </button>
@@ -70,12 +63,12 @@ function RepoRow({
 
 export function HomeView({
   onClone, onAddExistingRepo, onOpenFolder, onNewBranch, onExistingBranch,
-  onRepoSettings, onIssues, onReviewPrs, onOpenMain, onCancel,
+  onRepoSettings, onIssues, onOpenMain, onCancel,
 }: {
   onClone: () => void; onAddExistingRepo: () => void; onOpenFolder: () => void
   onNewBranch: (repo: ManagedRepo) => void; onExistingBranch: (repo: ManagedRepo) => void
   onRepoSettings: (repo: ManagedRepo) => void; onIssues: (repo: ManagedRepo) => void
-  onReviewPrs: (repo: ManagedRepo) => void; onOpenMain: (repo: ManagedRepo) => void
+  onOpenMain: (repo: ManagedRepo) => void
   onCancel: () => void
 }) {
   const { repos, ghAvailable } = useRepoStore()
@@ -106,7 +99,7 @@ export function HomeView({
       const repo = repos[focusedRepoIndex]
       const repoKeys = new Map<string, () => void>([
         ['n', () => onNewBranch(repo)], ['e', () => onExistingBranch(repo)], ['o', () => onOpenMain(repo)],
-        ...(ghAvailable ? [['i', () => onIssues(repo)] as const, ['r', () => onReviewPrs(repo)] as const] : []),
+        ...(ghAvailable ? [['i', () => onIssues(repo)] as const] : []),
       ])
       const repoAction = repoKeys.get(key)
       if (repoAction) { e.preventDefault(); e.stopImmediatePropagation(); repoAction() }
@@ -114,7 +107,7 @@ export function HomeView({
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [repos, focusedRepoIndex, ghAvailable, onClone, onAddExistingRepo, onOpenFolder, onNewBranch, onExistingBranch, onIssues, onReviewPrs, onOpenMain, onCancel])
+  }, [repos, focusedRepoIndex, ghAvailable, onClone, onAddExistingRepo, onOpenFolder, onNewBranch, onExistingBranch, onIssues, onOpenMain, onCancel])
 
   return (
     <>
@@ -141,7 +134,7 @@ export function HomeView({
             <h3 className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-2">Your Repositories</h3>
             <div className="space-y-1">
               {repos.map((repo, index) => (
-                <RepoRow key={repo.id} repo={repo} isFocused={index === focusedRepoIndex} ghAvailable={ghAvailable} onNewBranch={onNewBranch} onExistingBranch={onExistingBranch} onIssues={onIssues} onReviewPrs={onReviewPrs} onOpenMain={onOpenMain} onRepoSettings={onRepoSettings} />
+                <RepoRow key={repo.id} repo={repo} isFocused={index === focusedRepoIndex} ghAvailable={ghAvailable} onNewBranch={onNewBranch} onExistingBranch={onExistingBranch} onIssues={onIssues} onOpenMain={onOpenMain} onRepoSettings={onRepoSettings} />
               ))}
             </div>
           </div>

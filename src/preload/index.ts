@@ -17,7 +17,6 @@ export type { FileEntry, GitFileStatus, GitStatusResult, SearchResult, ManagedRe
 export type { PtyApi, DevcontainerReadyEvent } from './apis/pty'
 export type { FsApi } from './apis/fs'
 export type { GitApi } from './apis/git'
-export type { GhApi } from './apis/gh'
 export type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from './apis/config'
 export type { ShellApi, DialogApi, AppApi, UpdateApi, UpdateCheckResult, WindowControlsApi } from './apis/shell'
 export type { MenuApi, TsApi } from './apis/menu'
@@ -42,7 +41,6 @@ const helpApi: HelpApi = {
 import type { PtyApi } from './apis/pty'
 import type { FsApi } from './apis/fs'
 import type { GitApi } from './apis/git'
-import type { GhApi } from './apis/gh'
 import type { ConfigApi, ProfilesApi, AgentsApi, ReposApi } from './apis/config'
 import type { ShellApi, DialogApi, AppApi, UpdateApi, WindowControlsApi } from './apis/shell'
 import type { MenuApi, TsApi } from './apis/menu'
@@ -53,7 +51,6 @@ import type { AgentSdkApi } from './apis/agentSdk'
 import { ptyApi } from './apis/pty'
 import { fsApi } from './apis/fs'
 import { gitApi } from './apis/git'
-import { ghApi } from './apis/gh'
 import { configApi, profilesApi, agentsApi, reposApi } from './apis/config'
 import { shellApi, dialogApi, appApi, updateApi, windowControlsApi } from './apis/shell'
 import { menuApi, tsApi } from './apis/menu'
@@ -84,7 +81,6 @@ contextBridge.exposeInMainWorld('config', configApi)
 contextBridge.exposeInMainWorld('app', appApi)
 
 contextBridge.exposeInMainWorld('menu', menuApi)
-contextBridge.exposeInMainWorld('gh', ghApi)
 contextBridge.exposeInMainWorld('repos', reposApi)
 contextBridge.exposeInMainWorld('shell', shellApi)
 contextBridge.exposeInMainWorld('profiles', profilesApi)
@@ -106,7 +102,6 @@ declare global {
     app: AppApi
 
     menu: MenuApi
-    gh: GhApi
     repos: ReposApi
     shell: ShellApi
     profiles: ProfilesApi

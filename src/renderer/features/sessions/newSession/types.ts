@@ -11,7 +11,6 @@ export type View =
   | { type: 'existing-branch'; repo: ManagedRepo }
   | { type: 'repo-settings'; repo: ManagedRepo }
   | { type: 'issues'; repo: ManagedRepo }
-  | { type: 'review-prs'; repo: ManagedRepo }
   | { type: 'agent-picker'; directory: string; repoId?: string; repoName?: string }
 
 export interface NewSessionDialogProps {

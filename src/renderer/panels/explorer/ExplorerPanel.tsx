@@ -3,12 +3,12 @@
  */
 import { useCallback } from 'react'
 import type { ExplorerProps } from './types'
-import { FileTreeIcon, SourceControlIcon, SearchIcon, RecentIcon, ReviewIcon } from './icons'
+import { FileTreeIcon, SourceControlIcon, SearchIcon, RecentIcon } from './icons'
 import { FileTree } from './tabs/files/FileTree'
 import { SourceControl } from './tabs/source-control/SourceControl'
 import { SearchPanel } from './tabs/search/SearchPanel'
 import { RecentFiles } from './tabs/recent/RecentFiles'
-import ReviewPanel from './tabs/review/ReviewPanel'
+
 import { IssuePlanChip } from './IssuePlanChip'
 import { focusSearchInput } from '../../shared/utils/focusHelpers'
 import PanelErrorBoundary from '../../shared/components/PanelErrorBoundary'
@@ -64,7 +64,6 @@ export default function Explorer({
           <button onClick={() => onFilterChange('files')} className={tabBtnClass(filter === 'files')} title="Files"><FileTreeIcon /></button>
           <button onClick={() => { onFilterChange('search'); focusSearchInput() }} className={tabBtnClass(filter === 'search')} title="Search"><SearchIcon /></button>
           <button onClick={() => onFilterChange('recent')} className={tabBtnClass(filter === 'recent')} title="Recent Files"><RecentIcon /></button>
-          <button onClick={() => onFilterChange('review')} className={tabBtnClass(filter === 'review')} title="Review"><ReviewIcon /></button>
         </div>
       </div>
 
@@ -154,21 +153,6 @@ export default function Explorer({
           </PanelErrorBoundary>
         )}
 
-        {filter === 'review' && session && (
-          <PanelErrorBoundary name="Review">
-            <ReviewPanel
-              session={session}
-              repo={repo}
-              onSelectFile={(filePath, openInDiffMode, scrollToLine, diffBaseRef) => {
-                onFileSelect?.({ filePath, openInDiffMode, scrollToLine, diffBaseRef })
-              }}
-              gitStatus={gitStatus}
-              syncStatus={syncStatus}
-              branchStatus={branchStatus}
-              onGitStatusRefresh={onGitStatusRefresh}
-            />
-          </PanelErrorBoundary>
-        )}
       </div>
     </div>
   )

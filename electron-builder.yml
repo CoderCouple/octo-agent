@@ -1,5 +1,5 @@
-appId: com.broomy.app
-productName: Broomy
+appId: com.octoagent.app
+productName: OctoAgent
 directories:
   buildResources: build
 files:
