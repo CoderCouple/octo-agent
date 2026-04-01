@@ -25,7 +25,7 @@ export interface AgentSdkMessage {
   // For subagents
   parentToolUseId?: string | null
   // True while the message has been injected mid-turn but the agent hasn't
-  // finished processing it yet. Cleared when the turn completes (onDone).
+  // seen it yet. Cleared when the next agent message arrives (or on turn end).
   queued?: boolean
 }
 

@@ -45,12 +45,19 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       // Deduplicate by message ID (guards against double-delivery from
       // React strict mode re-registering IPC listeners)
       if (session.messages.some(m => m.id === msg.id)) return state
+      // When a new agent message arrives, clear queued flags on prior user
+      // messages — the agent has moved past them.
+      const isAgentMsg = !msg.id.startsWith('user-') && !msg.id.startsWith('history-')
+      const hasQueued = session.messages.some(m => m.queued)
+      const messages = (isAgentMsg && hasQueued)
+        ? session.messages.map(m => m.queued ? { ...m, queued: false } : m)
+        : session.messages
       return {
         sessions: {
           ...state.sessions,
           [sessionId]: {
             ...session,
-            messages: [...session.messages, msg],
+            messages: [...messages, msg],
           },
         },
       }
