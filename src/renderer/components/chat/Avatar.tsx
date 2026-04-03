@@ -33,7 +33,7 @@ export function Avatar({ characterId, character: charProp, size = 'md', statusDo
 
   if (!character) {
     return (
-      <div className={`${SIZE_MAP[size].box} rounded-lg bg-bg-tertiary flex items-center justify-center ${className}`}>
+      <div className={`${SIZE_MAP[size].box} rounded-full bg-bg-tertiary flex items-center justify-center ${className}`}>
         <span className={`${SIZE_MAP[size].text} text-text-secondary font-medium`}>?</span>
       </div>
     )
@@ -48,11 +48,11 @@ export function Avatar({ characterId, character: charProp, size = 'md', statusDo
           src={character.image}
           alt={character.name}
           title={character.name}
-          className={`${SIZE_MAP[size].box} rounded-lg object-cover`}
+          className={`${SIZE_MAP[size].box} rounded-full object-cover`}
         />
       ) : (
         <div
-          className={`${SIZE_MAP[size].box} rounded-lg flex items-center justify-center`}
+          className={`${SIZE_MAP[size].box} rounded-full flex items-center justify-center`}
           style={{ backgroundColor: character.color }}
           title={character.name}
         >

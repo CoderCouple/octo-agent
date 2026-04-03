@@ -191,33 +191,32 @@ export default memo(function SessionCard({
       <div className="flex items-start gap-2.5">
         {/* Avatar — group sessions show stacked circles, regular sessions show square */}
         {session.sessionType === 'group' ? (
-          <div className="w-20 h-20 flex-shrink-0 relative">
-            <div className="w-full h-full rounded-lg overflow-hidden bg-bg-tertiary flex items-center justify-center">
-              {/* 2x2 grid of member avatars inside the square */}
-              <div className="grid grid-cols-2 gap-0.5 p-1.5 w-full h-full">
-                {memberCharacters.slice(0, 4).map((mc) => {
-                  const mChar = mc.characterId ? getCharacterById(mc.characterId) : undefined
-                  return (
-                    <div
-                      key={mc.id}
-                      className="rounded flex items-center justify-center"
-                      style={{ backgroundColor: mChar?.color ?? '#666' }}
-                    >
-                      <span className="text-[10px] font-bold text-white">{mChar?.initials ?? '?'}</span>
-                    </div>
-                  )
-                })}
-                {memberCharacters.length > 4 && (
-                  <div className="rounded bg-bg-secondary flex items-center justify-center">
-                    <span className="text-[10px] font-medium text-text-secondary">+{memberCharacters.length - 4}</span>
-                  </div>
-                )}
+          <div className="flex -space-x-3 flex-shrink-0 items-center h-20">
+            {memberCharacters.slice(0, 3).map((mc, i) => {
+              const mChar = mc.characterId ? getCharacterById(mc.characterId) : undefined
+              return (
+                <div
+                  key={mc.id}
+                  className="w-10 h-10 rounded-full border-2 border-bg-primary flex items-center justify-center"
+                  style={{ backgroundColor: mChar?.color ?? '#666', zIndex: 3 - i }}
+                  title={mChar?.shortName ?? '?'}
+                >
+                  <span className="text-xs font-bold text-white">{mChar?.initials ?? '?'}</span>
+                </div>
+              )
+            })}
+            {memberCharacters.length > 3 && (
+              <div
+                className="w-10 h-10 rounded-full border-2 border-bg-primary bg-bg-tertiary flex items-center justify-center"
+                style={{ zIndex: 0 }}
+              >
+                <span className="text-xs font-medium text-text-secondary">+{memberCharacters.length - 3}</span>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <div className="w-20 h-20 flex-shrink-0 relative">
-            <div className="w-full h-full rounded-lg overflow-hidden flex items-center justify-center"
+            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center"
               style={{ backgroundColor: character?.color ?? 'var(--color-bg-tertiary)' }}
               title={character?.name}
             >

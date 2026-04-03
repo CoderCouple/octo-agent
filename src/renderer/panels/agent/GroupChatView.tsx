@@ -7,12 +7,17 @@
  * messages and bridges them into useChatStore so they appear in the chat.
  */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useSessionStore, type Session } from '../../store/sessions'
 import { useChatStore, type ChatMessage } from '../../store/chat'
 import { useGatewayStore } from '../../store/gateway'
 import { useAgentStore } from '../../store/agents'
 import { getCharacterById } from '../../data/narutoCharacters'
+import { createMarkdownComponents } from '../../shared/utils/markdownComponents'
 import { randomUUID } from '../../shared/utils/ids'
+
+const markdownComponents = createMarkdownComponents('compact')
 
 interface GroupChatViewProps {
   session: Session
@@ -267,7 +272,11 @@ export default function GroupChatView({ session }: GroupChatViewProps) {
                     {char.shortName}
                   </div>
                 )}
-                <div className="text-sm whitespace-pre-wrap break-words">{msg.text}</div>
+                <div className="text-sm break-words prose prose-invert prose-sm max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {msg.text}
+                  </ReactMarkdown>
+                </div>
                 <div className={`text-[10px] mt-1 ${isUser ? 'text-white/60' : 'text-text-secondary/60'}`}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
