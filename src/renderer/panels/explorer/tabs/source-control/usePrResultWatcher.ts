@@ -1,5 +1,5 @@
 /**
- * Watches `.broomy/output/pr-result.json` for creation/modification and triggers PR status updates.
+ * Watches `.octoagent/output/pr-result.json` for creation/modification and triggers PR status updates.
  */
 import { useEffect } from 'react'
 import type { PrState } from '../../../../store/sessions'
@@ -15,12 +15,12 @@ export function usePrResultWatcher({ directory, onUpdatePrState, setPrStatus }: 
   useEffect(() => {
     if (!directory) return
 
-    const outputDir = `${directory}/.broomy/output`
+    const outputDir = `${directory}/.octoagent/output`
     const prResultPath = `${outputDir}/pr-result.json`
     const watcherId = `pr-result-${directory}`
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-    // Ensure .broomy/output exists before watching — without the directory, fs.watch
+    // Ensure .octoagent/output exists before watching — without the directory, fs.watch
     // silently fails and never fires when the agent later creates pr-result.json.
     void window.fs.mkdir(outputDir).finally(() => {
       void window.fs.watch(watcherId, outputDir)

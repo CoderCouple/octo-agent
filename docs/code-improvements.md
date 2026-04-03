@@ -1,6 +1,6 @@
 # Code Quality Improvement Proposals
 
-Prioritized list of code quality improvements for the Broomy codebase. Each item includes the problem, current state, proposed solution, and expected benefit.
+Prioritized list of code quality improvements for the OctoAgent codebase. Each item includes the problem, current state, proposed solution, and expected benefit.
 
 ---
 
@@ -15,7 +15,7 @@ Prioritized list of code quality improvements for the Broomy codebase. Each item
 ```typescript
 // Lines 367-380: E2E mock session definitions mixed into main process file
 const E2E_DEMO_SESSIONS = isScreenshotMode ? [
-  { id: '1', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'broomy-e2e-backend-api')), agentId: 'claude' },
+  { id: '1', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-backend-api')), agentId: 'claude' },
   // ... 8 entries for screenshot mode, 3 for normal E2E
 ] : [ ... ]
 ```
@@ -365,7 +365,7 @@ Add `console.error` logging to all catch blocks that currently swallow errors si
 
 **Problem**: The review file poller creates IPC traffic with 1-second interval polling.
 
-**Current state**: In `src/renderer/components/review/useReviewFilePoller.ts`, a `setInterval` polls `.broomy/review.md` at 1-second intervals. The poller also resolves `<!-- include: path -->` directives, adding extra `fs:exists` and `fs:readFile` calls per include. The poller skips updates when content hasn't changed, but the IPC calls still happen.
+**Current state**: In `src/renderer/components/review/useReviewFilePoller.ts`, a `setInterval` polls `.octoagent/review.md` at 1-second intervals. The poller also resolves `<!-- include: path -->` directives, adding extra `fs:exists` and `fs:readFile` calls per include. The poller skips updates when content hasn't changed, but the IPC calls still happen.
 
 **Proposed solution**: Either:
 - Use a file watcher instead of polling (the infrastructure already exists in `fsCore.ts`)

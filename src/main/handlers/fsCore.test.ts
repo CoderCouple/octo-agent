@@ -47,6 +47,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
     dockerContainers: new Map(),
+    sessionPtyMap: new Map(),
     ...overrides,
   }
 }
@@ -177,7 +178,7 @@ describe('fsCore handlers', () => {
 
     it('returns screenshot review.json content in screenshot mode', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true, e2eScenario: E2EScenario.Marketing }))
-      const result = await handlers['fs:readFile'](null, '/tmp/broomy-review-abc123/review.json')
+      const result = await handlers['fs:readFile'](null, '/tmp/octoagent-review-abc123/review.json')
       const parsed = JSON.parse(result)
       expect(parsed.version).toBe(1)
       expect(parsed.prNumber).toBe(47)
@@ -186,7 +187,7 @@ describe('fsCore handlers', () => {
 
     it('returns empty comments array for screenshot comments.json', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true, e2eScenario: E2EScenario.Marketing }))
-      const result = await handlers['fs:readFile'](null, '/tmp/broomy-review-abc123/comments.json')
+      const result = await handlers['fs:readFile'](null, '/tmp/octoagent-review-abc123/comments.json')
       expect(result).toBe('[]')
     })
 
@@ -267,7 +268,7 @@ describe('fsCore handlers', () => {
   describe('fs:exists', () => {
     it('returns true for screenshot-mode review files', async () => {
       const handlers = setupHandlers(createMockCtx({ isE2ETest: true, e2eScenario: E2EScenario.Marketing }))
-      const result = await handlers['fs:exists'](null, '/tmp/broomy-review-abc/review.json')
+      const result = await handlers['fs:exists'](null, '/tmp/octoagent-review-abc/review.json')
       expect(result).toBe(true)
     })
 

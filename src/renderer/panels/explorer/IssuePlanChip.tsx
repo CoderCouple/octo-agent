@@ -24,7 +24,7 @@ export function IssuePlanChip({ directory, issuePlanExists, onFileSelect }: Issu
   return (
     <div className="px-3 py-1.5 border-b border-border">
       <button
-        onClick={() => onFileSelect?.({ filePath: `${directory}/.broomy/output/plan.md`, openInDiffMode: false })}
+        onClick={() => onFileSelect?.({ filePath: `${directory}/.octoagent/output/plan.md`, openInDiffMode: false })}
         className="inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors bg-bg-tertiary text-text-secondary hover:text-text-primary hover:bg-accent/20"
         title="Show issue plan"
       >

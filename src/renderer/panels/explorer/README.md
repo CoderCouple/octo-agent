@@ -12,7 +12,7 @@ Renders a tab bar with five tabs, each implemented as a separate module in `tabs
 - `tabs/source-control/` -- Git status, branch management, commit, push/pull, PR banners
 - `tabs/search/` -- File content search across the repository
 - `tabs/recent/` -- Recently opened files list
-- `tabs/review/` -- Markdown-based code review panel (.broomy/review.md)
+- `tabs/review/` -- Markdown-based code review panel (.octoagent/review.md)
 
 ## Adding a new tab
 

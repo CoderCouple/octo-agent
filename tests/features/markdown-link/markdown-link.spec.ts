@@ -37,7 +37,7 @@ test.afterAll(async () => {
       title: 'Markdown Links Open in External Browser',
       description:
         'Clicking a link in the markdown preview opens the URL in the default browser ' +
-        'instead of navigating the Electron window away from Broomy.',
+        'instead of navigating the Electron window away from OctoAgent.',
       steps,
     },
     FEATURE_DIR,
@@ -124,7 +124,7 @@ test.describe.serial('Feature: Markdown Links Open in External Browser', () => {
       screenshotPath: 'screenshots/03-app-intact.png',
       caption: 'App remains intact after clicking a link',
       description:
-        'After clicking the link, the Broomy UI is still fully visible and functional. ' +
+        'After clicking the link, the OctoAgent UI is still fully visible and functional. ' +
         'The link opens in the external browser instead of replacing the app window.',
     })
   })

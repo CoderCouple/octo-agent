@@ -234,8 +234,8 @@ const mockDevcontainer: Mocked<DevcontainerApi> = {
   resetContainer: vi.fn().mockResolvedValue(undefined),
 }
 
-// All Broomy-specific mocks to attach to window
-const broomyMocks = {
+// All OctoAgent-specific mocks to attach to window
+const octoagentMocks = {
   config: mockConfig,
   git: mockGit,
   app: mockApp,
@@ -259,15 +259,15 @@ const broomyMocks = {
 // If running in a DOM environment (jsdom/happy-dom), extend the existing window.
 // If running in node environment, create a minimal window mock.
 if (typeof globalThis.window !== 'undefined' && typeof globalThis.document !== 'undefined') {
-  // DOM environment — add Broomy APIs to the existing window
-  Object.assign(globalThis.window, broomyMocks)
+  // DOM environment — add OctoAgent APIs to the existing window
+  Object.assign(globalThis.window, octoagentMocks)
   // Always mock confirm so tests get a predictable stub
   ;(globalThis.window as unknown as Record<string, unknown>).confirm = vi.fn().mockReturnValue(true)
 } else {
   // Node environment — create a minimal window object
   Object.defineProperty(globalThis, 'window', {
     value: {
-      ...broomyMocks,
+      ...octoagentMocks,
       location: {
         search: '',
         href: 'http://localhost',

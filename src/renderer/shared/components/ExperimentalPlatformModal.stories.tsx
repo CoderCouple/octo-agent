@@ -18,7 +18,7 @@ function ExperimentalPlatformModalStatic({ platformName }: { platformName: strin
           </h3>
         </div>
         <p className="text-xs text-text-secondary mb-4 leading-relaxed">
-          Broomy on {platformName} is still experimental. You may encounter
+          OctoAgent on {platformName} is still experimental. You may encounter
           bugs or missing features. If you run into any issues, please let us
           know on GitHub.
         </p>

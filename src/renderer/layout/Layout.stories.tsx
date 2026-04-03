@@ -18,7 +18,6 @@ const defaultLayoutSizes = {
   fileViewerSize: 300,
   userTerminalHeight: 200,
   diffPanelWidth: 400,
-  tutorialPanelWidth: 300,
 }
 
 const mockPanels: Record<string, React.ReactNode> = {

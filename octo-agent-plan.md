@@ -4,23 +4,23 @@
 
  Context
 
- OctoAgent is a macOS desktop app for running multiple AI coding agents simultaneously. It's built by forking Broomy (MIT license), then layering on a WebSocket gateway, supervisor engine, WhatsApp-style chat, attention queue, phone push
+ OctoAgent is a macOS desktop app for running multiple AI coding agents simultaneously. It's built by forking OctoAgent (MIT license), then layering on a WebSocket gateway, supervisor engine, WhatsApp-style chat, attention queue, phone push
  decisions, agent-to-agent briefing, and session memory.
 
- The Broomy baseline provides: Electron + electron-vite, React + Tailwind + Zustand, node-pty + xterm.js terminal, Monaco file viewer, IPC handlers, panel system, and session management. We keep the terminal and file viewer untouched, delete
+ The OctoAgent baseline provides: Electron + electron-vite, React + Tailwind + Zustand, node-pty + xterm.js terminal, Monaco file viewer, IPC handlers, panel system, and session management. We keep the terminal and file viewer untouched, delete
  review/profile/GitHub features, and build the three-layer OctoAgent architecture on top.
 
  ---
  Phase 1: Fork, Clean, and Verify Baseline
 
- Goal: Clone Broomy, strip unwanted features, add deps, confirm it still runs.
+ Goal: Clone OctoAgent, strip unwanted features, add deps, confirm it still runs.
 
  Steps
 
- 1. Clone Broomy and set up remotes
- git clone https://github.com/broomy-ai/broomy.git /Users/suniltiwari/Desktop/octo-agent
+ 1. Clone OctoAgent and set up remotes
+ git clone https://github.com/octoagent/octoagent.git /Users/suniltiwari/Desktop/octo-agent
  cd /Users/suniltiwari/Desktop/octo-agent
- git remote rename origin broomy-upstream
+ git remote rename origin upstream
  pnpm install && pnpm dev  # verify baseline works
  2. Delete review-related files
    - src/renderer/panels/explorer/tabs/review/ (entire directory)
@@ -47,7 +47,7 @@
  7. Add dependencies
  pnpm add ws @anthropic-ai/sdk
  pnpm add -D @types/ws
- 8. Keep Broomy's MIT LICENSE file (legal requirement)
+ 8. Keep OctoAgent's MIT LICENSE file (legal requirement)
 
  Verify
 

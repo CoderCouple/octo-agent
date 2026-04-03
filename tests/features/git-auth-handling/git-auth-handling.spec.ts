@@ -1,7 +1,7 @@
 /**
  * Feature Documentation: Git Authentication Error Handling
  *
- * Shows how Broomy guides users through git authentication failures.
+ * Shows how OctoAgent guides users through git authentication failures.
  * When a push, pull, or clone fails due to missing credentials,
  * the UI shows a "Set up Git Authentication" button that opens an
  * inline terminal for `gh auth login`. This flow is available in
@@ -59,7 +59,7 @@ test.afterAll(async () => {
       title: 'Git Authentication Error Handling',
       description:
         'When git operations fail due to authentication issues (missing credentials, ' +
-        'terminal prompts disabled), Broomy shows a friendly "Set up Git Authentication" button ' +
+        'terminal prompts disabled), OctoAgent shows a friendly "Set up Git Authentication" button ' +
         'instead of a raw error. Clicking it opens an inline terminal to run `gh auth login`. ' +
         'When git identity (user.name/email) or merge mode is not configured, an inline form ' +
         'lets the user set these values. This guidance appears in the New Branch dialog, Clone dialog, and source control panel.',

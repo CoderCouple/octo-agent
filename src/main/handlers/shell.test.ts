@@ -55,6 +55,7 @@ function createCtx(overrides: Partial<HandlerContext> = {}): HandlerContext {
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
     dockerContainers: new Map(),
+    sessionPtyMap: new Map(),
     ...overrides,
   } as HandlerContext
 }
@@ -437,7 +438,7 @@ describe('shell handlers', () => {
       expect(result).toBe('configure-toolbar')
     })
 
-    it('resolves about when About Broomy is clicked', async () => {
+    it('resolves about when About OctoAgent is clicked', async () => {
       const { register } = await import('./shell')
       const mockWindow = { id: 1, webContents: { send: vi.fn() } }
       const ctx = createCtx({ mainWindow: mockWindow as never })
@@ -450,7 +451,7 @@ describe('shell handlers', () => {
         capturedTemplate = template
         return {
           popup: () => {
-            const aboutItem = capturedTemplate.find(item => item.label === 'About Broomy')
+            const aboutItem = capturedTemplate.find(item => item.label === 'About OctoAgent')
             aboutItem?.click?.()
           },
         }
@@ -554,7 +555,7 @@ describe('shell handlers', () => {
       })
 
       const result = await handlers['menu:appMenuPopup'](mockEvent)
-      expect(mockShellOpenExternal).toHaveBeenCalledWith('https://github.com/Broomy-AI/broomy/issues')
+      expect(mockShellOpenExternal).toHaveBeenCalledWith('https://github.com/octoagent/octoagent/issues')
       expect(result).toBeNull()
     })
 

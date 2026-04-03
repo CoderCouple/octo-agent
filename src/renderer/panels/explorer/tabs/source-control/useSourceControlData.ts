@@ -41,8 +41,8 @@ function usePrEffects(config: PrEffectsConfig) {
         setPrRefreshKey(k => k + 1)
       }
     }
-    document.addEventListener('broomy:agent-finished', handler)
-    return () => document.removeEventListener('broomy:agent-finished', handler)
+    document.addEventListener('octoagent:agent-finished', handler)
+    return () => document.removeEventListener('octoagent:agent-finished', handler)
   }, [directory])
 
   // Fetch PR status, write access, and checks when source control is active

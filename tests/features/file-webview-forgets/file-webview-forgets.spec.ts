@@ -121,10 +121,10 @@ test.describe.serial('Feature: Webview Preserved Across Session Switches', () =>
   })
 
   test('Step 3: Switch back — webview is preserved', async () => {
-    // Switch back to the broomy session
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Switch back to the octoagent session
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // The file viewer should still show the webview with the URL
     const fileViewer = page.locator('[data-panel-id="fileViewer"]')
@@ -144,7 +144,7 @@ test.describe.serial('Feature: Webview Preserved Across Session Switches', () =>
       screenshotPath: 'screenshots/03-webview-preserved.png',
       caption: 'Webview preserved after switching back',
       description:
-        'After switching back to the broomy session, the webview is still showing the web page. ' +
+        'After switching back to the octoagent session, the webview is still showing the web page. ' +
         'The URL bar still displays example.com and the page content is intact. ' +
         'Previously, this would have shown a blank viewer or tried to load the URL as a file.',
     })
@@ -169,8 +169,8 @@ test.describe.serial('Feature: Webview Preserved Across Session Switches', () =>
     expect(hiddenCount).toBe(0)
 
     // Clean up: switch back and close file viewer
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
     await page.keyboard.press('Meta+3')
     await page.keyboard.press('Meta+3')
     await expect(fileViewerPanel).not.toBeVisible()

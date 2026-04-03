@@ -165,8 +165,8 @@ test.describe('Settings Panel', () => {
     await expect(settingsPanel).toBeVisible()
 
     // Switch back and close
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
     await settingsBtn.click()
   })
 })

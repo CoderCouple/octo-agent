@@ -31,7 +31,7 @@ describe('ExperimentalPlatformModal', () => {
     await waitFor(() => {
       expect(screen.getByText('Windows Support')).toBeTruthy()
     })
-    expect(screen.getByText(/Broomy on Windows is still experimental/)).toBeTruthy()
+    expect(screen.getByText(/OctoAgent on Windows is still experimental/)).toBeTruthy()
     expect(screen.getByText('Got it')).toBeTruthy()
     expect(screen.getByText('Report an issue')).toBeTruthy()
   })
@@ -42,7 +42,7 @@ describe('ExperimentalPlatformModal', () => {
     await waitFor(() => {
       expect(screen.getByText('Linux Support')).toBeTruthy()
     })
-    expect(screen.getByText(/Broomy on Linux is still experimental/)).toBeTruthy()
+    expect(screen.getByText(/OctoAgent on Linux is still experimental/)).toBeTruthy()
   })
 
   it('dismisses the modal and sets sessionStorage on Got it click', async () => {
@@ -54,13 +54,13 @@ describe('ExperimentalPlatformModal', () => {
 
     fireEvent.click(screen.getByText('Got it'))
 
-    expect(sessionStorage.getItem('broomy:experimental-platform-dismissed')).toBe('1')
+    expect(sessionStorage.getItem('octoagent:experimental-platform-dismissed')).toBe('1')
     // Modal should be gone
     expect(screen.queryByText('Windows Support')).toBeNull()
   })
 
   it('does not show modal when already dismissed in sessionStorage', async () => {
-    sessionStorage.setItem('broomy:experimental-platform-dismissed', '1')
+    sessionStorage.setItem('octoagent:experimental-platform-dismissed', '1')
     vi.mocked(window.app.platform).mockResolvedValue('win32')
     const { container } = render(<ExperimentalPlatformModal />)
     // Give it time to potentially render
@@ -79,6 +79,6 @@ describe('ExperimentalPlatformModal', () => {
 
     fireEvent.click(screen.getByText('Report an issue'))
 
-    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/Broomy-AI/broomy/issues')
+    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/octoagent/octoagent/issues')
   })
 })

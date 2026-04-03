@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 
-const DISMISSED_KEY = 'broomy:experimental-platform-dismissed'
+const DISMISSED_KEY = 'octoagent:experimental-platform-dismissed'
 
 export default function ExperimentalPlatformModal() {
   const [platformName, setPlatformName] = useState<string | null>(null)
@@ -36,13 +36,13 @@ export default function ExperimentalPlatformModal() {
           </h3>
         </div>
         <p className="text-xs text-text-secondary mb-4 leading-relaxed">
-          Broomy on {platformName} is still experimental. You may encounter
+          OctoAgent on {platformName} is still experimental. You may encounter
           bugs or missing features. If you run into any issues, please let us
           know on GitHub.
         </p>
         <div className="flex items-center justify-between">
           <button
-            onClick={() => window.shell.openExternal('https://github.com/Broomy-AI/broomy/issues')}
+            onClick={() => window.shell.openExternal('https://github.com/octoagent/octoagent/issues')}
             className="text-xs text-accent hover:underline"
           >
             Report an issue

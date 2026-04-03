@@ -3,7 +3,9 @@
  */
 import { ReactNode } from 'react'
 import VersionIndicator from './VersionIndicator'
+
 import type { PanelDefinition } from '../panels'
+import octoagentLogo from '../assets/octoagent-logo.png'
 
 // Detect platform for keyboard shortcut display
 const isMac = navigator.userAgent.includes('Mac')
@@ -52,7 +54,9 @@ export default function LayoutToolbar({
         className={`flex items-center gap-2 ${isMac ? 'pl-16' : 'pl-2'}`}
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <span className="text-sm font-medium text-text-primary" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>{title || 'Broomy'}</span>
+        <div className="flex items-center" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+          <img src={octoagentLogo} alt="OctoAgent" className="h-7" draggable={false} />
+        </div>
         {isDev && (
           <span
             className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"

@@ -13,13 +13,13 @@ Generate human-readable release notes from commits since the last release.
 5. **Categorize and write release notes.** Create `release-notes.md` in the project root with the following structure:
 
 ```markdown
-# Broomy vX.Y.Z
+# OctoAgent vX.Y.Z
 
 One-sentence summary of the release theme (what's the headline?).
 
 ## What's New
 
-- **Feature name** — One or two sentences explaining what it does and why it matters to the user. Write as if explaining to someone who uses Broomy daily but doesn't read code.
+- **Feature name** — One or two sentences explaining what it does and why it matters to the user. Write as if explaining to someone who uses OctoAgent daily but doesn't read code.
 
 ## Improvements
 

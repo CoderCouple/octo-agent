@@ -59,6 +59,11 @@ export function useSessionLifecycle({
       const results: Record<string, boolean> = {}
       for (const session of activeSessions) {
         if (session.status === 'initializing') continue
+        // Group sessions have no directory — always treat as existing
+        if (session.sessionType === 'group') {
+          results[session.id] = true
+          continue
+        }
         results[session.id] = await window.fs.exists(session.directory)
       }
       setDirectoryExists(results)

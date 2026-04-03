@@ -33,7 +33,12 @@ export function getClientCount(): number {
 export function sendTo(clientId: string, frame: WSFrame): void {
   const ws = clients.get(clientId)
   if (ws && ws.readyState === ws.OPEN) {
-    ws.send(JSON.stringify(frame))
+    try {
+      ws.send(JSON.stringify(frame))
+    } catch {
+      // Socket closed mid-send (EPIPE) — remove the dead client
+      removeClient(clientId)
+    }
   }
 }
 
@@ -49,9 +54,13 @@ export function broadcastToSession(sessionId: string, frame: WSFrame): void {
 /** Broadcast a frame to ALL connected clients (e.g. heartbeat). */
 export function broadcastAll(frame: WSFrame): void {
   const data = JSON.stringify(frame)
-  for (const [, ws] of clients) {
+  for (const [clientId, ws] of clients) {
     if (ws.readyState === ws.OPEN) {
-      ws.send(data)
+      try {
+        ws.send(data)
+      } catch {
+        removeClient(clientId)
+      }
     }
   }
 }

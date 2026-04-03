@@ -40,7 +40,7 @@ function check(label, fn) {
 }
 
 async function main() {
-  console.log(bold('\nBroomy dev preflight checks\n'))
+  console.log(bold('\nOctoAgent dev preflight checks\n'))
   let needsAction = false
 
   // 1. Check node_modules exists

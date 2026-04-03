@@ -1,10 +1,10 @@
 /**
- * Watches for the existence of a `.broomy/output/plan.md` file in a session's directory.
+ * Watches for the existence of a `.octoagent/output/plan.md` file in a session's directory.
  */
 import { useState, useEffect } from 'react'
 
 /**
- * Watches for the existence of `.broomy/output/plan.md` in a session's directory.
+ * Watches for the existence of `.octoagent/output/plan.md` in a session's directory.
  * Checks on mount and watches the parent directory for changes.
  */
 export function useIssuePlanDetection(
@@ -19,8 +19,8 @@ export function useIssuePlanDetection(
       return
     }
 
-    const planPath = `${directory}/.broomy/output/plan.md`
-    const watchDir = `${directory}/.broomy/output`
+    const planPath = `${directory}/.octoagent/output/plan.md`
+    const watchDir = `${directory}/.octoagent/output`
     const watcherId = `issue-plan-${sessionId}`
 
     // Initial check

@@ -33,7 +33,7 @@ describe('useIssuePlanDetection', () => {
     })
 
     expect(result!.current).toBe(true)
-    expect(window.fs.exists).toHaveBeenCalledWith('/repos/project/.broomy/output/plan.md')
+    expect(window.fs.exists).toHaveBeenCalledWith('/repos/project/.octoagent/output/plan.md')
   })
 
   it('sets up a file watcher on the output directory', () => {
@@ -41,7 +41,7 @@ describe('useIssuePlanDetection', () => {
 
     renderHook(() => useIssuePlanDetection('session-1', '/repos/project'))
 
-    expect(window.fs.watch).toHaveBeenCalledWith('issue-plan-session-1', '/repos/project/.broomy/output')
+    expect(window.fs.watch).toHaveBeenCalledWith('issue-plan-session-1', '/repos/project/.octoagent/output')
     expect(window.fs.onChange).toHaveBeenCalledWith('issue-plan-session-1', expect.any(Function))
   })
 

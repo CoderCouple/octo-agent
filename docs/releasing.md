@@ -1,4 +1,4 @@
-# Releasing Broomy
+# Releasing OctoAgent
 
 Step-by-step guide for building, signing, and publishing a release for macOS, Windows, and Linux.
 
@@ -149,7 +149,7 @@ security find-identity -v -p codesigning
 1. Go to [appleid.apple.com](https://appleid.apple.com/)
 2. Sign in with the **Developer account**
 3. Go to **Sign-In and Security > App-Specific Passwords**
-4. Generate a password named "Broomy Notarization"
+4. Generate a password named "OctoAgent Notarization"
 
 #### 3. Store Credentials
 
@@ -166,7 +166,7 @@ APPLE_TEAM_ID="XXXXXXXXXX"
 Alternatively, store notarization credentials in the macOS keychain:
 
 ```bash
-xcrun notarytool store-credentials "broomy-notarize" \
+xcrun notarytool store-credentials "octoagent-notarize" \
   --apple-id "developer@example.com" \
   --team-id "XXXXXXXXXX" \
   --password "xxxx-xxxx-xxxx-xxxx"
@@ -208,7 +208,7 @@ pnpm dist:all                 # macOS signed, Windows + Linux unsigned
 # 5. Verify artifacts look correct, then push and publish
 git push && git push --tags
 gh release create v1.2.3 dist/*.dmg dist/*.zip dist/*.exe dist/*.AppImage dist/*.deb dist/*.yml \
-  --title "Broomy v1.2.3" \
+  --title "OctoAgent v1.2.3" \
   --notes-file release-notes.md
 ```
 
@@ -254,8 +254,8 @@ Notarization typically takes 2-10 minutes. electron-builder waits automatically.
 #### Verifying a macOS release artifact
 
 ```bash
-codesign --verify --deep --strict --verbose=2 dist/mac-arm64/Broomy.app
-spctl --assess --type execute --verbose dist/mac-arm64/Broomy.app
+codesign --verify --deep --strict --verbose=2 dist/mac-arm64/OctoAgent.app
+spctl --assess --type execute --verbose dist/mac-arm64/OctoAgent.app
 spctl --assess --type open --context context:primary-signature dist/*.dmg
 ```
 

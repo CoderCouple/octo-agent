@@ -15,17 +15,17 @@ describe('usePrResultWatcher', () => {
     setPrStatus: vi.fn(),
   }
 
-  it('ensures .broomy/output exists and sets up watcher', async () => {
+  it('ensures .octoagent/output exists and sets up watcher', async () => {
     renderHook(() => usePrResultWatcher(defaultConfig))
 
     // mkdir is called first to ensure the directory exists
-    expect(window.fs.mkdir).toHaveBeenCalledWith('/repos/project/.broomy/output')
+    expect(window.fs.mkdir).toHaveBeenCalledWith('/repos/project/.octoagent/output')
 
     // After mkdir resolves, watch is set up
     await vi.waitFor(() => {
       expect(window.fs.watch).toHaveBeenCalledWith(
         'pr-result-/repos/project',
-        '/repos/project/.broomy/output',
+        '/repos/project/.octoagent/output',
       )
     })
     expect(window.fs.onChange).toHaveBeenCalledWith(
@@ -93,7 +93,7 @@ describe('usePrResultWatcher', () => {
     // Let async work complete
     await vi.runAllTimersAsync()
 
-    expect(window.fs.readFile).toHaveBeenCalledWith('/repos/project/.broomy/output/pr-result.json')
+    expect(window.fs.readFile).toHaveBeenCalledWith('/repos/project/.octoagent/output/pr-result.json')
     expect(defaultConfig.onUpdatePrState).toHaveBeenCalledWith('OPEN', 42, 'https://github.com/pr/42')
     expect(window.gh.prStatus).toHaveBeenCalledWith('/repos/project')
     expect(defaultConfig.setPrStatus).toHaveBeenCalledWith({
@@ -197,7 +197,7 @@ describe('usePrResultWatcher', () => {
     await vi.waitFor(() => {
       expect(window.fs.watch).toHaveBeenCalledWith(
         'pr-result-/repos/other',
-        '/repos/other/.broomy/output',
+        '/repos/other/.octoagent/output',
       )
     })
   })

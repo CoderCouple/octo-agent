@@ -12,6 +12,7 @@ const DEFAULT_LAYOUT_SIZES: LayoutSizes = {
   userTerminalHeight: 200,
   diffPanelWidth: 400,
   tutorialPanelWidth: 300,
+  chatPanelWidth: 420,
 }
 
 const DEFAULT_TERMINAL_TABS: TerminalTabsState = {

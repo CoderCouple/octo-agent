@@ -66,10 +66,10 @@ async function openExplorer() {
 
 test.describe.serial('Feature: Per-Session File Editor', () => {
   test('Step 1: Open a file in the first session', async () => {
-    // Ensure we're on the first session (broomy)
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).toBeVisible()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Ensure we're on the first session (octoagent)
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).toBeVisible()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Open explorer and click README.md to open file viewer
     const explorerPanel = await openExplorer()
@@ -90,9 +90,9 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     )
     steps.push({
       screenshotPath: 'screenshots/01-session-a-file-open.png',
-      caption: 'README.md opened in the broomy session',
+      caption: 'README.md opened in the octoagent session',
       description:
-        'The file viewer shows README.md content for the "broomy" session. ' +
+        'The file viewer shows README.md content for the "octoagent" session. ' +
         'The explorer panel on the left shows the file tree, and the file viewer ' +
         'displays the file content above the terminal.',
     })
@@ -124,7 +124,7 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
     })
     steps.push({
       screenshotPath: 'screenshots/02-session-a-dirty.png',
-      caption: 'Unsaved edit in the broomy session file editor',
+      caption: 'Unsaved edit in the octoagent session file editor',
       description:
         'After typing in the Monaco editor, the file is marked as dirty. ' +
         'The toolbar shows the modified indicator and a Save button appears. ' +
@@ -154,7 +154,7 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
       caption: 'Switched to backend-api without a save dialog',
       description:
         'Clicking "backend-api" switches sessions immediately. No "Unsaved Changes" ' +
-        'dialog appears — the dirty state in the broomy session is preserved silently ' +
+        'dialog appears — the dirty state in the octoagent session is preserved silently ' +
         'because each session has its own independent file editor instance.',
     })
   })
@@ -180,16 +180,16 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
       caption: 'README.md opened independently in backend-api session',
       description:
         'The backend-api session has its own file viewer showing README.md. ' +
-        'This is a separate instance — edits here do not affect the broomy session\'s editor.',
+        'This is a separate instance — edits here do not affect the octoagent session\'s editor.',
     })
   })
 
   test('Step 5: Switch back — unsaved edits are preserved', async () => {
-    // Switch back to broomy
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
+    // Switch back to octoagent
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
 
-    await expect(broomySession).toHaveClass(/bg-accent/, { timeout: 10000 })
+    await expect(octoagentSession).toHaveClass(/bg-accent/, { timeout: 10000 })
 
     // No save dialog
     const saveDialog = page.locator('text="Unsaved Changes"')
@@ -216,7 +216,7 @@ test.describe.serial('Feature: Per-Session File Editor', () => {
       screenshotPath: 'screenshots/05-session-a-edit-preserved.png',
       caption: 'Unsaved edits preserved after switching back',
       description:
-        'After switching back to the "broomy" session, the file editor still shows ' +
+        'After switching back to the "octoagent" session, the file editor still shows ' +
         'our unsaved edit (UNSAVED_EDIT text). The dirty indicator remains in the toolbar. ' +
         'Each session\'s file editor instance stays mounted (hidden via CSS) when inactive, ' +
         'preserving all state including cursor position, scroll position, and unsaved changes.',

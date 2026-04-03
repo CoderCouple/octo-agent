@@ -53,8 +53,8 @@ test.describe.serial('Feature: Session Switching', () => {
     await expect(sidebar).toBeVisible()
 
     // Verify multiple sessions exist
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).toBeVisible()
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).toBeVisible()
     const backendSession = page.locator('.cursor-pointer:has-text("backend-api")')
     await expect(backendSession).toBeVisible()
 
@@ -71,9 +71,9 @@ test.describe.serial('Feature: Session Switching', () => {
   })
 
   test('Step 2: First session is selected — terminal visible', async () => {
-    // The first session (broomy) should be selected by default
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // The first session (octoagent) should be selected by default
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Terminal pane should be visible for the active session
     const terminalArea = page.locator('.xterm').first()
@@ -96,9 +96,9 @@ test.describe.serial('Feature: Session Switching', () => {
     await expect(backendSession).toHaveClass(/bg-accent\/15/)
 
     // Previous session should no longer be highlighted
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    const broomyClasses = await broomySession.getAttribute('class')
-    expect(broomyClasses).not.toContain('bg-accent/15')
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    const octoagentClasses = await octoagentSession.getAttribute('class')
+    expect(octoagentClasses).not.toContain('bg-accent/15')
 
     const sidebar = page.locator('[data-panel-id="sidebar"]')
     await screenshotElement(page, sidebar, path.join(SCREENSHOTS, '03-switched-session.png'), {
@@ -108,17 +108,17 @@ test.describe.serial('Feature: Session Switching', () => {
       screenshotPath: 'screenshots/03-switched-session.png',
       caption: 'After clicking backend-api, it becomes the active session',
       description:
-        'The highlight has moved from "broomy" to "backend-api". ' +
+        'The highlight has moved from "octoagent" to "backend-api". ' +
         'The terminal area now shows the backend-api agent terminal.',
     })
   })
 
   test('Step 4: Switch back — terminal state preserved', async () => {
-    // Switch back to broomy
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
+    // Switch back to octoagent
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
 
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Terminal pane should still be visible after switching back
     const terminalArea = page.locator('.xterm').first()
@@ -129,7 +129,7 @@ test.describe.serial('Feature: Session Switching', () => {
       screenshotPath: 'screenshots/04-preserved-terminal.png',
       caption: 'Switching back preserves terminal state',
       description:
-        'After switching back to the "broomy" session, its terminal pane is still present. ' +
+        'After switching back to the "octoagent" session, its terminal pane is still present. ' +
         'Terminal state is preserved across session switches.',
     })
   })

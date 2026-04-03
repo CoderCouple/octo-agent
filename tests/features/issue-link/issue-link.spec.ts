@@ -148,11 +148,11 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
   })
 
   test('Step 4: Source control shows issue link (no PR yet)', async () => {
-    // The first session (broomy) is on main branch → prStatus returns null
+    // The first session (octoagent) is on main branch → prStatus returns null
     // It has issueNumber: 42, issueTitle, issueUrl set → should show issue link
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).toBeVisible()
-    await broomySession.click()
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).toBeVisible()
+    await octoagentSession.click()
 
     await openSourceControl(page)
 
@@ -171,7 +171,7 @@ test.describe.serial('Feature: Issue Link in Source Control', () => {
       screenshotPath: 'screenshots/04-issue-link-no-pr.png',
       caption: 'Issue link with title shown when no PR exists',
       description:
-        'The "broomy" session was created from issue #42 "Add user authentication". Since no PR ' +
+        'The "octoagent" session was created from issue #42 "Add user authentication". Since no PR ' +
         'has been opened yet, the source control banner displays an ISSUE badge with a clickable ' +
         'link showing the issue number and title.',
     })

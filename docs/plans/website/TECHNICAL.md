@@ -135,10 +135,10 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
 export const metadata = {
-  title: 'Broomy — Command center for AI coding agents',
+  title: 'OctoAgent — Command center for AI coding agents',
   description: 'Manage multiple AI coding sessions across repositories. Open source desktop app for developers.',
   openGraph: {
-    title: 'Broomy — Command center for AI coding agents',
+    title: 'OctoAgent — Command center for AI coding agents',
     description: 'Manage multiple AI coding sessions across repositories.',
     images: ['/screenshots/hero.png'],
   },
@@ -175,7 +175,7 @@ export default function Home() {
         title="See every agent at a glance"
         description="Status indicators show which agents are working, which are idle, and which need your attention. Switch between sessions instantly."
         screenshot="/screenshots/sidebar.png"
-        alt="Broomy sidebar showing multiple AI agent sessions with status indicators"
+        alt="OctoAgent sidebar showing multiple AI agent sessions with status indicators"
         direction="left"
       />
       {/* ... more FeatureSections ... */}
@@ -200,7 +200,7 @@ export default function Home() {
 ### `DownloadButton.tsx`
 - Prominent white button with Apple logo icon
 - Text: "Download for macOS" with smaller "Apple Silicon · v1.0.0" subtitle
-- Links to GitHub Releases (e.g., `https://github.com/broomy-ai/broomy/releases/latest`)
+- Links to GitHub Releases (e.g., `https://github.com/octoagent-ai/octoagent/releases/latest`)
 - Sticky/floating version also appears in the nav bar on scroll
 
 ### `FeatureSection.tsx`
@@ -241,7 +241,7 @@ For v1, GitHub Releases is the right choice — it's standard for open source pr
 
 ### Nav bar
 A thin, fixed nav bar appears on scroll with:
-- "Broomy" logo/text (left)
+- "OctoAgent" logo/text (left)
 - "Download" button (right) — always accessible
 
 ## Deployment
@@ -260,12 +260,12 @@ Install Command: npm install   (website has its own package.json)
 
 ### Environment Variables (Vercel)
 ```
-NEXT_PUBLIC_GITHUB_REPO=broomy-ai/broomy
+NEXT_PUBLIC_GITHUB_REPO=octoagent-ai/octoagent
 NEXT_PUBLIC_APP_VERSION=1.0.0
 ```
 
 ### Domain
-Set up a custom domain (e.g., `broomy.dev` or `getbroomy.com`) in Vercel's dashboard.
+Set up a custom domain (e.g., `octoagent.dev` or `getoctoagent.com`) in Vercel's dashboard.
 
 ### Automatic Deployments
 - Every push to `main` triggers a production deploy

@@ -98,17 +98,17 @@ async function handleAppendFile(ctx: HandlerContext, filePath: string, content: 
 async function handleExists(ctx: HandlerContext, filePath: string) {
   if (ctx.isE2ETest) {
     // Check if scenario has marketing review files in tmp dir
-    if (getScenarioData(ctx.e2eScenario).hasMarketingReviewFiles && /\/tmp\/broomy-review-[^/]+\/(review|comments)\.json$/.exec(filePath)) {
+    if (getScenarioData(ctx.e2eScenario).hasMarketingReviewFiles && /\/tmp\/octoagent-review-[^/]+\/(review|comments)\.json$/.exec(filePath)) {
       return true
     }
     // Review/comments files always exist for mock data in any scenario
-    if (/\.broomy[/\\]output[/\\](review|comments)\.json$/.exec(filePath)) {
+    if (/\.(broomy|octoagent)[/\\]output[/\\](review|comments)\.json$/.exec(filePath)) {
       return true
     }
-    if (/\.broomy[/\\](output[/\\])?review\.md$/.exec(filePath)) {
+    if (/\.(broomy|octoagent)[/\\](output[/\\])?review\.md$/.exec(filePath)) {
       return true
     }
-    if (/\.broomy[/\\]commands\.json$/.exec(filePath)) {
+    if (/\.(broomy|octoagent)[/\\]commands\.json$/.exec(filePath)) {
       return true
     }
     // Fall through to real fs for other paths (e.g. .git directory checks)

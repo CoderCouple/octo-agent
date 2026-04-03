@@ -36,7 +36,6 @@ describe('useLayoutClamp', () => {
     fileViewerSize: 300,
     userTerminalHeight: 200,
     diffPanelWidth: 400,
-    tutorialPanelWidth: 300,
   }
 
   function makeRef(width = 1200): { current: HTMLDivElement } {
@@ -143,7 +142,6 @@ describe('useLayoutClamp', () => {
 
   it('shrinks explorer after tutorial is at minimum', () => {
     // Tutorial already at minimum
-    const layoutSizes = { ...defaultLayoutSizes, tutorialPanelWidth: TUTORIAL_MIN }
     // Total = 600, sidebar=200, explorer=250, tutorial=TUTORIAL_MIN → need shrink
     const ref = makeRef(600)
     const onLayoutSizeChange = vi.fn()
@@ -171,7 +169,6 @@ describe('useLayoutClamp', () => {
     const layoutSizes = {
       ...defaultLayoutSizes,
       explorerWidth: EXPLORER_MIN,
-      tutorialPanelWidth: TUTORIAL_MIN,
     }
     // Total small enough that sidebar needs shrinking
     // 3 visible panels = 3 dividers × 6px = 18px

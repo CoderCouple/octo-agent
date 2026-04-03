@@ -63,6 +63,8 @@ export type WSEventName =
   | 'heartbeat'
   | 'memoryUpdate'
   | 'report'
+  | 'autoRuleSuggestion'
+  | 'peerMessage'
 
 export interface WSFrame {
   type: WSFrameType
@@ -85,6 +87,26 @@ export interface Persona {
   allowedTools?: string[]
   allowedPaths?: string[]
   systemPrompt?: string
+}
+
+// ─── Auto-Rules ─────────────────────────────────────────────────
+export interface AutoRule {
+  id: string
+  /** Pattern to match: tool name, file glob, or prompt regex */
+  pattern: string
+  patternType: 'toolName' | 'filePath' | 'prompt'
+  /** The resolution to apply automatically */
+  resolution: string
+  /** How many times this has been applied */
+  hitCount: number
+  createdAt: number
+}
+
+// ─── Push Notification Config ───────────────────────────────────
+export interface PushConfig {
+  /** Webhook URL to POST push payloads to (e.g. Cloudflare Worker → APNs) */
+  webhookUrl?: string
+  enabled: boolean
 }
 
 // ─── Session Metadata (supervisor) ───────────────────────────────

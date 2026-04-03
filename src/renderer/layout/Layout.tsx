@@ -106,6 +106,7 @@ export default function Layout({
   const showExplorer = isPanelVisible(PANEL_IDS.EXPLORER)
   const showFileViewer = isPanelVisible(PANEL_IDS.FILE_VIEWER)
   const showAgent = isPanelVisible(PANEL_IDS.AGENT)
+
   const showSettings = isPanelVisible(PANEL_IDS.SETTINGS)
   const showTutorial = isPanelVisible(PANEL_IDS.TUTORIAL)
   const handleToggle = useCallback((panelId: string) => {

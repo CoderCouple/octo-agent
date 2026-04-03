@@ -61,7 +61,6 @@ describe('useSessionStore', () => {
         fileViewerSize: 300,
         userTerminalHeight: 192,
         diffPanelWidth: 320,
-        tutorialPanelWidth: 320,
       },
       explorerFilter: 'files' as const,
       lastMessage: null,
@@ -531,7 +530,7 @@ describe('useSessionStore', () => {
       expect(useSessionStore.getState().sessions[0].isUnread).toBe(true)
     })
 
-    it('dispatches broomy:agent-finished event when agent finishes work', () => {
+    it('dispatches octoagent:agent-finished event when agent finishes work', () => {
       const s1 = createTestSession({ id: 's1' })
       useSessionStore.setState({ sessions: [s1], isLoading: false })
 
@@ -545,12 +544,12 @@ describe('useSessionStore', () => {
       // Transition to idle - should dispatch event
       useSessionStore.getState().updateAgentMonitor('s1', { status: 'idle' })
       expect(dispatchEvent).toHaveBeenCalledTimes(1)
-      expect(dispatchEvent.mock.calls[0][0].type).toBe('broomy:agent-finished')
+      expect(dispatchEvent.mock.calls[0][0].type).toBe('octoagent:agent-finished')
 
       vi.unstubAllGlobals()
     })
 
-    it('does not dispatch broomy:agent-finished for brief activity', () => {
+    it('does not dispatch octoagent:agent-finished for brief activity', () => {
       const s1 = createTestSession({ id: 's1' })
       useSessionStore.setState({ sessions: [s1], isLoading: false })
 

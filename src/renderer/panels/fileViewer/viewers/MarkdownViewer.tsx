@@ -82,8 +82,8 @@ function MarkdownViewerComponent({ content, onEditorReady }: FileViewerComponent
     const container = containerRef.current
     if (!container || !findQuery) {
       if (highlightRef.current) {
-        CSS.highlights.delete('broomy-find')
-        CSS.highlights.delete('broomy-find-active')
+        CSS.highlights.delete('octoagent-find')
+        CSS.highlights.delete('octoagent-find-active')
       }
       rangesRef.current = []
       setMatchCount(0)
@@ -97,17 +97,17 @@ function MarkdownViewerComponent({ content, onEditorReady }: FileViewerComponent
     setActiveMatch(ranges.length > 0 ? 1 : 0)
 
     const highlight = new Highlight(...ranges)
-    CSS.highlights.set('broomy-find', highlight)
+    CSS.highlights.set('octoagent-find', highlight)
     highlightRef.current = highlight
 
     if (ranges.length > 0) {
-      CSS.highlights.set('broomy-find-active', new Highlight(ranges[0]))
+      CSS.highlights.set('octoagent-find-active', new Highlight(ranges[0]))
       ranges[0].startContainer.parentElement?.scrollIntoView({ block: 'center' })
     }
 
     return () => {
-      CSS.highlights.delete('broomy-find')
-      CSS.highlights.delete('broomy-find-active')
+      CSS.highlights.delete('octoagent-find')
+      CSS.highlights.delete('octoagent-find-active')
     }
   }, [findQuery, content])
 
@@ -116,7 +116,7 @@ function MarkdownViewerComponent({ content, onEditorReady }: FileViewerComponent
     if (ranges.length === 0) return
     const newIndex = ((activeMatch - 1 + direction + ranges.length) % ranges.length)
     setActiveMatch(newIndex + 1)
-    CSS.highlights.set('broomy-find-active', new Highlight(ranges[newIndex]))
+    CSS.highlights.set('octoagent-find-active', new Highlight(ranges[newIndex]))
     ranges[newIndex].startContainer.parentElement?.scrollIntoView({ block: 'center' })
   }, [activeMatch])
 
@@ -148,11 +148,11 @@ function MarkdownViewerComponent({ content, onEditorReady }: FileViewerComponent
       </div>
 
       <style>{`
-        ::highlight(broomy-find) {
+        ::highlight(octoagent-find) {
           background-color: rgba(234, 179, 8, 0.3);
           color: inherit;
         }
-        ::highlight(broomy-find-active) {
+        ::highlight(octoagent-find-active) {
           background-color: rgba(234, 179, 8, 0.7);
           color: inherit;
         }

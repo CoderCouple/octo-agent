@@ -42,7 +42,6 @@ describe('sessionBranchActions', () => {
       selectedFilePath: null,
       planFilePath: null,
       fileViewerPosition: 'top' as const,
-      layoutSizes: { explorerWidth: 256, fileViewerSize: 300, userTerminalHeight: 192, diffPanelWidth: 320, tutorialPanelWidth: 320 },
       explorerFilter: 'files' as const,
       lastMessage: null,
       lastMessageTime: null,

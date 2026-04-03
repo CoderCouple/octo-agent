@@ -20,7 +20,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: 'created-session',
     title: 'Create a session',
-    description: 'A session connects a Git repository to an AI agent in its own worktree, so multiple agents can work on different tasks without interfering. Click "+ New Session" in the sidebar or welcome screen, choose a repo and branch, and Broomy sets up an isolated worktree for the agent.',
+    description: 'A session connects a Git repository to an AI agent in its own worktree, so multiple agents can work on different tasks without interfering. Click "+ New Session" in the sidebar or welcome screen, choose a repo and branch, and OctoAgent sets up an isolated worktree for the agent.',
   },
   {
     id: 'viewed-explorer',
@@ -40,7 +40,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: 'used-agent',
     title: 'Chat with agent',
-    description: 'The Agent terminal is where your AI coding agent runs — this is the core of Broomy. Open it with Cmd/Ctrl+4 and type a message or instruction. The agent reads your codebase, makes changes, and reports back, all inside the session\'s worktree.',
+    description: 'The Agent terminal is where your AI coding agent runs — this is the core of OctoAgent. Open it with Cmd/Ctrl+4 and type a message or instruction. The agent reads your codebase, makes changes, and reports back, all inside the session\'s worktree.',
   },
   {
     id: 'checked-agent-active-time',
@@ -60,12 +60,12 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: 'learned-shortcuts',
     title: 'Learn keyboard shortcuts',
-    description: 'Broomy is designed for keyboard-driven workflows. Press Cmd/Ctrl+/ to see all available shortcuts. Key ones to learn: Cmd/Ctrl+N opens a new session, Cmd/Ctrl+J jumps to the session list, Alt+Up/Down switches sessions, and Cmd/Ctrl+Shift+F searches sessions. In the new session dialog, single letter keys (N, E, I, R, O) act on the focused repo. Master these and you\'ll rarely need the mouse.',
+    description: 'OctoAgent is designed for keyboard-driven workflows. Press Cmd/Ctrl+/ to see all available shortcuts. Key ones to learn: Cmd/Ctrl+N opens a new session, Cmd/Ctrl+J jumps to the session list, Alt+Up/Down switches sessions, and Cmd/Ctrl+Shift+F searches sessions. In the new session dialog, single letter keys (N, E, I, R, O) act on the focused repo. Master these and you\'ll rarely need the mouse.',
   },
   {
     id: 'used-source-control',
     title: 'Use source control',
-    description: 'Once your agent has made changes you like, you\'ll want to commit them. The Explorer\'s Source Control section shows staged and unstaged changes. Stage the files you want, write a commit message, and commit — all without leaving Broomy.',
+    description: 'Once your agent has made changes you like, you\'ll want to commit them. The Explorer\'s Source Control section shows staged and unstaged changes. Stage the files you want, write a commit message, and commit — all without leaving OctoAgent.',
   },
   {
     id: 'viewed-markdown',
@@ -85,12 +85,12 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: 'resolved-conflicts',
     title: 'Resolve merge conflicts',
-    description: 'When your session branch has conflicts with main, Broomy can help. Ask the agent to resolve merge conflicts and it will pull the latest changes, identify conflicts, and fix them in the worktree.',
+    description: 'When your session branch has conflicts with main, OctoAgent can help. Ask the agent to resolve merge conflicts and it will pull the latest changes, identify conflicts, and fix them in the worktree.',
   },
   {
     id: 'used-review',
     title: 'Use review tab',
-    description: 'The Review tab generates markdown-based reviews of your pull requests. Click "Generate Review" and your agent writes a structured review to .broomy/review.md. Customize review prompts by editing the review action in .broomy/commands.json. Links in the review open GitHub pages in the file panel for inline commenting.',
+    description: 'The Review tab generates markdown-based reviews of your pull requests. Click "Generate Review" and your agent writes a structured review to .octoagent/review.md. Customize review prompts by editing the review action in .octoagent/commands.json. Links in the review open GitHub pages in the file panel for inline commenting.',
   },
   {
     id: 'viewed-settings',
@@ -100,8 +100,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: 'contribute-extension',
     title: 'Contribute an extension',
-    description: 'Broomy is fully open source and extensible. If there\'s something you want it to do that it can\'t yet, submit a pull request to add the functionality you want.',
-    link: { label: 'Broomy on GitHub', url: 'https://github.com/Broomy-AI/broomy' },
+    description: 'OctoAgent is fully open source and extensible. If there\'s something you want it to do that it can\'t yet, submit a pull request to add the functionality you want.',
+    link: { label: 'OctoAgent on GitHub', url: 'https://github.com/octoagent/octoagent' },
   },
 ] as const
 

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Multi-agent session manager for AI coding assistants",
   "author": "Rob Ennals <rob.ennals@gmail.com>",
-  "homepage": "https://broomy.org",
+  "homepage": "https://octoagent.dev",
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
@@ -35,7 +35,7 @@
     "lint": "eslint src tests",
     "check:workers": "node scripts/check-workers.cjs",
     "check:all": "node scripts/check-all.cjs",
-    "website": "pnpm --filter broomy-website dev",
+    "website": "pnpm --filter octoagent-website dev",
     "version:bump": "node scripts/bump-version.cjs",
     "release": "bash scripts/release.sh",
     "release:all": "bash scripts/release-all.sh",

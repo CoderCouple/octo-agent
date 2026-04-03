@@ -38,7 +38,7 @@ describe('CrashRecoveryBanner', () => {
     vi.mocked(window.app.getCrashLog).mockResolvedValue(mockCrashReport)
     render(<CrashRecoveryBanner />)
     await waitFor(() => {
-      expect(screen.getByText('Broomy crashed unexpectedly during your last session.')).toBeTruthy()
+      expect(screen.getByText('OctoAgent crashed unexpectedly during your last session.')).toBeTruthy()
     })
     expect(screen.getByText('Report Issue')).toBeTruthy()
     expect(screen.getByText('Dismiss')).toBeTruthy()

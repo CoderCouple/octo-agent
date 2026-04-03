@@ -216,6 +216,10 @@ export type SessionData = {
   isArchived?: boolean
   // Agent SDK session ID for resume
   sdkSessionId?: string
+  // Avatar character assignment
+  characterId?: string
+  /** @deprecated Use characterId instead */
+  narutoCharacterId?: string
 }
 
 export type ConfigData = {

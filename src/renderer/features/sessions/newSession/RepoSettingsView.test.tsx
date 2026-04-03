@@ -101,7 +101,7 @@ describe('RepoSettingsView', () => {
   it('shows Remove repository button', async () => {
     render(<RepoSettingsView repo={mockRepo} onBack={vi.fn()} />)
     await waitFor(() => {
-      expect(screen.getByText('Remove repository from Broomy')).toBeTruthy()
+      expect(screen.getByText('Remove repository from OctoAgent')).toBeTruthy()
     })
   })
 
@@ -114,10 +114,10 @@ describe('RepoSettingsView', () => {
     render(<RepoSettingsView repo={mockRepo} onBack={onBack} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Remove repository from Broomy')).toBeTruthy()
+      expect(screen.getByText('Remove repository from OctoAgent')).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByText('Remove repository from Broomy'))
+    fireEvent.click(screen.getByText('Remove repository from OctoAgent'))
 
     await waitFor(() => {
       expect(removeRepo).toHaveBeenCalledWith('repo-1')
@@ -133,10 +133,10 @@ describe('RepoSettingsView', () => {
     render(<RepoSettingsView repo={mockRepo} onBack={vi.fn()} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Remove repository from Broomy')).toBeTruthy()
+      expect(screen.getByText('Remove repository from OctoAgent')).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByText('Remove repository from Broomy'))
+    fireEvent.click(screen.getByText('Remove repository from OctoAgent'))
 
     await waitFor(() => {
       expect(window.menu.popup).toHaveBeenCalled()

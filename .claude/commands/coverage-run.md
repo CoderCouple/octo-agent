@@ -3,12 +3,12 @@ Run the full test suite with coverage, cache the results, and report overall cov
 ## Steps
 
 1. Run `pnpm test:unit:coverage` to execute all unit tests with coverage enabled. Capture the output.
-2. Copy `coverage/coverage-summary.json` to `.broomy/output/coverage-summary.json` (create the directory if needed).
+2. Copy `coverage/coverage-summary.json` to `.octoagent/output/coverage-summary.json` (create the directory if needed).
 3. Run `node scripts/coverage-utils.cjs lookup` (no file argument) to display the overall coverage summary.
 4. Report the results:
    - Overall line coverage %
    - Whether it meets the 90% threshold
-   - Path to cached summary: `.broomy/output/coverage-summary.json`
+   - Path to cached summary: `.octoagent/output/coverage-summary.json`
    - Tell the caller: use `/coverage-check <file>` for incremental single-file checks, or `/coverage-increase` to automatically improve coverage.
 
 ## Rules

@@ -2,7 +2,7 @@
  * Feature Documentation: Button Skills (Claude Code Command Integration)
  *
  * Documents the action button system that sends agent-agnostic inline prompts
- * from .broomy/commands.json to the active agent terminal.
+ * from .octoagent/commands.json to the active agent terminal.
  *
  * Run with: pnpm test:feature-docs button-skills
  */
@@ -56,8 +56,8 @@ test.afterAll(async () => {
     {
       title: 'Button Skills: Claude Code Command Integration',
       description:
-        'Broomy UI actions (Commit, Push to Main, Create PR, Resolve Conflicts, Review, Plan Issue) ' +
-        'send agent-agnostic inline prompts defined in .broomy/commands.json. ' +
+        'OctoAgent UI actions (Commit, Push to Main, Create PR, Resolve Conflicts, Review, Plan Issue) ' +
+        'send agent-agnostic inline prompts defined in .octoagent/commands.json. ' +
         'Actions can have per-agent prompt overrides for agent-specific behavior.',
       steps,
     },
@@ -80,7 +80,7 @@ test.describe.serial('Feature: Button Skills', () => {
       description:
         'The Source Control tab in the explorer panel displays git status, ' +
         'action buttons (Commit, Sync, Push to Main, Create PR), and branch information. ' +
-        'These buttons send inline prompts from .broomy/commands.json.',
+        'These buttons send inline prompts from .octoagent/commands.json.',
     })
   })
 
@@ -94,7 +94,7 @@ test.describe.serial('Feature: Button Skills', () => {
       caption: 'Action buttons in working changes view',
       description:
         'Each action button (Commit, Push to Main, Create PR, Resolve Conflicts) sends ' +
-        'the inline prompt defined in .broomy/commands.json. Actions can have per-agent ' +
+        'the inline prompt defined in .octoagent/commands.json. Actions can have per-agent ' +
         'prompt overrides for agent-specific behavior.',
     })
   })
@@ -109,7 +109,7 @@ test.describe.serial('Feature: Button Skills', () => {
       caption: 'Agent terminal receives skill-aware commands',
       description:
         'When a UI button is clicked, the action system sends the inline prompt from ' +
-        '.broomy/commands.json to the agent terminal. If the action has a per-agent override ' +
+        '.octoagent/commands.json to the agent terminal. If the action has a per-agent override ' +
         'matching the active agent type, that override prompt is used instead.',
     })
   })

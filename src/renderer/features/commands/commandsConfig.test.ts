@@ -11,8 +11,8 @@ import {
   getDefaultCommandsConfig,
   ensureOutputGitignore,
   matchesSurface,
-  checkLegacyBroomyGitignore,
-  removeLegacyBroomyGitignore,
+  checkLegacyOctoAgentGitignore,
+  removeLegacyOctoAgentGitignore,
   validateCommandsConfig,
 } from './commandsConfig'
 import type { ActionDefinition } from './commandsConfig'
@@ -28,7 +28,7 @@ describe('resolveTemplateVars', () => {
   it('replaces {main}, {branch}, {directory}', () => {
     expect(resolveTemplateVars('git push origin HEAD:{main}', VARS)).toBe('git push origin HEAD:main')
     expect(resolveTemplateVars('on {branch}', VARS)).toBe('on feature/test')
-    expect(resolveTemplateVars('{directory}/.broomy', VARS)).toBe('/repo/.broomy')
+    expect(resolveTemplateVars('{directory}/.octoagent', VARS)).toBe('/repo/.octoagent')
   })
 
   it('replaces multiple occurrences', () => {
@@ -80,7 +80,7 @@ describe('evaluateShowWhen', () => {
 
 describe('commandsConfigPath', () => {
   it('returns the expected path', () => {
-    expect(commandsConfigPath('/repo')).toBe('/repo/.broomy/commands.json')
+    expect(commandsConfigPath('/repo')).toBe('/repo/.octoagent/commands.json')
   })
 })
 
@@ -137,7 +137,7 @@ describe('loadCommandsConfig', () => {
         {
           id: 'commit', label: 'Commit', type: 'agent', showWhen: [],
           prompt: 'default prompt',
-          agents: { claude: { skill: 'broomy-action-commit' }, aider: { prompt: 'aider prompt' } },
+          agents: { claude: { skill: 'octoagent-action-commit' }, aider: { prompt: 'aider prompt' } },
         },
       ],
     }
@@ -158,7 +158,7 @@ describe('loadCommandsConfig', () => {
       actions: [
         {
           id: 'commit', label: 'Commit', type: 'agent', showWhen: [],
-          agents: { claude: { skill: 'broomy-action-commit' } },
+          agents: { claude: { skill: 'octoagent-action-commit' } },
         },
       ],
     }
@@ -344,72 +344,72 @@ describe('matchesSurface', () => {
   })
 })
 
-describe('checkLegacyBroomyGitignore', () => {
+describe('checkLegacyOctoAgentGitignore', () => {
   it('returns false when .gitignore does not exist', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(false)
-    expect(await checkLegacyBroomyGitignore('/repo')).toBe(false)
+    expect(await checkLegacyOctoAgentGitignore('/repo')).toBe(false)
   })
 
-  it('returns true when .broomy/ is in .gitignore', async () => {
+  it('returns true when .octoagent/ is in .gitignore', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(true)
-    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n.broomy/\n')
-    expect(await checkLegacyBroomyGitignore('/repo')).toBe(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n.octoagent/\n')
+    expect(await checkLegacyOctoAgentGitignore('/repo')).toBe(true)
   })
 
-  it('returns true for .broomy without trailing slash', async () => {
+  it('returns true for .octoagent without trailing slash', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(true)
     vi.mocked(window.fs.readFile).mockResolvedValue('.broomy\n')
-    expect(await checkLegacyBroomyGitignore('/repo')).toBe(true)
+    expect(await checkLegacyOctoAgentGitignore('/repo')).toBe(true)
   })
 
-  it('returns true for /.broomy/ with leading slash', async () => {
+  it('returns true for /.octoagent/ with leading slash', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(true)
-    vi.mocked(window.fs.readFile).mockResolvedValue('/.broomy/\n')
-    expect(await checkLegacyBroomyGitignore('/repo')).toBe(true)
+    vi.mocked(window.fs.readFile).mockResolvedValue('/.octoagent/\n')
+    expect(await checkLegacyOctoAgentGitignore('/repo')).toBe(true)
   })
 
-  it('returns false when .broomy is not in .gitignore', async () => {
+  it('returns false when .octoagent is not in .gitignore', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(true)
     vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n')
-    expect(await checkLegacyBroomyGitignore('/repo')).toBe(false)
+    expect(await checkLegacyOctoAgentGitignore('/repo')).toBe(false)
   })
 
   it('returns false on error', async () => {
     vi.mocked(window.fs.exists).mockRejectedValue(new Error('fail'))
-    expect(await checkLegacyBroomyGitignore('/repo')).toBe(false)
+    expect(await checkLegacyOctoAgentGitignore('/repo')).toBe(false)
   })
 })
 
-describe('removeLegacyBroomyGitignore', () => {
+describe('removeLegacyOctoAgentGitignore', () => {
   it('does nothing when .gitignore does not exist', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(false)
-    await removeLegacyBroomyGitignore('/repo')
+    await removeLegacyOctoAgentGitignore('/repo')
     expect(window.fs.writeFile).not.toHaveBeenCalled()
   })
 
-  it('removes .broomy/ entries from .gitignore', async () => {
+  it('removes .octoagent/ entries from .gitignore', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(true)
-    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n.broomy/\ndist/\n')
-    await removeLegacyBroomyGitignore('/repo')
+    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n.octoagent/\ndist/\n')
+    await removeLegacyOctoAgentGitignore('/repo')
     expect(window.fs.writeFile).toHaveBeenCalledWith(
       '/repo/.gitignore',
       'node_modules/\ndist/\n'
     )
   })
 
-  it('removes # Broomy review data comment lines', async () => {
+  it('removes # OctoAgent review data comment lines', async () => {
     vi.mocked(window.fs.exists).mockResolvedValue(true)
-    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n# Broomy review data\n.broomy/\n')
-    await removeLegacyBroomyGitignore('/repo')
+    vi.mocked(window.fs.readFile).mockResolvedValue('node_modules/\n# OctoAgent review data\n.octoagent/\n')
+    await removeLegacyOctoAgentGitignore('/repo')
     const written = vi.mocked(window.fs.writeFile).mock.calls[0][1]
-    expect(written).not.toContain('Broomy review data')
-    expect(written).not.toContain('.broomy')
+    expect(written).not.toContain('OctoAgent review data')
+    expect(written).not.toContain('.octoagent')
   })
 
   it('handles errors gracefully', async () => {
     vi.mocked(window.fs.exists).mockRejectedValue(new Error('fail'))
     // Should not throw
-    await removeLegacyBroomyGitignore('/repo')
+    await removeLegacyOctoAgentGitignore('/repo')
   })
 })
 
@@ -420,10 +420,10 @@ describe('ensureOutputGitignore', () => {
 
     await ensureOutputGitignore('/repo')
 
-    expect(window.fs.mkdir).toHaveBeenCalledWith('/repo/.broomy')
+    expect(window.fs.mkdir).toHaveBeenCalledWith('/repo/.octoagent')
     expect(window.fs.writeFile).toHaveBeenCalledWith(
-      '/repo/.broomy/.gitignore',
-      '# Broomy generated files\n/output/\n'
+      '/repo/.octoagent/.gitignore',
+      '# OctoAgent generated files\n/output/\n'
     )
   })
 
@@ -435,7 +435,7 @@ describe('ensureOutputGitignore', () => {
     await ensureOutputGitignore('/repo')
 
     expect(window.fs.appendFile).toHaveBeenCalledWith(
-      '/repo/.broomy/.gitignore',
+      '/repo/.octoagent/.gitignore',
       '\n/output/\n'
     )
   })
@@ -451,14 +451,14 @@ describe('ensureOutputGitignore', () => {
     expect(window.fs.writeFile).not.toHaveBeenCalled()
   })
 
-  it('skips creating .broomy/.gitignore when .broomy is in repo .gitignore', async () => {
+  it('skips creating .octoagent/.gitignore when .octoagent is in repo .gitignore', async () => {
     vi.mocked(window.fs.mkdir).mockResolvedValue({ success: true })
     vi.mocked(window.fs.exists).mockImplementation(async (path: string) => {
       if (path === '/repo/.gitignore') return true
       return false
     })
     vi.mocked(window.fs.readFile).mockImplementation(async (path: string) => {
-      if (path === '/repo/.gitignore') return '# stuff\n.broomy/\n'
+      if (path === '/repo/.gitignore') return '# stuff\n.octoagent/\n'
       return ''
     })
 

@@ -62,8 +62,10 @@ export interface Session {
   issueNumber?: number
   issueTitle?: string
   issueUrl?: string
-  // Review session fields
-  sessionType?: 'default' | 'review'
+  // Session type: default, review, or group
+  sessionType?: 'default' | 'review' | 'group'
+  // Group session: IDs of member sessions
+  memberSessionIds?: string[]
   reviewStatus?: 'pending' | 'reviewed'
   prNumber?: number
   prTitle?: string
@@ -111,6 +113,8 @@ export interface Session {
   agentStatus?: 'running' | 'paused' | 'done' | 'error'
   // Agent SDK session ID for resume (persisted)
   sdkSessionId?: string
+  // Avatar character assignment (persisted)
+  characterId?: string
   // Whether this session was loaded from config (runtime only, not persisted)
   isRestored: boolean
   // Error from background initialization (runtime only, not persisted)
@@ -190,6 +194,8 @@ interface SessionStore {
   addInitializingSession: (params: { directory: string; branch: string; agentId: string | null; extra?: { repoId?: string; issueNumber?: number; issueTitle?: string; issueUrl?: string; name?: string } }) => string
   finalizeSession: (id: string) => void
   failSession: (id: string, error: string) => void
+  // Group session actions
+  addGroupSession: (name: string, memberSessionIds: string[]) => string
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => {
@@ -304,7 +310,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
           changes.isUnread = true
           // Notify source control to refresh PR status after agent finishes work
           if (typeof document !== 'undefined') {
-            document.dispatchEvent(new CustomEvent('broomy:agent-finished'))
+            document.dispatchEvent(new CustomEvent('octoagent:agent-finished'))
           }
         }
         changes.workingStartTime = null
@@ -369,4 +375,55 @@ export const useSessionStore = create<SessionStore>((set, get) => {
 
   // Branch & lifecycle actions (delegated)
   ...branchActions,
+
+  // Group session actions
+  addGroupSession: (name: string, memberSessionIds: string[]): string => {
+    const id = `group-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+    const newSession: Session = {
+      id,
+      name,
+      directory: '',
+      branch: '',
+      status: 'idle',
+      agentId: null,
+      sessionType: 'group',
+      memberSessionIds,
+      panelVisibility: {
+        [PANEL_IDS.EXPLORER]: false,
+        [PANEL_IDS.FILE_VIEWER]: false,
+        [PANEL_IDS.AGENT]: true,
+      },
+      showExplorer: false,
+      showFileViewer: false,
+      showDiff: false,
+      selectedFilePath: null,
+      planFilePath: null,
+      fileViewerPosition: 'top',
+      layoutSizes: {
+        explorerWidth: 256,
+        fileViewerSize: 300,
+        userTerminalHeight: 192,
+        diffPanelWidth: 320,
+        tutorialPanelWidth: 320,
+      },
+      explorerFilter: 'source-control',
+      lastMessage: null,
+      lastMessageTime: null,
+      isUnread: false,
+      workingStartTime: null,
+      recentFiles: [],
+      searchHistory: [],
+      terminalTabs: { tabs: [], activeTabId: null },
+      branchStatus: 'in-progress',
+      isArchived: false,
+      isRestored: false,
+    }
+    const { sessions } = get()
+    set({
+      sessions: [...sessions, newSession],
+      activeSessionId: id,
+    })
+    debouncedSave()
+    return id
+  },
 }})

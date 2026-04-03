@@ -72,9 +72,9 @@ describe('LayoutToolbar', () => {
     expect(screen.getByText('My Project')).toBeTruthy()
   })
 
-  it('renders default title "Broomy" when no title provided', () => {
+  it('renders default title "OctoAgent" when no title provided', () => {
     renderToolbar({ title: undefined })
-    expect(screen.getByText('Broomy')).toBeTruthy()
+    expect(screen.getByText('OctoAgent')).toBeTruthy()
   })
 
   it('shows DEV badge with commit hash when isDev is true', () => {

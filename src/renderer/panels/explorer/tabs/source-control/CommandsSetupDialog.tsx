@@ -1,14 +1,14 @@
 /**
- * Dialog for setting up .broomy/commands.json with default modular actions.
- * Warns if .broomy/ is currently in the repo's .gitignore (legacy pattern).
+ * Dialog for setting up .octoagent/commands.json with default modular actions.
+ * Warns if .octoagent/ is currently in the repo's .gitignore (legacy pattern).
  */
 import { useState, useEffect } from 'react'
 import {
   getDefaultCommandsConfig,
   commandsConfigPath,
   ensureOutputGitignore,
-  checkLegacyBroomyGitignore,
-  removeLegacyBroomyGitignore,
+  checkLegacyOctoAgentGitignore,
+  removeLegacyOctoAgentGitignore,
 } from '../../../../features/commands/commandsConfig'
 
 interface CommandsSetupDialogProps {
@@ -23,27 +23,27 @@ export function CommandsSetupDialog({ directory, onClose, onCreated }: CommandsS
   const [removeLegacy, setRemoveLegacy] = useState(true)
 
   useEffect(() => {
-    void checkLegacyBroomyGitignore(directory).then(setHasLegacyGitignore)
+    void checkLegacyOctoAgentGitignore(directory).then(setHasLegacyGitignore)
   }, [directory])
 
   const handleCreate = async () => {
     setCreating(true)
     try {
-      const broomyDir = `${directory}/.broomy`
+      const octoagentDir = `${directory}/.octoagent`
 
       // Create directories
-      await window.fs.mkdir(broomyDir)
+      await window.fs.mkdir(octoagentDir)
 
       // Write commands.json
       const config = getDefaultCommandsConfig()
       await window.fs.writeFile(commandsConfigPath(directory), JSON.stringify(config, null, 2))
 
-      // Write .broomy/.gitignore for output/
+      // Write .octoagent/.gitignore for output/
       await ensureOutputGitignore(directory)
 
-      // Remove legacy .broomy from .gitignore if requested
+      // Remove legacy .octoagent from .gitignore if requested
       if (hasLegacyGitignore && removeLegacy) {
-        await removeLegacyBroomyGitignore(directory)
+        await removeLegacyOctoAgentGitignore(directory)
       }
 
       onCreated()
@@ -60,28 +60,28 @@ export function CommandsSetupDialog({ directory, onClose, onCreated }: CommandsS
         className="bg-bg-secondary rounded-lg shadow-xl border border-border w-full max-w-md mx-4 p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-medium text-text-primary mb-2">Set up Broomy Actions</h3>
+        <h3 className="text-lg font-medium text-text-primary mb-2">Set up OctoAgent Actions</h3>
         <p className="text-sm text-text-secondary mb-3">
           <code className="font-mono bg-bg-tertiary px-1 rounded">commands.json</code> defines the actions
-          shown in the Broomy UI. Each action can be a shell command or an agent prompt,
+          shown in the OctoAgent UI. Each action can be a shell command or an agent prompt,
           shown based on your git state.
         </p>
         <p className="text-sm text-text-secondary mb-3">
           Creating the default setup will add:
         </p>
         <ul className="text-sm text-text-secondary mb-4 space-y-1 list-disc list-inside">
-          <li><code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/commands.json</code> &mdash; action definitions</li>
-          <li><code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/.gitignore</code> &mdash; ignores generated output</li>
+          <li><code className="font-mono bg-bg-tertiary px-1 rounded">.octoagent/commands.json</code> &mdash; action definitions</li>
+          <li><code className="font-mono bg-bg-tertiary px-1 rounded">.octoagent/.gitignore</code> &mdash; ignores generated output</li>
         </ul>
 
         {hasLegacyGitignore && (
           <div className="mb-4 p-3 rounded bg-yellow-500/10 border border-yellow-500/30">
             <p className="text-sm text-yellow-300 mb-2">
               Your <code className="font-mono">.gitignore</code> currently
-              ignores <code className="font-mono">.broomy/</code>. This was previously recommended,
-              but config files now live in <code className="font-mono">.broomy/</code> and should be committed.
-              Generated files are now in <code className="font-mono">.broomy/output/</code> (ignored
-              via <code className="font-mono">.broomy/.gitignore</code>).
+              ignores <code className="font-mono">.octoagent/</code>. This was previously recommended,
+              but config files now live in <code className="font-mono">.octoagent/</code> and should be committed.
+              Generated files are now in <code className="font-mono">.octoagent/output/</code> (ignored
+              via <code className="font-mono">.octoagent/.gitignore</code>).
             </p>
             <label className="flex items-center gap-2 text-sm text-text-primary cursor-pointer">
               <input
@@ -90,7 +90,7 @@ export function CommandsSetupDialog({ directory, onClose, onCreated }: CommandsS
                 onChange={(e) => setRemoveLegacy(e.target.checked)}
                 className="accent-accent"
               />
-              Remove <code className="font-mono">.broomy/</code> from .gitignore
+              Remove <code className="font-mono">.octoagent/</code> from .gitignore
             </label>
           </div>
         )}

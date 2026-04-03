@@ -97,9 +97,9 @@ test.describe.serial('Feature: Background Terminal Buffering', () => {
   })
 
   test('Step 3: Switch back — terminal state preserved', async () => {
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     const terminalArea = page.locator('.xterm:visible').first()
     await expect(terminalArea).toBeVisible()

@@ -1,5 +1,5 @@
 /**
- * Docker isolation E2E tests — validates Broomy runs correctly on Linux.
+ * Docker isolation E2E tests — validates OctoAgent runs correctly on Linux.
  *
  * Takes screenshots of every key feature to confirm rendering is correct.
  * Each screenshot is taken AFTER assertions confirm the expected state,
@@ -104,14 +104,14 @@ test.setTimeout(60000)
 test.describe('Linux Rendering Validation', () => {
   test('01 - app launches with terminal content', async () => {
     // Verify core UI elements
-    const title = page.locator('text=Broomy').first()
+    const title = page.locator('text=OctoAgent').first()
     await expect(title).toBeVisible()
 
     const newSessionBtn = page.locator('button:has-text("+ New Session")')
     await expect(newSessionBtn).toBeVisible()
 
     // Verify all 3 demo sessions render
-    await expect(page.locator('div:has-text("broomy")').first()).toBeVisible()
+    await expect(page.locator('div:has-text("octoagent")').first()).toBeVisible()
     await expect(page.locator('div:has-text("backend-api")').first()).toBeVisible()
     await expect(page.locator('div:has-text("docs-site")').first()).toBeVisible()
 
@@ -184,12 +184,12 @@ test.describe('Linux Rendering Validation', () => {
 
     await screenshot('03-session-backend-api')
 
-    // Switch back to broomy
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Switch back to octoagent
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
-    // Verify broomy terminal content is preserved
+    // Verify octoagent terminal content is preserved
     await expect.poll(() => getTerminalContent(page, 'agent'), { timeout: 5000 })
       .toContain('LINUX_TEST_OK')
   })
@@ -341,15 +341,15 @@ test.describe('Linux Rendering Validation', () => {
     await expect(sidebar).toBeVisible()
 
     // Verify sessions are still there after toggling
-    await expect(page.locator('.cursor-pointer:has-text("broomy")')).toBeVisible()
+    await expect(page.locator('.cursor-pointer:has-text("octoagent")')).toBeVisible()
     await expect(page.locator('.cursor-pointer:has-text("backend-api")')).toBeVisible()
   })
 
   test('11 - final full-app screenshot', async () => {
-    // Ensure we're on broomy session with clean state
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Ensure we're on octoagent session with clean state
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Wait for terminal to have the full fake claude output visible
     await expect.poll(() => getTerminalContent(page, 'agent'), { timeout: 5000 })

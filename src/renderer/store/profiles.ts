@@ -1,6 +1,6 @@
 /**
  * Minimal profile store — OctoAgent uses a single default profile.
- * The multi-window profile system from Broomy has been removed.
+ * The multi-window profile system from OctoAgent has been removed.
  */
 import { create } from 'zustand'
 

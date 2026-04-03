@@ -67,7 +67,7 @@ const mockToolbarPanels = [
 
 export const Default: Story = {
   args: {
-    title: 'Broomy',
+    title: 'OctoAgent',
     isDev: false,
     platform: 'darwin',
     toolbarPanelInfo: mockToolbarPanels,

@@ -1,5 +1,5 @@
 /**
- * Crash log persistence — writes/reads JSON crash reports to ~/.broomy/crash-reports/.
+ * Crash log persistence — writes/reads JSON crash reports to ~/.octoagent/crash-reports/.
  *
  * Crash reports are only created when the app actually catches an error
  * (uncaughtException, unhandledRejection, render-process-gone).
@@ -157,7 +157,7 @@ export function buildCrashReportUrl(report: CrashReport): string {
 
   const body = lines.join('\n')
   const params = new URLSearchParams({ title, body, labels: 'bug,crash' })
-  return `https://github.com/Broomy-AI/broomy/issues/new?${params.toString()}`
+  return `https://github.com/octoagent/octoagent/issues/new?${params.toString()}`
 }
 
 
@@ -167,7 +167,7 @@ export function buildCrashReportUrl(report: CrashReport): string {
 const MAX_CRASH_FRAMES = 15
 
 /**
- * Search macOS DiagnosticReports for a Broomy .ips crash file close to the
+ * Search macOS DiagnosticReports for a OctoAgent .ips crash file close to the
  * given crash timestamp. Only called when the user clicks "Report Issue".
  * Returns a trimmed native stack trace string, or null if not found.
  */
@@ -176,7 +176,7 @@ function findNativeCrashTrace(crashTimestamp: string): string | null {
 
   try {
     const diagDir = join(homedir(), 'Library', 'Logs', 'DiagnosticReports')
-    const files = readdirSync(diagDir).filter(f => f.startsWith('Broomy-') && f.endsWith('.ips'))
+    const files = readdirSync(diagDir).filter(f => f.startsWith('OctoAgent-') && f.endsWith('.ips'))
     if (files.length === 0) return null
 
     // Find the .ips file closest to the crash timestamp

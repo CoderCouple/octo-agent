@@ -1,6 +1,6 @@
 # Windows Testing Guide
 
-How to run Broomy's E2E tests on Windows to verify the app works correctly.
+How to run OctoAgent's E2E tests on Windows to verify the app works correctly.
 
 ## Prerequisites (one-time setup)
 
@@ -29,7 +29,7 @@ npm install -g pnpm
 
 ### 4. Install C++ build tools (required for node-pty)
 
-Broomy uses `node-pty` for terminal emulation, which compiles native C++ code. You need one of:
+OctoAgent uses `node-pty` for terminal emulation, which compiles native C++ code. You need one of:
 
 **Option A — Visual Studio Build Tools (recommended):**
 1. Download "Build Tools for Visual Studio" from https://visualstudio.microsoft.com/downloads/ (scroll to "Tools for Visual Studio")
@@ -58,7 +58,7 @@ pnpm --version     # v8+
 .\scripts\windows-e2e-test.ps1
 ```
 
-On the first run, this clones the repo to `%USERPROFILE%\broomy-e2e`. On subsequent runs, it fetches and pulls the latest code.
+On the first run, this clones the repo to `%USERPROFILE%\octoagent-e2e`. On subsequent runs, it fetches and pulls the latest code.
 
 ### Common options
 
@@ -94,7 +94,7 @@ On the first run, this clones the repo to `%USERPROFILE%\broomy-e2e`. On subsequ
 If tests fail, Playwright generates an HTML report. View it with:
 
 ```powershell
-cd %USERPROFILE%\broomy-e2e
+cd %USERPROFILE%\octoagent-e2e
 npx playwright show-report
 ```
 
@@ -105,7 +105,7 @@ This opens a browser with detailed results, screenshots of failures, and trace f
 If you prefer to run steps individually:
 
 ```powershell
-cd %USERPROFILE%\broomy-e2e    # or wherever you cloned the repo
+cd %USERPROFILE%\octoagent-e2e    # or wherever you cloned the repo
 
 git pull origin main
 pnpm install

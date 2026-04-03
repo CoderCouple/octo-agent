@@ -37,25 +37,25 @@ function getHttpsAuthHint(url: string, options?: AuthDiagnostics): string {
       hint += '\n\nRun in a terminal:'
       hint += '\n  1. gh auth login'
       hint += '\n  2. gh auth setup-git'
-      hint += '\n  3. Retry in Broomy'
+      hint += '\n  3. Retry in OctoAgent'
       return hint
     }
     if (options?.ghAuthenticated && !hasGhCredHelper) {
       hint += '\n\nGitHub CLI is logged in, but git is not configured to use it.'
       hint += '\n\nRun in a terminal:'
       hint += '\n  gh auth setup-git'
-      hint += '\nThen retry in Broomy.'
+      hint += '\nThen retry in OctoAgent.'
       return hint
     }
     if (options?.ghAuthenticated && hasGhCredHelper) {
       hint += '\n\nGitHub CLI is logged in and configured as git\'s credential helper, but authentication still failed.'
-      hint += ' This can happen if the gh credential helper is not on PATH when launched from Broomy.'
+      hint += ' This can happen if the gh credential helper is not on PATH when launched from OctoAgent.'
       hint += '\n\nTry one of:'
       if (sshUrl) {
         hint += `\n• Switch to SSH: ${sshUrl}`
       }
-      hint += '\n• Restart Broomy after running "gh auth setup-git" (ensures the credential helper path is refreshed)'
-      hint += '\n• Check "gh auth status" in a Broomy terminal to verify credentials are accessible'
+      hint += '\n• Restart OctoAgent after running "gh auth setup-git" (ensures the credential helper path is refreshed)'
+      hint += '\n• Check "gh auth status" in a OctoAgent terminal to verify credentials are accessible'
       return hint
     }
   }
@@ -139,7 +139,7 @@ function getGenericAuthHint(options?: AuthDiagnostics): string {
     hint += '\n  gh auth setup-git'
   } else if (options?.ghAuthenticated && hasGhCredHelper) {
     hint += '\n\nGitHub CLI is logged in and configured, but credentials are not being picked up.'
-    hint += ' Try restarting Broomy, or check "gh auth status" in a Broomy terminal.'
+    hint += ' Try restarting OctoAgent, or check "gh auth status" in a OctoAgent terminal.'
   } else {
     hint += '\n\nRun in a terminal:'
     hint += '\n  1. gh auth login'

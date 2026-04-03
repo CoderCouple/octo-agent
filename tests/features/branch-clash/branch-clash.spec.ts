@@ -69,7 +69,7 @@ test.afterAll(async () => {
       title: 'Branch Name Clash Handling',
       description:
         'When creating a new branch whose name already exists on the remote, ' +
-        'Broomy detects the non-fast-forward rejection, cleans up the orphaned ' +
+        'OctoAgent detects the non-fast-forward rejection, cleans up the orphaned ' +
         'local worktree and branch, and offers recovery options: open the existing ' +
         'session if one is active for that branch, or switch to the "Existing Branches" ' +
         'flow to create a session from the remote branch.',

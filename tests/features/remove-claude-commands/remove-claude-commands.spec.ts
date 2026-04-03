@@ -57,8 +57,8 @@ test.afterAll(async () => {
       title: 'Remove .claude/commands Dependency',
       description:
         'The commands setup flow no longer creates .claude/commands/ skill files. ' +
-        'All actions use agent-agnostic inline prompts defined in .broomy/commands.json. ' +
-        'The setup dialog only creates commands.json and .broomy/.gitignore. ' +
+        'All actions use agent-agnostic inline prompts defined in .octoagent/commands.json. ' +
+        'The setup dialog only creates commands.json and .octoagent/.gitignore. ' +
         'The "Plan Issue" button is now a regular action in commands.json rather than ' +
         'a special-case component with its own dispatch logic.',
       steps,
@@ -80,7 +80,7 @@ test.describe.serial('Feature: Remove .claude/commands', () => {
       screenshotPath: 'screenshots/01-source-control-actions.png',
       caption: 'Action buttons send inline prompts from commands.json',
       description:
-        'The source control view shows action buttons defined in .broomy/commands.json. ' +
+        'The source control view shows action buttons defined in .octoagent/commands.json. ' +
         'Each button sends an agent-agnostic inline prompt directly to the agent terminal. ' +
         'No .claude/commands/ skill files are needed.',
     })
@@ -101,9 +101,9 @@ test.describe.serial('Feature: Remove .claude/commands', () => {
       screenshotPath: 'screenshots/02-setup-dialog.png',
       caption: 'Setup dialog creates only commands.json and .gitignore',
       description:
-        'The setup dialog lists what will be created: .broomy/commands.json (action definitions) ' +
-        'and .broomy/.gitignore (ignores generated output). Previously, it also created ' +
-        '.claude/commands/ skill files and .broomy/prompts/ — those are no longer needed.',
+        'The setup dialog lists what will be created: .octoagent/commands.json (action definitions) ' +
+        'and .octoagent/.gitignore (ignores generated output). Previously, it also created ' +
+        '.claude/commands/ skill files and .octoagent/prompts/ — those are no longer needed.',
     })
 
     // Close the dialog
@@ -129,8 +129,8 @@ test.describe.serial('Feature: Remove .claude/commands', () => {
       caption: 'Agent receives inline prompt directly from commands.json',
       description:
         'Clicking "Commit with AI" sends the inline prompt text directly to the agent terminal. ' +
-        'Previously, for Claude Code agents with a matching .claude/commands/broomy-action-commit.md ' +
-        'file, the UI sent "/broomy-action-commit" as a slash command instead. Now all agents ' +
+        'Previously, for Claude Code agents with a matching .claude/commands/octoagent-action-commit.md ' +
+        'file, the UI sent "/octoagent-action-commit" as a slash command instead. Now all agents ' +
         'receive the same inline prompt, with optional per-agent overrides in commands.json.',
     })
   })

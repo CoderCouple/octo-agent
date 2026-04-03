@@ -170,7 +170,7 @@ describe('Explorer', () => {
       )
       fireEvent.click(screen.getByText('Show plan'))
       expect(onFileSelect).toHaveBeenCalledWith({
-        filePath: '/repos/project/.broomy/output/plan.md',
+        filePath: '/repos/project/.octoagent/output/plan.md',
         openInDiffMode: false,
       })
     })

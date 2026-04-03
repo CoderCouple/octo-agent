@@ -8,8 +8,8 @@ vi.mock('../../utils/commandsConfig', async () => {
   const actual = await vi.importActual('../../utils/commandsConfig')
   return {
     ...actual,
-    checkLegacyBroomyGitignore: vi.fn().mockResolvedValue(false),
-    removeLegacyBroomyGitignore: vi.fn().mockResolvedValue(undefined),
+    checkLegacyOctoAgentGitignore: vi.fn().mockResolvedValue(false),
+    removeLegacyOctoAgentGitignore: vi.fn().mockResolvedValue(undefined),
   }
 })
 
@@ -204,7 +204,7 @@ describe('CommandsEditor', () => {
       fireEvent.click(screen.getByTestId('save-commands'))
       await waitFor(() => {
         expect(window.fs.writeFile).toHaveBeenCalledWith(
-          '/test/repo/.broomy/commands.json',
+          '/test/repo/.octoagent/commands.json',
           expect.stringContaining('Updated'),
         )
       })

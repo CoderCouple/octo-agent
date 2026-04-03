@@ -110,10 +110,10 @@ test.afterAll(async () => {
 
 test.describe('Real Git Integration', () => {
   test('should show real branch name from git repo', async () => {
-    // The broomy session is on "main" branch — verified from real git
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // The octoagent session is on "main" branch — verified from real git
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Should show "main" as the branch (from real git)
     await expect(page.locator('text=main').first()).toBeVisible()
@@ -192,10 +192,10 @@ test.describe('Source Control with Real Git', () => {
 
 test.describe('Review Tab with Real Files', () => {
   test('should display review from real review.md file', async () => {
-    // Select broomy session (has .broomy/output/review.md on disk)
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Select octoagent session (has .octoagent/output/review.md on disk)
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Open explorer
     const explorerBtn = page.locator('button[title*="Explorer"]')
@@ -296,10 +296,10 @@ test.describe('Session Creation', () => {
     await diagnosticScreenshot(electronApp, page, 'test-results/session-created.png')
   })
 
-  test('should switch back to broomy for remaining tests', async () => {
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+  test('should switch back to octoagent for remaining tests', async () => {
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
   })
 })
 
@@ -361,10 +361,10 @@ test.describe('Terminal Tab Switching', () => {
 
 test.describe('Agent Terminal', () => {
   test('should complete fake claude lifecycle', async () => {
-    // Ensure we're on broomy session (has an agent terminal)
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Ensure we're on octoagent session (has an agent terminal)
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Ensure Agent tab is active
     const agentTab = page.locator('div.cursor-pointer:has-text("Agent"):visible').first()

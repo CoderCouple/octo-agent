@@ -4,7 +4,7 @@ Core infrastructure for the panel registry, type definitions, and React context.
 
 ## What it does
 
-Defines the panel abstraction used throughout Broomy. Each panel (sidebar, explorer, file viewer, agent terminal, settings, tutorial) is registered here with its ID, icon, position, and default visibility. The React context makes the registry and toolbar configuration available to all components.
+Defines the panel abstraction used throughout OctoAgent. Each panel (sidebar, explorer, file viewer, agent terminal, settings, tutorial) is registered here with its ID, icon, position, and default visibility. The React context makes the registry and toolbar configuration available to all components.
 
 ## Public interface
 

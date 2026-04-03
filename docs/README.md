@@ -1,6 +1,6 @@
 # Documentation
 
-Technical documentation for the Broomy codebase. These docs are intended for developers working on Broomy, covering architecture, processes, and detailed subsystem guides.
+Technical documentation for the OctoAgent codebase. These docs are intended for developers working on OctoAgent, covering architecture, processes, and detailed subsystem guides.
 
 ## Architecture & Process
 

@@ -1,4 +1,4 @@
-# Contributing to Broomy
+# Contributing to OctoAgent
 
 ## Getting Started
 
@@ -12,7 +12,7 @@
 
 ```bash
 git clone <repo-url>
-cd broomy
+cd octoagent
 pnpm install
 pnpm dev
 ```
@@ -21,7 +21,7 @@ If you hit issues, see [Troubleshooting](#troubleshooting) below.
 
 ### Development vs Production
 
-Development mode (`pnpm dev`) uses a separate config file (`~/.broomy/config.dev.json`) so you can experiment without affecting real sessions. A yellow "DEV" chip in the title bar distinguishes dev from production builds.
+Development mode (`pnpm dev`) uses a separate config file (`~/.octoagent/config.dev.json`) so you can experiment without affecting real sessions. A yellow "DEV" chip in the title bar distinguishes dev from production builds.
 
 ---
 

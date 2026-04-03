@@ -14,6 +14,7 @@ import { HandlerContext } from './types'
 import { getScenarioData } from './scenarios'
 import { isDockerAvailable, dockerSetupMessage, ensureAgentInstalled, acquireSetupLock } from '../containerUtils'
 import { isDevcontainerCliAvailable, hasDevcontainerConfig, devcontainerUp, buildDevcontainerExecArgs, devcontainerSetupMessage } from '../devcontainer'
+import { registerPeer, unregisterPeer, getPeersPort } from '../gateway/adapters/peersAdapter'
 
 /**
  * Resolve the base command to its full path so agents installed outside
@@ -87,6 +88,10 @@ function wirePtyEvents(ctx: HandlerContext, ptyProcess: IPty, id: string, sender
     disposePtyListeners(id)
     ctx.ptyProcesses.delete(id)
     ctx.ptyOwnerWindows.delete(id)
+    // Clean up session → PTY mapping
+    for (const [sessId, ptyId] of ctx.sessionPtyMap) {
+      if (ptyId === id) { ctx.sessionPtyMap.delete(sessId); break }
+    }
   })
 
   ptyDisposables.set(id, [dataDisposable, exitDisposable])
@@ -117,6 +122,39 @@ function displayTerminalError(id: string, message: string, senderWindow: Browser
  */
 function extractAgentCommand(command: string): string {
   return command.trim().split(/\s+/)[0]
+}
+
+/**
+ * Register a session as a peer and inject the peers MCP server into Claude Code.
+ * Called after PTY is created for agent sessions.
+ */
+function injectPeersMcp(sessionId: string, directory: string, branch: string, agentType?: string): void {
+  const peersPort = getPeersPort()
+  if (!peersPort) {
+    console.warn('[PTY] Peers server not started, skipping MCP injection')
+    return
+  }
+
+  // Register as a peer
+  const peerId = sessionId // use sessionId as peerId for simplicity
+  registerPeer({
+    peerId,
+    sessionId,
+    directory,
+    branch,
+    agentType,
+    registeredAt: Date.now(),
+  })
+
+  console.log(`[PTY] Registered peer ${peerId} and peers MCP available on port ${peersPort}`)
+}
+
+/**
+ * Remove peer registration on session cleanup.
+ */
+function removePeersMcp(sessionId: string): void {
+  unregisterPeer(sessionId)
+  console.log(`[PTY] Unregistered peer ${sessionId}`)
 }
 
 /**
@@ -271,6 +309,10 @@ function createDevcontainerPty(
     pendingSetups.delete(id)
     earlyExitDisposable.dispose()
     wirePtyEvents(ctx, ptyProcess, id, senderWindow)
+    // Track session → PTY mapping for supervisor bridge
+    if (options.sessionId) {
+      ctx.sessionPtyMap.set(options.sessionId, id)
+    }
   }
 
   asyncSetup().catch((err: unknown) => {
@@ -297,7 +339,7 @@ function resolveShellConfig(
       } else {
         initialCommand = 'echo E2E_TEST_SHELL_READY'
       }
-      return { shell, shellArgs: [], initialCommand, extraEnv: options.command ? { BROOMY_ORIGINAL_COMMAND: options.command } : undefined }
+      return { shell, shellArgs: [], initialCommand, extraEnv: options.command ? { OCTOAGENT_ORIGINAL_COMMAND: options.command } : undefined }
     }
     const shell = '/bin/bash'
     if (options.command) {
@@ -309,7 +351,7 @@ function resolveShellConfig(
     } else {
       initialCommand = 'echo "E2E_TEST_SHELL_READY"; PS1="test-shell$ "'
     }
-    return { shell, shellArgs: [], initialCommand, extraEnv: options.command ? { BROOMY_ORIGINAL_COMMAND: options.command } : undefined }
+    return { shell, shellArgs: [], initialCommand, extraEnv: options.command ? { OCTOAGENT_ORIGINAL_COMMAND: options.command } : undefined }
   }
 
   if (ctx.E2E_MOCK_SHELL) {
@@ -379,6 +421,8 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
     }
 
     const env = { ...baseEnv, ...agentEnv, ...extraEnv } as Record<string, string>
+    // Unset CLAUDECODE so Claude Code agents don't think they're nested
+    delete env.CLAUDECODE
 
     let ptyProcess: IPty
     try {
@@ -396,6 +440,16 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
 
     wirePtyEvents(ctx, ptyProcess, options.id, senderWindow)
 
+    // Track session → PTY mapping for supervisor bridge
+    if (options.sessionId) {
+      ctx.sessionPtyMap.set(options.sessionId, options.id)
+      console.log(`[PTY] Mapped session ${options.sessionId} → pty ${options.id}`)
+    }
+
+    // Register as a peer for inter-agent communication (agent sessions only)
+    if (options.command && options.sessionId) {
+      injectPeersMcp(options.sessionId, options.cwd, '', options.command.split(/\s+/)[0])
+    }
 
     if (initialCommand) {
       initialCommand = resolveInitialCommand(initialCommand, ctx.isE2ETest)
@@ -433,5 +487,11 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
       ctx.ptyProcesses.delete(id)
       ctx.ptyOwnerWindows.delete(id)
     }
+    // Clean up session → PTY mapping
+    for (const [sessId, ptyId] of ctx.sessionPtyMap) {
+      if (ptyId === id) { ctx.sessionPtyMap.delete(sessId); break }
+    }
+    // Unregister peer (id may be sessionId or ptyId; removePeersMcp is a no-op if not found)
+    removePeersMcp(id)
   })
 }

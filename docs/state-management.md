@@ -1,6 +1,6 @@
 # State Management Guide
 
-Broomy uses Zustand for all client-side state management. Each domain has its own store,
+OctoAgent uses Zustand for all client-side state management. Each domain has its own store,
 and all stores follow the same pattern: load from config on mount, mutate in memory,
 debounce-save back to disk.
 
@@ -91,7 +91,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
 ### 3. Repos Store (`src/renderer/store/repos.ts`)
 
-Manages repositories the user has registered with Broomy. Tracks:
+Manages repositories the user has registered with OctoAgent. Tracks:
 
 - List of managed repos (name, directory, default branch, options)
 - Default clone directory (resolved from `~` via main process)
@@ -237,7 +237,7 @@ infrequent.
 
 ### Config File Location
 
-All config files live under `~/.broomy/profiles/<profileId>/`:
+All config files live under `~/.octoagent/profiles/<profileId>/`:
 
 - **Production**: `config.json`
 - **Development**: `config.dev.json`

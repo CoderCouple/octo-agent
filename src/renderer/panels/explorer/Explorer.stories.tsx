@@ -64,7 +64,7 @@ export const NoDirectory: Story = {
 export const WithPlanFile: Story = {
   args: {
     filter: 'files',
-    planFilePath: '/Users/test/projects/my-app/.broomy/output/plan.md',
+    planFilePath: '/Users/test/projects/my-app/.octoagent/output/plan.md',
   },
 }
 

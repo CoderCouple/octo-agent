@@ -101,8 +101,9 @@ async function doSave(): Promise<void> {
       issueUrl: s.issueUrl,
       // Save new panelVisibility format
       panelVisibility: s.panelVisibility,
-      // Review session fields
+      // Review / group session fields
       sessionType: s.sessionType,
+      memberSessionIds: s.memberSessionIds,
       reviewStatus: s.reviewStatus,
       prNumber: s.prNumber,
       prTitle: s.prTitle,
@@ -128,6 +129,8 @@ async function doSave(): Promise<void> {
       isArchived: s.isArchived || undefined,
       // Agent SDK session ID for resume
       sdkSessionId: s.sdkSessionId,
+      // Avatar character assignment
+      characterId: s.characterId,
     })),
     repos,
     defaultCloneDir: repoState.defaultCloneDir || undefined,

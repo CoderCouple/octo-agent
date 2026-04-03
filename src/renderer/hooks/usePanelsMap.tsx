@@ -3,6 +3,7 @@
  */
 import { useMemo, useState, useEffect, useCallback, memo } from 'react'
 import TabbedTerminal from '../panels/agent/TabbedTerminal'
+import GroupChatView from '../panels/agent/GroupChatView'
 import PanelErrorBoundary from '../shared/components/PanelErrorBoundary'
 import Explorer from '../panels/explorer/ExplorerPanel'
 import FileViewer from '../panels/fileViewer/FileViewer'
@@ -11,7 +12,7 @@ import AgentSettings from '../panels/settings/AgentSettings'
 import SessionList from '../panels/sidebar/SessionList'
 import WelcomeScreen from '../panels/agent/WelcomeScreen'
 import TutorialPanel from '../panels/tutorial/TutorialPanel'
-import { ChatPanel } from '../components/ChatPanel'
+
 import { AttentionQueue } from '../components/AttentionQueue'
 import { useSessionStore, type Session } from '../store/sessions'
 import { PANEL_IDS } from '../panels'
@@ -232,7 +233,7 @@ function useFileViewerPanel(config: PanelsMapConfig) {
                 isActive={isActive}
                 reviewContext={session.sessionType === 'review' ? {
                   sessionDirectory: session.directory,
-                  commentsFilePath: `${session.directory}/.broomy/comments.json`,
+                  commentsFilePath: `${session.directory}/.octoagent/comments.json`,
                 } : undefined}
                 prFilesUrl={session.sessionType === 'review' && session.prUrl ? session.prUrl : undefined}
                 onOpenFile={isActive ? (targetPath, line) => navigateToFile({ filePath: targetPath, openInDiffMode: false, scrollToLine: line }) : undefined}
@@ -263,7 +264,7 @@ export function usePanelsMap(config: PanelsMapConfig) {
   // instead of SessionTerminal).
   const terminalSessionKey = useMemo(() =>
     sessions.filter(s => !s.isArchived)
-      .map(s => `${s.id}|${s.directory}|${s.isRestored}|${s.agentId}|${s.repoId}|${s.status === 'initializing'}|${s.initError ?? ''}`)
+      .map(s => `${s.id}|${s.directory}|${s.isRestored}|${s.agentId}|${s.repoId}|${s.status === 'initializing'}|${s.initError ?? ''}|${s.sessionType ?? ''}`)
       .join(','),
     [sessions]
   )
@@ -271,6 +272,17 @@ export function usePanelsMap(config: PanelsMapConfig) {
   const terminalPanel = useMemo(() => (
     <div className="h-full w-full relative">
       {sessions.filter(s => !s.isArchived).map((session) => {
+        // Group sessions render GroupChatView instead of a terminal
+        if (session.sessionType === 'group') {
+          const isVisible = session.id === config.activeSessionId
+          return (
+            <div key={session.id} className={`absolute inset-0 ${isVisible ? '' : 'invisible pointer-events-none'}`}>
+              <PanelErrorBoundary name={`Group ${session.name}`}>
+                <GroupChatView session={session} />
+              </PanelErrorBoundary>
+            </div>
+          )
+        }
         if (session.status === 'initializing') {
           const isVisible = session.id === config.activeSessionId
           return (
@@ -361,17 +373,11 @@ export function usePanelsMap(config: PanelsMapConfig) {
     </div>
   ), [repos, handleSelectSession, handleNewSession, removeSession, refreshPrStatus, archiveSession, unarchiveSession])
 
-  const chatPanel = useMemo(() => {
-    if (!config.activeSessionId) return null
-    return <ChatPanel sessionId={config.activeSessionId} />
-  }, [config.activeSessionId])
-
   const panelsMap = useMemo(() => ({
     [PANEL_IDS.SIDEBAR]: sidebarPanel,
     [PANEL_IDS.AGENT]: terminalPanel,
     [PANEL_IDS.EXPLORER]: explorerPanel,
     [PANEL_IDS.FILE_VIEWER]: fileViewerPanel,
-    [PANEL_IDS.CHAT]: chatPanel,
     [PANEL_IDS.SETTINGS]: globalPanelVisibility[PANEL_IDS.SETTINGS] ? (
       <AgentSettings onClose={() => {
         toggleGlobalPanel(PANEL_IDS.SETTINGS)
@@ -384,7 +390,6 @@ export function usePanelsMap(config: PanelsMapConfig) {
     sidebarPanel,
     terminalPanel,
     explorerPanel, fileViewerPanel,
-    chatPanel,
     globalPanelVisibility,
   ])
 

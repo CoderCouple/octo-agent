@@ -15,7 +15,7 @@ beforeEach(() => {
 describe('WelcomeScreen', () => {
   it('renders welcome heading', () => {
     render(<WelcomeScreen onNewSession={vi.fn()} />)
-    expect(screen.getByText('Welcome to Broomy')).toBeTruthy()
+    expect(screen.getByText('Welcome to OctoAgent')).toBeTruthy()
   })
 
   it('renders description text', () => {
@@ -49,6 +49,6 @@ describe('WelcomeScreen', () => {
   it('opens GitHub issues link on click', () => {
     render(<WelcomeScreen onNewSession={vi.fn()} />)
     fireEvent.click(screen.getByText('let us know'))
-    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/Broomy-AI/broomy/issues')
+    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/octoagent/octoagent/issues')
   })
 })

@@ -1,5 +1,5 @@
 /**
- * Visual editor for .broomy/commands.json — renders in the file viewer panel area.
+ * Visual editor for .octoagent/commands.json — renders in the file viewer panel area.
  *
  * Shows an accordion list of action definitions with editable fields.
  * When no commands.json exists, shows a setup prompt with a "Create" button.
@@ -12,8 +12,8 @@ import {
   getDefaultCommandsConfig,
   ensureOutputGitignore,
   getAgentTypes,
-  checkLegacyBroomyGitignore,
-  removeLegacyBroomyGitignore,
+  checkLegacyOctoAgentGitignore,
+  removeLegacyOctoAgentGitignore,
   type ActionDefinition,
 } from '../../features/commands/commandsConfig'
 import { DialogErrorBanner } from '../../shared/components/ErrorBanner'
@@ -106,19 +106,19 @@ export function CommandsEditor({ directory, onClose }: CommandsEditorProps) {
   const handleCreate = async () => {
     setCreating(true)
     try {
-      const broomyDir = `${directory}/.broomy`
+      const octoagentDir = `${directory}/.octoagent`
 
-      await window.fs.mkdir(broomyDir)
+      await window.fs.mkdir(octoagentDir)
 
       const config = getDefaultCommandsConfig()
       await window.fs.writeFile(commandsConfigPath(directory), JSON.stringify(config, null, 2))
 
       await ensureOutputGitignore(directory)
 
-      // Remove legacy .broomy from .gitignore if present
-      const hasLegacy = await checkLegacyBroomyGitignore(directory)
+      // Remove legacy .octoagent from .gitignore if present
+      const hasLegacy = await checkLegacyOctoAgentGitignore(directory)
       if (hasLegacy) {
-        await removeLegacyBroomyGitignore(directory)
+        await removeLegacyOctoAgentGitignore(directory)
       }
 
       await load()
@@ -175,7 +175,7 @@ export function CommandsEditor({ directory, onClose }: CommandsEditorProps) {
         <div className="flex-1 p-4 space-y-4">
           <DialogErrorBanner error={loadError} onDismiss={() => setLoadError(null)} />
           <p className="text-sm text-text-secondary">
-            Fix the errors in <code className="font-mono bg-bg-tertiary px-1 rounded">.broomy/commands.json</code> and reload.
+            Fix the errors in <code className="font-mono bg-bg-tertiary px-1 rounded">.octoagent/commands.json</code> and reload.
           </p>
           <button
             onClick={() => void load()}
@@ -198,7 +198,7 @@ export function CommandsEditor({ directory, onClose }: CommandsEditorProps) {
             <h3 className="text-lg font-medium text-text-primary">No commands.json</h3>
             <p className="text-sm text-text-secondary">
               <code className="font-mono bg-bg-tertiary px-1 rounded">commands.json</code> defines
-              the actions shown in the Broomy UI. Each action can be a shell command or an
+              the actions shown in the OctoAgent UI. Each action can be a shell command or an
               agent prompt, shown based on your git state.
             </p>
             <button

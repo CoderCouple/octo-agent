@@ -314,7 +314,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
         agents: DEFAULT_AGENTS,
         sessions: getScenarioData(ctx.e2eScenario).sessions,
         repos: getE2EDemoRepos(),
-        defaultCloneDir: normalizePath(join(tmpdir(), 'broomy-e2e-repos')),
+        defaultCloneDir: normalizePath(join(tmpdir(), 'octoagent-e2e-repos')),
       }
     }
 

@@ -10,7 +10,7 @@ export default function WelcomeScreen({ onNewSession }: WelcomeScreenProps) {
     <div className="h-full w-full flex items-center justify-center bg-bg-primary">
       <div className="max-w-md text-center px-8">
         <h1 className="text-2xl font-semibold text-text-primary mb-3">
-          Welcome to Broomy
+          Welcome to OctoAgent
         </h1>
         <p className="text-sm text-text-secondary mb-8">
           Lead a team of agents and see when each needs help.
@@ -40,9 +40,9 @@ export default function WelcomeScreen({ onNewSession }: WelcomeScreenProps) {
             Check the <span className="text-text-primary font-medium">Help</span> menu for keyboard shortcuts and more.
           </p>
           <p>
-            Broomy is new and, while we do our best to make it bug-free, you may run into issues.
+            OctoAgent is new and, while we do our best to make it bug-free, you may run into issues.
             If you do, please{' '}
-            <button onClick={() => window.shell.openExternal('https://github.com/Broomy-AI/broomy/issues')} className="text-accent hover:underline">let us know</button>.
+            <button onClick={() => window.shell.openExternal('https://github.com/octoagent/octoagent/issues')} className="text-accent hover:underline">let us know</button>.
           </p>
         </div>
       </div>

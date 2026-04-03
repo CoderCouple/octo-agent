@@ -1,207 +1,141 @@
-# Broomy
+# OctoAgent
 
-A desktop application for managing multiple AI coding agent sessions across different repositories. See all your agent sessions at a glance, monitor their status, and interact with them through embedded terminals.
+**One brain. Many agents.** A macOS desktop app for running multiple AI coding agents simultaneously — Claude Code, Gemini CLI, Codex — with a supervisor that coordinates, arbitrates, and keeps you in the loop.
 
-Built with Electron, React, and xterm.js.
+Built with Electron, React, TypeScript, and a three-layer architecture (Gateway, Supervisor, Renderer) that separates control from UI.
 
-## Features
+## What It Does
 
-- **Multi-session management** -- Run multiple AI coding agents (Claude Code, Aider, etc.) side-by-side
-- **Agent status detection** -- Automatically detects whether agents are working, idle, or need input by parsing terminal output
-- **Embedded terminals** -- Interactive xterm.js terminals with PTY integration for both agent and user shells
-- **File explorer** -- Browse files, view diffs, and edit code with Monaco Editor integration
-- **Git integration** -- Branch tracking, staging, committing, pushing, PR creation, and worktree support
-- **GitHub integration** -- View issues assigned to you, check PR status, and manage code review comments
-- **Profiles** -- Separate workspaces with independent sessions, agents, and repos (each opens in its own window)
-- **Customizable panels** -- Toggle and reorder panels (Explorer, File Viewer, Agent Terminal, User Terminal, Settings)
-- **Keyboard shortcuts** -- `Cmd+1-6` to toggle panels, `Cmd+Shift+C` to copy terminal content
+- **Multi-agent orchestration** — Run 5+ AI coding agents in parallel, each in its own repo/branch, all visible at a glance
+- **Supervisor engine** — Central brain that parses agent output, detects file conflicts, gates peer-to-peer communication, and escalates decisions
+- **WhatsApp-style chat** — Per-agent chat with inline decision cards (approve/deny file edits, command execution)
+- **Group sessions** — Create groups of agents that can communicate with each other via MCP peer tools, with supervisor as gatekeeper
+- **PTY + SDK bridge** — Delivers messages to agents via terminal (PTY) or Claude Agent SDK, depending on connection mode
+- **4-layer HITL** — (1) persona auto-allow, (2) auto-rule match, (3) 60s soft timer + phone push, (4) hard interrupt for conflicts
+- **Session memory** — Append-only transcript + Claude API-generated summaries persisted to `~/.octoagent/`
+- **Agent briefings** — Cross-agent context sharing powered by Claude API
+- **Sleep guard** — `caffeinate` keeps your Mac awake while agents work
+- **Phone push decisions** — Approve/deny from your phone when away from desk
+- **Naruto-themed avatars** — Each agent gets a character identity for quick visual identification
+
+## Architecture
+
+```
+Channel Adapters → Gateway (WS :18789) → Supervisor → Gateway → All WS Clients
+     pty/hook/phone                       (EventEmitter)         (renderer, phone, etc.)
+```
+
+Three layers, strict separation:
+
+| Layer | Location | Role |
+|-------|----------|------|
+| **Gateway** | `src/main/gateway/` | WebSocket server. Single control plane. No business logic. |
+| **Supervisor** | `src/main/supervisor/` | The brain. Session queues, conflict detection, HITL, memory, briefings. |
+| **Renderer** | `src/renderer/` | React UI. Connects via WebSocket, not Electron IPC. |
+
+See [CLAUDE.md](CLAUDE.md) for the full architecture guide and five invariants.
 
 ## Quick Start
 
 ### Prerequisites
 
+- macOS (primary target)
 - Node.js 18+
-- [pnpm](https://pnpm.io/) (required -- npm/yarn will not work)
+- [pnpm](https://pnpm.io/)
 
-### Installation
+### Development
 
 ```bash
-git clone <repo-url>
-cd broomy
 pnpm install
-pnpm dev
+pnpm dev          # Electron + Vite dev server on :5173
 ```
 
-The app opens automatically in development mode with hot reload. Dev mode uses a separate config file (`~/.broomy/profiles/default/config.dev.json`) so your test sessions don't interfere with real work. A yellow "DEV" chip appears in the title bar to distinguish dev from production.
-
-### Building for Distribution
+### Build & Package
 
 ```bash
-pnpm dist          # Build and package for macOS
-pnpm start         # Run the packaged app
+pnpm build        # Production build
+pnpm dist         # Generate .dmg
 ```
 
-## Usage
-
-### Creating a Session
-
-1. Click "+ New Session" in the sidebar
-2. Select a git repository directory
-3. Choose an agent (e.g., "Claude Code", "Aider") or no agent for a plain terminal
-4. The session appears in the sidebar with the repo name and branch
-
-### Managing Sessions
-
-- Click a session in the sidebar to switch to it
-- Status indicators show agent state:
-  - **Working** (green) -- Agent is actively processing
-  - **Idle** (gray) -- Agent is at its prompt, waiting for a command
-  - **Error** (red) -- Something went wrong
-- Sessions with new activity show an unread indicator (blue dot)
-
-### Panels
-
-Each session has independently togglable panels:
-
-| Panel | Description |
-|-------|-------------|
-| **Sessions** (sidebar) | List of all sessions with status, branch, and last activity |
-| **Explorer** | File tree and source control view with staging, committing, and search |
-| **File Viewer** | Monaco-based file editor and diff viewer |
-| **Agent Terminal** | The main terminal running the AI agent |
-| **User Terminal** | Additional terminals for manual commands (supports multiple tabs) |
-| **Settings** | Agent configuration and repo management |
-
-### Keyboard Shortcuts
-
-- `Cmd+1` through `Cmd+6` -- Toggle panels (based on toolbar order)
-- `Cmd+Shift+C` -- Copy terminal content + session summary to clipboard
-
-## Architecture
-
-See [architecture.md](docs/architecture.md) for a detailed technical guide.
-
-### Quick Overview
-
-Broomy is a standard Electron app with three process layers:
-
-```
-Main Process (Node.js)          Preload (Context Bridge)       Renderer (React)
-─────────────────────           ──────────────────────         ─────────────────
-PTY management (node-pty)  ──►  window.pty                ──►  Terminal component
-Git operations (simple-git)──►  window.git                ──►  Explorer, SessionList
-Filesystem I/O             ──►  window.fs                 ──►  FileViewer, Explorer
-Config persistence         ──►  window.config             ──►  Zustand stores
-GitHub CLI (gh)            ──►  window.gh                 ──►  Explorer (PR/Issues)
-Profile management         ──►  window.profiles           ──►  ProfileChip
-```
-
-State is managed by six Zustand stores in the renderer: `sessions`, `agents`, `repos`, `profiles`, `errors`, and `tutorial`. The panel system uses a registry pattern for extensibility.
-
-## Testing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full testing guide.
+### Testing
 
 ```bash
 pnpm test:unit              # Vitest unit tests
 pnpm test:unit:coverage     # With 90% line coverage threshold
-pnpm test:e2e               # Playwright E2E tests (fast, uses Vite dev server)
-pnpm test:e2e:headed        # E2E tests with visible window
-pnpm test:e2e:built         # E2E tests against production build (for CI)
+pnpm test:e2e               # Playwright E2E tests
 ```
 
 ## Project Structure
 
 ```
-broomy/
-├── src/
-│   ├── main/                    # Electron main process
-│   │   ├── index.ts             # App entry, window lifecycle, config migration
-│   │   ├── handlers/            # IPC handler modules (app, config, fs, git, gh, pty, shell, typescript, updater)
-│   │   ├── workers/             # Worker threads (fsSearch.worker.ts, tsProject.worker.ts)
-│   │   ├── platform.ts         # Cross-platform OS/shell/path helpers
-│   │   ├── shellEnv.ts         # Shell environment resolution
-│   │   ├── workerPool.ts       # Worker thread pool management
-│   │   ├── gitStatusParser.ts  # Git status code parsing
-│   │   └── cloneErrorHint.ts   # Git clone error detection and suggestions
-│   ├── preload/
-│   │   ├── index.ts             # Context bridge: types + IPC wiring
-│   │   └── apis/                # Per-domain API modules (config, fs, gh, git, menu, pty, shell)
-│   └── renderer/                # React application
-│       ├── App.tsx              # Root component, initialization
-│       ├── components/          # UI components
-│       │   ├── Layout.tsx       # Main layout with drag-to-resize panels
-│       │   ├── Terminal.tsx     # xterm.js terminal wrapper
-│       │   ├── FileViewer.tsx   # Monaco file/diff viewer
-│       │   ├── SessionList.tsx  # Sidebar session list
-│       │   ├── explorer/        # File tree, source control, search
-│       │   ├── newSession/      # New session wizard views
-│       │   ├── review/          # AI code review panel
-│       │   ├── fileViewers/     # Plugin-based file viewer implementations
-│       │   └── ...
-│       ├── hooks/               # React hooks (file loading, git polling, keyboard, terminal setup, etc.)
-│       ├── panels/              # Panel registry system
-│       │   ├── types.ts         # Panel position/definition types
-│       │   ├── registry.ts      # PanelRegistry class
-│       │   ├── builtinPanels.tsx # Built-in panel definitions
-│       │   └── PanelContext.tsx  # React context for panel state
-│       ├── store/               # Zustand state management
-│       │   ├── sessions.ts      # Session state, panel visibility, layout
-│       │   ├── agents.ts        # Agent definitions (name, command, env)
-│       │   ├── repos.ts         # Managed repositories
-│       │   ├── profiles.ts      # Multi-window profiles
-│       │   ├── errors.ts        # Application error tracking
-│       │   └── tutorial.ts      # Tutorial/onboarding state
-│       └── utils/               # Shared utilities
-│           ├── stripAnsi.ts           # ANSI escape code removal
-│           ├── explorerHelpers.ts     # Git status display helpers
-│           ├── terminalBufferRegistry.ts # Cross-component terminal buffer access
-│           ├── branchStatus.ts        # Branch status computation
-│           ├── slugify.ts             # Issue-to-branch-name conversion
-│           ├── textDetection.ts       # Binary vs text file detection
-│           ├── knownErrors.ts         # Error classification and messaging
-│           ├── gitStatusNormalizer.ts  # Git status normalization
-│           ├── gitOperationProgress.ts # Git operation progress tracking
-│           ├── monacoProjectContext.ts # Monaco editor project context
-│           ├── fileNavigation.ts      # File navigation utilities
-│           ├── focusHelpers.ts        # Focus management helpers
-│           ├── prPromptBuilder.ts     # PR description prompt builder
-│           ├── reviewPromptBuilder.ts # Review prompt builder
-│           └── commonWords.ts         # Common word list for slugification
-├── scripts/
-│   └── fake-claude.sh           # Mock agent for E2E tests
-├── tests/                       # Playwright E2E tests
-├── electron.vite.config.ts      # Electron-vite build configuration
-├── vitest.config.ts             # Unit test configuration
-├── playwright.config.ts         # E2E test configuration
-└── package.json
+src/
+├── main/
+│   ├── gateway/              # WebSocket server + channel adapters
+│   │   ├── adapters/         # PTY, hook, phone, peers, slack/whatsapp/telegram (v2 scaffolds)
+│   │   └── broadcaster.ts    # Client map iteration, fan-out
+│   ├── supervisor/           # The brain
+│   │   ├── parsers/          # Claude Code (hook+PTY), Gemini (PTY), Codex (PTY)
+│   │   ├── hitl.ts           # 4-layer human-in-the-loop decision system
+│   │   ├── sessionMemory.ts  # transcript.jsonl + memory.md
+│   │   ├── conflictDetector.ts
+│   │   ├── briefingEngine.ts # Claude API cross-agent briefings
+│   │   ├── reportGenerator.ts
+│   │   └── sleepGuard.ts     # caffeinate management
+│   ├── handlers/             # Electron IPC handlers (PTY, config, git, fs, shell)
+│   ├── mcp/                  # MCP server for peer discovery/messaging
+│   └── notifications/        # Phone push notifications
+├── renderer/
+│   ├── panels/agent/         # Agent terminal + GroupChatView
+│   ├── panels/explorer/      # File tree, source control, search
+│   ├── panels/sidebar/       # Session list with Naruto avatars
+│   ├── store/                # Zustand stores (sessions, agents, chat, gateway, queue)
+│   └── data/                 # Avatar definitions (avatars.json)
+└── shared/
+    └── types.ts              # AgentEvent, WSFrame, Decision, etc.
 ```
+
+## Build Plans
+
+Detailed implementation plans for each development phase:
+
+| Plan | Description |
+|------|-------------|
+| [OctoAgent Build Plan](OCTOAGENT_BUILD_PLAN.md) | Complete build plan — overview, tech stack, architecture, all phases |
+| [Phase-by-Phase Plan](octo-agent-plan.md) | Step-by-step build plan: Phase 1 (fork/clean), Phase 2 (gateway), Phase 3 (supervisor), Phase 4 (chat UI), Phase 5 (memory/briefings), Phase 6 (HITL/push/parsers), Phase 7 (polish) |
+| [Group Chat Plan](octo-agent-chat-plan.md) | Inter-agent communication via claude-peers pattern — MCP adapter, peers adapter, group sessions, GroupChatView |
+| [Supervisor Plan](octo-agent-supervisor-plan.md) | Phase 2 (PTY bridge + permission-gated P2P) and Phase 3 (supervisor as active AI participant in group chat) |
+| [New Features Plan](octo-agent-new-plan.md) | Naruto-themed WhatsApp chat, Agent SDK integration, polish |
+
+## Current Status
+
+**Completed phases:**
+- Phase 1: Fork Broomy, clean review/profile/gh, rebrand to OctoAgent
+- Phase 2: Gateway WebSocket server, frame protocol, PTY adapter, renderer store/hook
+- Phase 3: Supervisor, Claude Code parser, session queue, HITL stubs, hook/phone adapters, session memory, conflict detector
+- Phase 4: Chat UI — WhatsApp-style chat, decision cards, attention queue
+- Phase 5: Memory summaries via Claude API, conflict detection, briefing engine, reports
+- Phase 6: Full HITL, phone push, sleep guard, Gemini/Codex parsers, peer communication
+- Phase 7: Naruto avatars, group sessions, Agent SDK integration, PTY/SDK bridge, permission-gated P2P
+
+**Next:** Supervisor as active AI participant in group chat (Phase 3 of supervisor plan)
 
 ## Configuration
 
-Config files are stored at `~/.broomy/`:
+Runtime data lives at `~/.octoagent/`:
 
 ```
-~/.broomy/
-├── profiles.json                # Profile definitions + last active profile
-├── profiles/
-│   ├── default/
-│   │   ├── config.json          # Sessions, agents, repos (production)
-│   │   ├── config.dev.json      # Same structure (development)
-│   │   └── init-scripts/        # Per-repo init scripts (repo-id.sh)
-│   └── <profile-id>/
-│       └── ...
+~/.octoagent/
+├── config.json              # App configuration
+├── personas/<id>.json       # Agent personas (auto-approve rules, traits)
+└── sessions/<id>/
+    ├── transcript.jsonl     # Append-only event log
+    ├── memory.md            # Claude API-generated summary
+    └── report.md            # End-of-run report
 ```
 
-## Troubleshooting
+## Forked From
 
-**"Electron uninstall" error** -- Run `rm -rf node_modules && pnpm install` to clean reinstall.
-
-**"posix_spawnp failed" terminal errors** -- Run `npx @electron/rebuild` to rebuild native modules for Electron.
-
-**Blank screen on launch** -- Check the DevTools console for preload script errors. Ensure the preload script is built as CommonJS (`.js`, not `.mjs`).
-
-**pnpm is required** -- This project enforces pnpm via a `preinstall` script. Using npm or yarn will fail.
+[Broomy](https://github.com/broomy-ai/broomy) (MIT License) — the terminal, file viewer, and base Electron shell are inherited and intentionally left unmodified.
 
 ## License
 

@@ -2,7 +2,7 @@
 
 ## Positioning
 
-Broomy is positioned as a **professional-grade desktop tool** — the kind of app a senior engineer would adopt as their daily driver for managing AI coding workflows. The website should feel like the landing pages of tools developers already trust: **Linear**, **Warp**, **Raycast**, or **Zed**. Clean. Confident. No gimmicks.
+OctoAgent is positioned as a **professional-grade desktop tool** — the kind of app a senior engineer would adopt as their daily driver for managing AI coding workflows. The website should feel like the landing pages of tools developers already trust: **Linear**, **Warp**, **Raycast**, or **Zed**. Clean. Confident. No gimmicks.
 
 But it's also positioned as being fun and friendly, with an icon and name themed aronud the magical brooms from Fantasia.
 
@@ -37,7 +37,7 @@ No pricing page. No sign-up form. No newsletter. This is an open source tool —
 
 ### 1. Hero
 
-- **Layout**: Full-width dark background. Large (1400px wide) screenshot of Broomy in action, showing multiple sessions with one working and one idle. The screenshot should show the Explorer panel open with file tree and git status visible.
+- **Layout**: Full-width dark background. Large (1400px wide) screenshot of OctoAgent in action, showing multiple sessions with one working and one idle. The screenshot should show the Explorer panel open with file tree and git status visible.
 - **Headline**: "Your command center for AI coding agents"
 - **Subhead**: "Manage multiple AI sessions across repositories. See what every agent is doing. Ship faster."
 - **CTA buttons**: "Download for macOS" (primary, links to GitHub Release .dmg) | "View on GitHub" (secondary, external link)
@@ -69,7 +69,7 @@ Each feature gets its own section with:
 
 **b) Agent Activity Detection**
 - Screenshot: A session in "Working" state with spinner animation visible in the terminal, showing Claude reading files and generating code.
-- Copy: "Broomy watches your agent's terminal output and understands what it's doing. Working, idle, waiting for input — you always know without reading the raw output."
+- Copy: "OctoAgent watches your agent's terminal output and understands what it's doing. Working, idle, waiting for input — you always know without reading the raw output."
 
 **c) Integrated File Explorer & Git**
 - Screenshot: Explorer panel open showing file tree with git status badges (modified, added), source control view with staged files, branch info.
@@ -119,8 +119,8 @@ Links directly to the `.dmg` file from the latest GitHub Release. No intermediat
 
 **Build from source** (secondary, for contributors):
 ```bash
-git clone https://github.com/broomy-ai/broomy.git
-cd broomy
+git clone https://github.com/octoagent-ai/octoagent.git
+cd octoagent
 
 pnpm install
 pnpm dev
@@ -129,7 +129,7 @@ pnpm dev
 ### 7. Footer
 
 Minimal:
-- "Broomy — Open source AI agent manager"
+- "OctoAgent — Open source AI agent manager"
 - GitHub link
 - MIT License
 - Built with Electron, React, TypeScript

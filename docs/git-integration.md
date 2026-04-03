@@ -1,6 +1,6 @@
 # Git & GitHub Integration Guide
 
-Broomy's git integration is split across two process boundaries: the main process performs
+OctoAgent's git integration is split across two process boundaries: the main process performs
 all git operations via `simple-git` and the GitHub CLI (`gh`), while the renderer process
 consumes results through IPC and derives UI state from the raw data.
 

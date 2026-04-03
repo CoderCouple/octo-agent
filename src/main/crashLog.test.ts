@@ -18,12 +18,12 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('./handlers/types', () => ({
-  CONFIG_DIR: '/mock/.broomy',
+  CONFIG_DIR: '/mock/.octoagent',
 }))
 
 import { writeCrashLog, readLatestCrashLog, deleteCrashLog, deleteAllCrashLogs, buildCrashReportUrl, appendErrorLog, getRecentErrors, type CrashReport } from './crashLog'
 
-const CRASH_DIR = '/mock/.broomy/crash-reports'
+const CRASH_DIR = '/mock/.octoagent/crash-reports'
 
 describe('crashLog', () => {
   beforeEach(() => {
@@ -107,8 +107,8 @@ describe('crashLog', () => {
 
   describe('deleteCrashLog', () => {
     it('deletes the specified file', () => {
-      deleteCrashLog('/mock/.broomy/crash-reports/crash-123.json')
-      expect(unlinkSync).toHaveBeenCalledWith('/mock/.broomy/crash-reports/crash-123.json')
+      deleteCrashLog('/mock/.octoagent/crash-reports/crash-123.json')
+      expect(unlinkSync).toHaveBeenCalledWith('/mock/.octoagent/crash-reports/crash-123.json')
     })
 
     it('silently ignores errors', () => {
@@ -178,7 +178,7 @@ describe('crashLog', () => {
 
       const url = buildCrashReportUrl(report)
 
-      expect(url).toContain('https://github.com/Broomy-AI/broomy/issues/new')
+      expect(url).toContain('https://github.com/octoagent/octoagent/issues/new')
       expect(url).toContain('title=')
       expect(url).toContain('Something+broke')
       expect(url).toContain('labels=bug')
@@ -209,7 +209,7 @@ describe('crashLog', () => {
 
       const crashTimestamp = '2023-11-14T00:00:00.000Z'
       const diagDir = join(homedir(), 'Library', 'Logs', 'DiagnosticReports')
-      const ipsFile = 'Broomy-2023-11-14.ips'
+      const ipsFile = 'OctoAgent-2023-11-14.ips'
       const ipsContent = [
         '{"header":"metadata"}',
         JSON.stringify({
@@ -262,7 +262,7 @@ describe('crashLog', () => {
 
       const crashTimestamp = '2023-11-14T00:00:00.000Z'
       const diagDir = join(homedir(), 'Library', 'Logs', 'DiagnosticReports')
-      const ipsFile = 'Broomy-old.ips'
+      const ipsFile = 'OctoAgent-old.ips'
 
       vi.mocked(readdirSync).mockImplementation((dir) => {
         if (String(dir) === diagDir) return [ipsFile] as unknown as ReturnType<typeof readdirSync>
@@ -291,7 +291,7 @@ describe('crashLog', () => {
 
       const crashTimestamp = '2023-11-14T00:00:00.000Z'
       const diagDir = join(homedir(), 'Library', 'Logs', 'DiagnosticReports')
-      const ipsFile = 'Broomy-notriggered.ips'
+      const ipsFile = 'OctoAgent-notriggered.ips'
       const ipsContent = [
         '{"header":"metadata"}',
         JSON.stringify({
@@ -330,8 +330,8 @@ describe('crashLog', () => {
 
       const crashTimestamp = '2023-11-14T00:00:00.000Z'
       const diagDir = join(homedir(), 'Library', 'Logs', 'DiagnosticReports')
-      const badFile = 'Broomy-bad.ips'
-      const goodFile = 'Broomy-good.ips'
+      const badFile = 'OctoAgent-bad.ips'
+      const goodFile = 'OctoAgent-good.ips'
       const ipsContent = [
         '{"header":"metadata"}',
         JSON.stringify({
@@ -399,7 +399,7 @@ describe('crashLog', () => {
 
       const crashTimestamp = '2023-11-14T00:00:00.000Z'
       const diagDir = join(homedir(), 'Library', 'Logs', 'DiagnosticReports')
-      const ipsFile = 'Broomy-badjson.ips'
+      const ipsFile = 'OctoAgent-badjson.ips'
 
       vi.mocked(readdirSync).mockImplementation((dir) => {
         if (String(dir) === diagDir) return [ipsFile] as unknown as ReturnType<typeof readdirSync>
@@ -430,7 +430,7 @@ describe('crashLog', () => {
 
       const crashTimestamp = '2023-11-14T00:00:00.000Z'
       const diagDir = join(homedir(), 'Library', 'Logs', 'DiagnosticReports')
-      const ipsFile = 'Broomy-nonewline.ips'
+      const ipsFile = 'OctoAgent-nonewline.ips'
 
       vi.mocked(readdirSync).mockImplementation((dir) => {
         if (String(dir) === diagDir) return [ipsFile] as unknown as ReturnType<typeof readdirSync>

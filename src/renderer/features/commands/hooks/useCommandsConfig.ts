@@ -29,7 +29,7 @@ export function useCommandsConfig(directory: string | undefined): {
     let cancelled = false
 
     const watcherId = `commands-config-${directory}`
-    const commandsFile = `${directory}/.broomy/commands.json`
+    const commandsFile = `${directory}/.octoagent/commands.json`
     let watching = false
 
     function startWatching() {

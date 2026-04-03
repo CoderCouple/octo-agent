@@ -1,6 +1,6 @@
 # Types
 
-Shared TypeScript type definitions for the Broomy renderer. These types are imported by components, stores, and utilities that deal with code review functionality.
+Shared TypeScript type definitions for the OctoAgent renderer. These types are imported by components, stores, and utilities that deal with code review functionality.
 
 ## How It Connects
 

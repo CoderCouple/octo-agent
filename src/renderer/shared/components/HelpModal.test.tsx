@@ -29,7 +29,7 @@ describe('HelpModal', () => {
 
   it('shows Overview tab content by default', () => {
     render(<HelpModal onClose={vi.fn()} />)
-    expect(screen.getByText('What is Broomy?')).toBeTruthy()
+    expect(screen.getByText('What is OctoAgent?')).toBeTruthy()
     expect(screen.getByText('Key Concepts')).toBeTruthy()
     expect(screen.getByText('Quick Start')).toBeTruthy()
   })
@@ -111,11 +111,11 @@ describe('HelpModal', () => {
     render(<HelpModal onClose={vi.fn()} />)
 
     // Start on Overview
-    expect(screen.getByText('What is Broomy?')).toBeTruthy()
+    expect(screen.getByText('What is OctoAgent?')).toBeTruthy()
 
     // Switch to Shortcuts
     fireEvent.click(screen.getByText('Shortcuts'))
-    expect(screen.queryByText('What is Broomy?')).toBeNull()
+    expect(screen.queryByText('What is OctoAgent?')).toBeNull()
     expect(screen.getByText('Panel Shortcuts')).toBeTruthy()
 
     // Switch to Agents
@@ -125,6 +125,6 @@ describe('HelpModal', () => {
 
     // Switch back to Overview
     fireEvent.click(screen.getByText('Overview'))
-    expect(screen.getByText('What is Broomy?')).toBeTruthy()
+    expect(screen.getByText('What is OctoAgent?')).toBeTruthy()
   })
 })

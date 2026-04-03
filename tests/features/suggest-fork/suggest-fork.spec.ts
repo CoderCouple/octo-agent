@@ -2,7 +2,7 @@
  * Feature Documentation: Suggest Fork for Read-Only Repos
  *
  * When a user clones a repo they don't have write access to, or tries to
- * create a branch on such a repo, Broomy detects the lack of write access
+ * create a branch on such a repo, OctoAgent detects the lack of write access
  * and suggests forking the repo on GitHub and cloning the fork instead.
  *
  * Run with: pnpm test:feature-docs suggest-fork
@@ -74,7 +74,7 @@ test.afterAll(async () => {
       title: 'Suggest Fork for Read-Only Repos',
       description:
         'When a user clones a repository they don\'t have write access to, or tries to ' +
-        'create a branch on such a repo, Broomy warns them and suggests forking the repo ' +
+        'create a branch on such a repo, OctoAgent warns them and suggests forking the repo ' +
         'on GitHub and cloning the fork instead.',
       steps,
     },

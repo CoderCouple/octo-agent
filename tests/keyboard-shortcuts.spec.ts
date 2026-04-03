@@ -64,10 +64,10 @@ test.describe('Keyboard Shortcuts - Panel Toggles', () => {
 
 test.describe('Keyboard Shortcuts - Session Navigation', () => {
   test('Alt+ArrowDown should move to next session', async () => {
-    // Ensure broomy session is selected first
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Ensure octoagent session is selected first
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Move to next session
     await page.keyboard.press('Alt+ArrowDown')
@@ -81,9 +81,9 @@ test.describe('Keyboard Shortcuts - Session Navigation', () => {
     // Currently on backend-api, move back
     await page.keyboard.press('Alt+ArrowUp')
 
-    // broomy should be selected again
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // octoagent should be selected again
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
   })
 })
 

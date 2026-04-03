@@ -1,6 +1,6 @@
 # Renderer
 
-The renderer process contains the entire React-based UI for Broomy. It runs inside an Electron BrowserWindow and communicates with the main process through the preload-exposed `window.*` APIs for file I/O, git operations, PTY management, and configuration persistence. All visual state is managed by Zustand stores, and all styling uses Tailwind CSS with a dark theme.
+The renderer process contains the entire React-based UI for OctoAgent. It runs inside an Electron BrowserWindow and communicates with the main process through the preload-exposed `window.*` APIs for file I/O, git operations, PTY management, and configuration persistence. All visual state is managed by Zustand stores, and all styling uses Tailwind CSS with a dark theme.
 
 ## How It Connects
 

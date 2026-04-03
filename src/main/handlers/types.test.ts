@@ -18,15 +18,15 @@ import {
 import { getScenarioData } from './scenarios'
 
 describe('types constants', () => {
-  it('CONFIG_DIR points to ~/.broomy', () => {
-    expect(CONFIG_DIR).toBe(join(homedir(), '.broomy'))
+  it('CONFIG_DIR points to ~/.octoagent', () => {
+    expect(CONFIG_DIR).toBe(join(homedir(), '.octoagent'))
   })
 
-  it('PROFILES_DIR points to ~/.broomy/profiles', () => {
+  it('PROFILES_DIR points to ~/.octoagent/profiles', () => {
     expect(PROFILES_DIR).toBe(join(CONFIG_DIR, 'profiles'))
   })
 
-  it('PROFILES_FILE points to ~/.broomy/profiles.json', () => {
+  it('PROFILES_FILE points to ~/.octoagent/profiles.json', () => {
     expect(PROFILES_FILE).toBe(join(CONFIG_DIR, 'profiles.json'))
   })
 })

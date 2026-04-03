@@ -95,9 +95,9 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <section>
-                <h3 className="text-sm font-medium text-text-primary mb-3">What is Broomy?</h3>
+                <h3 className="text-sm font-medium text-text-primary mb-3">What is OctoAgent?</h3>
                 <p className="text-sm text-text-secondary leading-relaxed">
-                  Broomy is a desktop app for managing multiple AI coding agent sessions across different repositories.
+                  OctoAgent is a desktop app for managing multiple AI coding agent sessions across different repositories.
                   Each session runs an AI agent (like Claude Code, Codex, or Gemini CLI) in its own Git worktree,
                   allowing you to work on multiple features or fixes simultaneously.
                 </p>
@@ -112,7 +112,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
                   </div>
                   <div>
                     <dt className="font-medium text-text-primary">Worktrees</dt>
-                    <dd className="text-text-secondary">Git worktrees let you have multiple branches checked out at once. Broomy auto-creates these for new sessions.</dd>
+                    <dd className="text-text-secondary">Git worktrees let you have multiple branches checked out at once. OctoAgent auto-creates these for new sessions.</dd>
                   </div>
                   <div>
                     <dt className="font-medium text-text-primary">Agents</dt>

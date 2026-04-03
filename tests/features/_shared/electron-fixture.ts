@@ -69,7 +69,7 @@ interface ResetOptions {
   /**
    * E2E mock data scenario. Available scenarios:
    * - 'marketing': 8 sessions with rich git status and file trees.
-   *    Used for the Broomy marketing website screenshots.
+   *    Used for the OctoAgent marketing website screenshots.
    * - undefined/omitted: default 3-session scenario with issue data.
    */
   scenario?: 'marketing'

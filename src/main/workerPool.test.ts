@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { runInWorker } from './workerPool'
 
-const TEST_DIR = join(tmpdir(), 'broomy-worker-test')
+const TEST_DIR = join(tmpdir(), 'octoagent-worker-test')
 
 function createTestWorker(filename: string, code: string): string {
   mkdirSync(TEST_DIR, { recursive: true })

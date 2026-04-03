@@ -1,6 +1,6 @@
-# Broomy Website Plan
+# OctoAgent Website Plan
 
-A professional marketing website for Broomy — the desktop command center for AI-assisted development.
+A professional marketing website for OctoAgent — the desktop command center for AI-assisted development.
 
 ## Documents
 

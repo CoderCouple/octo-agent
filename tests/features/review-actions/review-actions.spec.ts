@@ -149,7 +149,7 @@ test.describe.serial('Feature: Review Panel Actions', () => {
       screenshotPath: 'screenshots/02-explain-clicked.png',
       caption: 'After clicking Explain — prompt written and agent command sent',
       description:
-        'Clicking Explain writes a detailed prompt to .broomy/explain-prompt.md ' +
+        'Clicking Explain writes a detailed prompt to .octoagent/explain-prompt.md ' +
         'containing the issue title, severity, description, and locations. ' +
         'The agent terminal receives a command to read and follow the prompt.',
     })
@@ -209,7 +209,7 @@ test.describe.serial('Feature: Review Panel Actions', () => {
       caption: 'Inline comment form with typed response',
       description:
         'Clicking Comment reveals a compact inline form below the issue. ' +
-        'The comment is saved to .broomy/comments.json and appears in the ' +
+        'The comment is saved to .octoagent/comments.json and appears in the ' +
         'Pending Comments section, ready to be pushed as a draft review.',
     })
   })
@@ -269,8 +269,8 @@ test.describe.serial('Feature: Review Panel Actions', () => {
       description:
         'The "Draft Response Plan" button appears when viewing your own PR and there are new ' +
         'reviewer comments since your last push. Clicking it writes a structured prompt to ' +
-        '.broomy/response-plan-prompt.md that asks the agent to discuss which issues to address, ' +
-        'then create a plan in .broomy/plan.md.',
+        '.octoagent/response-plan-prompt.md that asks the agent to discuss which issues to address, ' +
+        'then create a plan in .octoagent/plan.md.',
     })
   })
 })

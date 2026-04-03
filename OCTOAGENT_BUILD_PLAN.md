@@ -7,8 +7,8 @@
 ## OVERVIEW
 
 OctoAgent is a desktop app (Electron + React + TypeScript) for solo developers
-running multiple AI coding agents simultaneously. It is forked from Broomy
-(https://github.com/broomy-ai/broomy) and extended with a WebSocket gateway,
+running multiple AI coding agents simultaneously. It is forked from OctoAgent
+(https://github.com/octoagent/octoagent) and extended with a WebSocket gateway,
 supervisor engine, WhatsApp-style chat per agent, attention queue, phone push
 decisions, agent-to-agent briefing, session memory, and multi-channel support.
 
@@ -20,11 +20,11 @@ Slack, or WhatsApp.
 
 ## TECH STACK
 
-- Electron + electron-vite (app shell, from Broomy)
-- React + TypeScript + Tailwind (UI, from Broomy)
+- Electron + electron-vite (app shell, from OctoAgent)
+- React + TypeScript + Tailwind (UI, from OctoAgent)
 - Zustand (state management)
-- node-pty + xterm.js (terminal emulation, from Broomy — do not modify)
-- Monaco Editor (file viewer, from Broomy — do not modify)
+- node-pty + xterm.js (terminal emulation, from OctoAgent — do not modify)
+- Monaco Editor (file viewer, from OctoAgent — do not modify)
 - ws (npm) — WebSocket server for the gateway
 - Anthropic SDK (@anthropic-ai/sdk) — Claude API for memory + briefings
 - caffeinate (macOS CLI) — sleep prevention
@@ -33,9 +33,9 @@ Slack, or WhatsApp.
 
 ## REPOSITORY SETUP
 
-Start by forking Broomy:
+Start by forking OctoAgent:
 
-  git clone https://github.com/broomy-ai/broomy.git octoagent
+  git clone https://github.com/octoagent/octoagent.git octoagent
   cd octoagent
   pnpm install
 
@@ -45,7 +45,7 @@ Then install additional dependencies:
   pnpm add @anthropic-ai/sdk
   pnpm add @types/ws -D
 
-Then delete the following from Broomy before building anything new:
+Then delete the following from OctoAgent before building anything new:
 - src/renderer/components/Review.tsx (AI code review panel — not our feature)
 - All profile/multi-window code in src/renderer/store/profiles.ts
 - All GitHub IPC handlers (gh CLI integration) in src/main/index.ts
@@ -97,14 +97,14 @@ octoagent/
         AttentionQueue.tsx        Triage feed sidebar, 5 items max
         PersonaCard.tsx           Session creation form, persona config
         ReportCard.tsx            End-of-session report display
-        Terminal.tsx              FROM BROOMY — do not modify
-        FileViewer.tsx            FROM BROOMY — do not modify
-        SessionList.tsx           EXTENDED from Broomy — adds status field
+        Terminal.tsx              FROM UPSTREAM — do not modify
+        FileViewer.tsx            FROM UPSTREAM — do not modify
+        SessionList.tsx           EXTENDED from OctoAgent — adds status field
         MenuBarStatus.tsx         Coffee cup icon, mode switcher
       store/
         chat.ts                   Messages per session, decision state
         queue.ts                  Attention queue items
-        sessions.ts               EXTENDED from Broomy — adds status + persona
+        sessions.ts               EXTENDED from OctoAgent — adds status + persona
         gateway.ts                WS connection state, send helper
       hooks/
         useGateway.ts             React hook for WS connection + event dispatch
@@ -1524,7 +1524,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electron', {
   getGatewayPort: () => ipcRenderer.invoke('get-gateway-port'),
-  // keep any Broomy PTY methods that xterm.js Terminal component needs
+  // keep any OctoAgent PTY methods that xterm.js Terminal component needs
   // do NOT add new IPC channels — use WS gateway instead
 })
 ```
@@ -1644,7 +1644,7 @@ app.on('window-all-closed', () => { supervisor.sleepGuard.allow(); app.quit() })
 Goal: WS gateway running, chat panel live, you can see agents and type back.
 
 Day 1:
-- Fork Broomy, pnpm install, confirm it runs
+- Fork OctoAgent, pnpm install, confirm it runs
 - Delete Review.tsx, profiles store, GitHub IPC handlers
 - Read src/preload/index.ts, src/main/index.ts, src/renderer/store/sessions.ts fully
 - Install ws and @anthropic-ai/sdk
@@ -1665,7 +1665,7 @@ Day 3:
 Day 4:
 - Create src/renderer/components/ChatPanel.tsx
 - Create src/renderer/components/DecisionCard.tsx (no real decisions yet, just UI)
-- Wire ChatPanel into main layout replacing Broomy review panel
+- Wire ChatPanel into main layout replacing OctoAgent review panel
 - Create src/main/gateway/adapters/ptyAdapter.ts
 - Wire ptyAdapter to existing node-pty onData in main/index.ts
 
@@ -1706,7 +1706,7 @@ Day 4:
 - Wire DecisionCard resolve buttons to gateway.send('resolve', ...)
 - Wire supervisor.resolveDecision() to PTY write
 - Add status field to sessions store
-- Update SessionList to show status dots from WS events instead of Broomy regex
+- Update SessionList to show status dots from WS events instead of OctoAgent regex
 
 Day 5:
 - Wire AttentionQueue to real agentEvent events from gateway
@@ -1816,7 +1816,7 @@ Milestone: OctoAgent v1 shipped.
 ## WHAT NOT TO BUILD IN V1
 
 Do not build these — they come after validation with real users:
-- AI code review (Broomy's feature, not our angle)
+- AI code review (OctoAgent's feature, not our angle)
 - GitHub issues / PR integration
 - Multi-window profiles
 - Team / collaboration features
@@ -1832,7 +1832,7 @@ Paste this at the top of every Claude Code session:
 
 "I am building OctoAgent — an Electron + React + TypeScript desktop app that
 is a mission control for running multiple AI coding agents simultaneously.
-I have forked Broomy as the baseline. Read OCTOAGENT_BUILD_PLAN.md for the
+I have forked OctoAgent as the baseline. Read OCTOAGENT_BUILD_PLAN.md for the
 complete architecture. I am currently working on [DESCRIBE WHAT YOU ARE BUILDING].
-The key constraint: never bypass the supervisor, never modify the Broomy terminal
+The key constraint: never bypass the supervisor, never modify the OctoAgent terminal
 or file viewer components, always use the WebSocket gateway for renderer communication."

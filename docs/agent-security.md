@@ -13,11 +13,11 @@ How mainstream AI coding agents handle isolation, filesystem access, and auto-ap
 | Cursor | **ON** (Seatbelt/Landlock) | Writes: workspace. Reads: full machine | `.cursorignore` (bypassable on macOS) | YOLO — sandbox active but bypass bugs |
 | Aider | None | Full machine | None | `--yes` — auto-approve file changes |
 
-## What Broomy Isolation Protects Against
+## What OctoAgent Isolation Protects Against
 
-When you enable Docker isolation for an agent in Broomy:
+When you enable Docker isolation for an agent in OctoAgent:
 
-- **Filesystem containment**: The agent can only read/write the mounted repo directory and the shared config folder (`~/.broomy/isolation/`). Your home directory, other repos, SSH keys, cloud credentials, and browser data are inaccessible.
+- **Filesystem containment**: The agent can only read/write the mounted repo directory and the shared config folder (`~/.octoagent/isolation/`). Your home directory, other repos, SSH keys, cloud credentials, and browser data are inaccessible.
 - **Process isolation**: The agent runs in a separate Linux container. It cannot access host processes, signals, or IPC.
 - **Combined with skip-permissions**: You get the speed of auto-approval with the safety of a container. The agent can't damage files outside the repo even if it tries.
 
@@ -31,7 +31,7 @@ When you enable Docker isolation for an agent in Broomy:
 ## Best Practices
 
 1. **Enable isolation + skip-permissions together** for maximum productivity with safety.
-2. **Only put necessary credentials** in `~/.broomy/isolation/`. Don't dump your entire `.ssh` directory — copy only the keys needed for git operations.
+2. **Only put necessary credentials** in `~/.octoagent/isolation/`. Don't dump your entire `.ssh` directory — copy only the keys needed for git operations.
 3. **Use a custom Docker image** with only the tools your agent needs. The default image includes common development tools, but a minimal image reduces attack surface.
 4. **Review agent output** even with isolation — container boundaries protect your machine, not your repo.
 

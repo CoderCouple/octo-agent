@@ -314,6 +314,7 @@ function AppContent() {
 
       {/* Experimental Platform Modal (Windows/Linux) */}
       <ExperimentalPlatformModal />
+
     </>
   )
 }

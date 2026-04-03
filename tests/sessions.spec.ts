@@ -155,15 +155,15 @@ test.describe('Session Search', () => {
     const backendSession = page.locator('.cursor-pointer:has-text("backend-api")')
     await expect(backendSession).toBeVisible()
 
-    // broomy should not be visible
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).not.toBeVisible()
+    // octoagent should not be visible
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).not.toBeVisible()
 
     // Clear search
     await searchInput.fill('')
 
     // All sessions should be visible again
-    await expect(broomySession).toBeVisible()
+    await expect(octoagentSession).toBeVisible()
     await expect(backendSession).toBeVisible()
   })
 
@@ -251,10 +251,10 @@ test.describe('Session Delete', () => {
 
 test.describe('Session Keyboard Navigation', () => {
   test('should navigate sessions with Alt+Arrow shortcuts', async () => {
-    // Ensure broomy is the active session
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Ensure octoagent is the active session
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Alt+ArrowDown should switch to the next session
     await page.keyboard.press('Alt+ArrowDown')
@@ -265,6 +265,6 @@ test.describe('Session Keyboard Navigation', () => {
 
     // Alt+ArrowUp should switch back
     await page.keyboard.press('Alt+ArrowUp')
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
   })
 })

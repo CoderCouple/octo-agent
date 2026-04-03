@@ -100,8 +100,8 @@ test.describe.serial('Feature: PR Status Refresh', () => {
   })
 
   test('Step 2: Session with issue but no PR — banner always visible', async () => {
-    // broomy session has an issue linked but is on main (no PR)
-    const session = page.locator('.cursor-pointer:has-text("broomy")')
+    // octoagent session has an issue linked but is on main (no PR)
+    const session = page.locator('.cursor-pointer:has-text("octoagent")')
     await session.click()
     await expect(session).toHaveClass(/bg-accent\/15/)
 

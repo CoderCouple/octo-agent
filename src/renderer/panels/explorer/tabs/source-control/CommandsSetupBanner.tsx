@@ -1,5 +1,5 @@
 /**
- * Banner shown when no .broomy/commands.json exists, prompting the user to set up modular actions.
+ * Banner shown when no .octoagent/commands.json exists, prompting the user to set up modular actions.
  */
 
 interface CommandsSetupBannerProps {

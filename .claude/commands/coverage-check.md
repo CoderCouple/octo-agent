@@ -5,7 +5,7 @@ Arguments: $ARGUMENTS (the source file path, e.g. `src/renderer/store/sessions.t
 ## Steps
 
 1. Parse the source file path from `$ARGUMENTS`. If no argument is provided, print usage and stop.
-2. If `.broomy/output/coverage-summary.json` exists, run `node scripts/coverage-utils.cjs lookup <file>` to show the current cached coverage for this file.
+2. If `.octoagent/output/coverage-summary.json` exists, run `node scripts/coverage-utils.cjs lookup <file>` to show the current cached coverage for this file.
 3. Derive the test file path by replacing `.ts` with `.test.ts` (or `.tsx` with `.test.tsx`). Verify the test file exists.
 4. Run `pnpm vitest run --coverage <test-file>` to execute only that file's tests with coverage. This generates a fresh `coverage/coverage-summary.json` with data for the tested file.
 5. Run `node scripts/coverage-utils.cjs update <file> coverage/coverage-summary.json` to merge the new coverage data into the cached summary.

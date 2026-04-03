@@ -172,7 +172,7 @@ describe('getCloneErrorHint', () => {
     it('suggests restart when gh is authenticated and credential helper is configured', () => {
       const hint = getCloneErrorHint('fatal: could not read Username', httpsUrl, { ghAvailable: true, ghAuthenticated: true, credentialHelper: '!/usr/bin/gh auth git-credential' })
       expect(hint).toContain('logged in and configured')
-      expect(hint).toContain('Restart Broomy')
+      expect(hint).toContain('Restart OctoAgent')
       expect(hint).toContain('gh auth status')
     })
 
@@ -286,7 +286,7 @@ describe('getCloneErrorHint', () => {
     it('shows restart hint when gh is authenticated and credential helper configured', () => {
       const hint = getGitAuthHint('fatal: could not read Username', { ghAvailable: true, ghAuthenticated: true, credentialHelper: '!/usr/bin/gh auth git-credential' })
       expect(hint).toContain('logged in and configured')
-      expect(hint).toContain('restarting Broomy')
+      expect(hint).toContain('restarting OctoAgent')
     })
   })
 

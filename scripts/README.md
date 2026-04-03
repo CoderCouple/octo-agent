@@ -1,6 +1,6 @@
 # Scripts
 
-Build, development, and testing scripts that support the Broomy development workflow. These handle environment setup, distribution signing, and fake agent simulation for E2E tests.
+Build, development, and testing scripts that support the OctoAgent development workflow. These handle environment setup, distribution signing, and fake agent simulation for E2E tests.
 
 ## How It Connects
 
@@ -12,13 +12,13 @@ Development scripts are invoked by `package.json` commands (`pnpm dev`, `pnpm di
 |------|-------------|
 | `dev-preflight.cjs` | Runs before `pnpm dev`. Checks that `node_modules` exists, the Electron binary is downloaded, and native modules (node-pty) are built correctly. Auto-fixes issues when possible, then hands off to `electron-vite dev`. |
 | `postinstall.cjs` | Post-install hook that fixes node-pty `spawn-helper` permissions on macOS/Linux. Runs automatically after `pnpm install`. |
-| `start-dist.cjs` | Cross-platform script to build and open the packaged app. Replaces the macOS-only `open dist/mac-arm64/Broomy.app` command. |
+| `start-dist.cjs` | Cross-platform script to build and open the packaged app. Replaces the macOS-only `open dist/mac-arm64/OctoAgent.app` command. |
 
 ## Distribution
 
 | File | Description |
 |------|-------------|
-| `dist-signed.sh` | Builds, code-signs, and notarizes Broomy for macOS. Loads signing credentials from `.env`, verifies the signing identity in the keychain, runs `pnpm build`, then packages with `electron-builder` with notarization enabled. Verifies the output signature afterward. |
+| `dist-signed.sh` | Builds, code-signs, and notarizes OctoAgent for macOS. Loads signing credentials from `.env`, verifies the signing identity in the keychain, runs `pnpm build`, then packages with `electron-builder` with notarization enabled. Verifies the output signature afterward. |
 
 ## Release
 

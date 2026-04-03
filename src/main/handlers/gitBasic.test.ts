@@ -68,6 +68,7 @@ function createMockCtx(overrides: Partial<HandlerContext> = {}): HandlerContext 
     E2E_MOCK_SHELL: undefined,
     FAKE_CLAUDE_SCRIPT: undefined,
     dockerContainers: new Map(),
+    sessionPtyMap: new Map(),
     ...overrides,
   }
 }

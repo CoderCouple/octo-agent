@@ -15,6 +15,7 @@ import PanelErrorBoundary from '../../shared/components/PanelErrorBoundary'
 import SessionCard from './SessionCard'
 import DeleteSessionDialog from './DeleteSessionDialog'
 import UpdateBanner from './UpdateBanner'
+import NewGroupDialog from '../../features/sessions/newSession/NewGroupDialog'
 
 interface SessionListProps {
   repos: ManagedRepo[]
@@ -70,6 +71,7 @@ export default function SessionList({
     }
   }
 
+  const [showNewGroupDialog, setShowNewGroupDialog] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const pendingDeleteSession = useMemo(() => pendingDeleteId ? sessions.find(s => s.id === pendingDeleteId) ?? null : null, [sessions, pendingDeleteId])
   const [deleteWorktree, setDeleteWorktree] = useState(true)
@@ -105,6 +107,27 @@ export default function SessionList({
           className="flex-1 py-2 px-3 bg-accent hover:bg-accent/80 text-white text-sm font-medium rounded transition-colors"
         >
           + New Session
+        </button>
+        <button
+          onClick={() => setShowNewGroupDialog(true)}
+          className="p-2 rounded text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+          title="Create group session"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
         </button>
         {onRefreshPrStatus && (
           <button
@@ -239,6 +262,10 @@ export default function SessionList({
           }}
           onCancel={() => setPendingDeleteId(null)}
         />
+      )}
+
+      {showNewGroupDialog && (
+        <NewGroupDialog onClose={() => setShowNewGroupDialog(false)} />
       )}
     </div>
   )

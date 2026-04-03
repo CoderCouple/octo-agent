@@ -50,9 +50,9 @@ test.describe.serial('Feature: Agent API', () => {
     const sidebar = page.locator('[data-panel-id="sidebar"]')
     await expect(sidebar).toBeVisible()
 
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).toBeVisible()
-    await broomySession.click()
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).toBeVisible()
+    await octoagentSession.click()
 
     const agentPanel = page.locator('[data-panel-id="agent"]')
     await expect(agentPanel).toBeVisible()

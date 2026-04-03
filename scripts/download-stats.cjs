@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Shows download counts for all GitHub releases of Broomy.
+// Shows download counts for all GitHub releases of OctoAgent.
 // Usage: node scripts/download-stats.cjs
-// Requires: gh CLI authenticated with access to Broomy-AI/broomy
+// Requires: gh CLI authenticated with access to octoagent/octoagent
 
 const { execSync } = require('child_process')
 
-const REPO = 'Broomy-AI/broomy'
+const REPO = 'octoagent/octoagent'
 
 try {
   execSync('gh --version', { stdio: 'ignore' })

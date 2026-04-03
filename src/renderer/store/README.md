@@ -1,6 +1,6 @@
 # Store
 
-Zustand state management stores for the Broomy renderer process. Each store owns a distinct domain of application state -- sessions, agents, repositories, profiles, and errors -- and exposes actions that update state in-memory then persist changes to the main process via IPC.
+Zustand state management stores for the OctoAgent renderer process. Each store owns a distinct domain of application state -- sessions, agents, repositories, profiles, and errors -- and exposes actions that update state in-memory then persist changes to the main process via IPC.
 
 ## How It Connects
 

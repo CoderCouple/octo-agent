@@ -36,7 +36,7 @@ test.afterAll(async () => {
       description:
         'When a session has an open pull request, clicking the PR link in the source control ' +
         'banner opens it in the file panel\'s embedded browser instead of the system browser. ' +
-        'This keeps the user inside Broomy, just like code review links.',
+        'This keeps the user inside OctoAgent, just like code review links.',
       steps,
     },
     FEATURE_DIR,
@@ -117,7 +117,7 @@ test.describe.serial('Feature: Open PR in File Panel', () => {
       caption: 'PR opens in the file panel\'s embedded browser',
       description:
         'Clicking the PR link opens it in the file panel webview with navigation controls ' +
-        '(back, forward, reload) and an "Open in browser" button. The user stays inside Broomy ' +
+        '(back, forward, reload) and an "Open in browser" button. The user stays inside OctoAgent ' +
         'instead of being sent to the system browser.',
     })
   })

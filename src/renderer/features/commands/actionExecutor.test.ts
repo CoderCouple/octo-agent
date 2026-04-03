@@ -156,10 +156,10 @@ describe('executeAction - agent', () => {
 
     await executeAction(action, makeCtx())
 
-    expect(window.fs.mkdir).toHaveBeenCalledWith('/repo/.broomy')
-    expect(window.fs.mkdir).toHaveBeenCalledWith('/repo/.broomy/output')
+    expect(window.fs.mkdir).toHaveBeenCalledWith('/repo/.octoagent')
+    expect(window.fs.mkdir).toHaveBeenCalledWith('/repo/.octoagent/output')
     expect(window.fs.writeFile).toHaveBeenCalledWith(
-      '/repo/.broomy/output/context.json',
+      '/repo/.octoagent/output/context.json',
       expect.stringContaining('"main"')
     )
   })

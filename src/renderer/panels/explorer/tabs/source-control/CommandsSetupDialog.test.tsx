@@ -7,8 +7,8 @@ vi.mock('../../../../features/commands/commandsConfig', async () => {
   const actual = await vi.importActual('../../../../features/commands/commandsConfig')
   return {
     ...actual,
-    checkLegacyBroomyGitignore: vi.fn().mockResolvedValue(false),
-    removeLegacyBroomyGitignore: vi.fn().mockResolvedValue(undefined),
+    checkLegacyOctoAgentGitignore: vi.fn().mockResolvedValue(false),
+    removeLegacyOctoAgentGitignore: vi.fn().mockResolvedValue(undefined),
   }
 })
 
@@ -25,7 +25,7 @@ afterEach(() => { cleanup() })
 describe('CommandsSetupDialog', () => {
   it('renders dialog title and description', () => {
     render(<CommandsSetupDialog directory="/repo" onClose={vi.fn()} onCreated={vi.fn()} />)
-    expect(screen.getByText('Set up Broomy Actions')).toBeTruthy()
+    expect(screen.getByText('Set up OctoAgent Actions')).toBeTruthy()
     expect(screen.getByText(/defines the actions/)).toBeTruthy()
   })
 
@@ -54,7 +54,7 @@ describe('CommandsSetupDialog', () => {
 
     // Should have created commands.json
     expect(window.fs.writeFile).toHaveBeenCalledWith(
-      '/repo/.broomy/commands.json',
+      '/repo/.octoagent/commands.json',
       expect.any(String)
     )
     expect(onCreated).toHaveBeenCalled()
@@ -63,7 +63,7 @@ describe('CommandsSetupDialog', () => {
 
   it('shows legacy gitignore warning when detected', async () => {
     const mod = await import('../../../../features/commands/commandsConfig')
-    vi.mocked(mod.checkLegacyBroomyGitignore).mockResolvedValue(true)
+    vi.mocked(mod.checkLegacyOctoAgentGitignore).mockResolvedValue(true)
 
     const { unmount } = render(<CommandsSetupDialog directory="/repo" onClose={vi.fn()} onCreated={vi.fn()} />)
 
@@ -78,7 +78,7 @@ describe('CommandsSetupDialog', () => {
 
   it('removes legacy gitignore when creating and legacy is detected', async () => {
     const mod = await import('../../../../features/commands/commandsConfig')
-    vi.mocked(mod.checkLegacyBroomyGitignore).mockResolvedValue(true)
+    vi.mocked(mod.checkLegacyOctoAgentGitignore).mockResolvedValue(true)
 
     const onCreated = vi.fn()
     render(<CommandsSetupDialog directory="/repo" onClose={vi.fn()} onCreated={onCreated} />)
@@ -91,7 +91,7 @@ describe('CommandsSetupDialog', () => {
       fireEvent.click(screen.getByText('Create default commands.json'))
     })
 
-    expect(mod.removeLegacyBroomyGitignore).toHaveBeenCalledWith('/repo')
+    expect(mod.removeLegacyOctoAgentGitignore).toHaveBeenCalledWith('/repo')
     expect(onCreated).toHaveBeenCalled()
   })
 

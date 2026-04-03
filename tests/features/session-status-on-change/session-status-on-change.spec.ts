@@ -74,18 +74,18 @@ test.describe.serial('Feature: Session Status Stability on Switch', () => {
 
   test('Step 2: First session is highlighted as active', async () => {
     const sidebar = page.locator('[data-panel-id="sidebar"]')
-    const broomySession = sidebar.locator('.cursor-pointer:has-text("broomy")')
-    await expect(broomySession).toBeVisible()
+    const octoagentSession = sidebar.locator('.cursor-pointer:has-text("octoagent")')
+    await expect(octoagentSession).toBeVisible()
 
     // The first session should be highlighted
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
-    await screenshotElement(page, broomySession, path.join(SCREENSHOTS, '02-first-session-active.png'))
+    await screenshotElement(page, octoagentSession, path.join(SCREENSHOTS, '02-first-session-active.png'))
     steps.push({
       screenshotPath: 'screenshots/02-first-session-active.png',
       caption: 'First session is highlighted as active',
       description:
-        'The "broomy" session card has the active highlight (bg-accent/15). ' +
+        'The "octoagent" session card has the active highlight (bg-accent/15). ' +
         'It shows idle status with no spinner.',
     })
   })
@@ -101,9 +101,9 @@ test.describe.serial('Feature: Session Status Stability on Switch', () => {
     await expect(backendSession).toHaveClass(/bg-accent\/15/)
 
     // Previous session should no longer be highlighted
-    const broomySession = sidebar.locator('.cursor-pointer:has-text("broomy")')
-    const broomyClasses = await broomySession.getAttribute('class')
-    expect(broomyClasses).not.toContain('bg-accent/15')
+    const octoagentSession = sidebar.locator('.cursor-pointer:has-text("octoagent")')
+    const octoagentClasses = await octoagentSession.getAttribute('class')
+    expect(octoagentClasses).not.toContain('bg-accent/15')
 
     // No spinners should appear — all idle sessions stay idle
     const spinners = sidebar.locator('.animate-spin')
@@ -125,10 +125,10 @@ test.describe.serial('Feature: Session Status Stability on Switch', () => {
   test('Step 4: Switch again — consistent stability', async () => {
     const sidebar = page.locator('[data-panel-id="sidebar"]')
 
-    // Switch back to broomy
-    const broomySession = sidebar.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    // Switch back to octoagent
+    const octoagentSession = sidebar.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Still no spinners
     const spinners = sidebar.locator('.animate-spin')
@@ -146,7 +146,7 @@ test.describe.serial('Feature: Session Status Stability on Switch', () => {
       screenshotPath: 'screenshots/04-switch-back-stable.png',
       caption: 'Switching back is equally stable',
       description:
-        'Switching back to "broomy" again shows no spinner flashes. The terminal remains visible ' +
+        'Switching back to "octoagent" again shows no spinner flashes. The terminal remains visible ' +
         'and functional. Each switch only updates the two affected session cards.',
     })
   })

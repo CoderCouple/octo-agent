@@ -17,7 +17,7 @@ vi.mock('electron', () => ({
 vi.mock('../crashLog', () => ({
   readLatestCrashLog: vi.fn(() => null),
   deleteAllCrashLogs: vi.fn(),
-  buildCrashReportUrl: vi.fn(() => 'https://github.com/Broomy-AI/broomy/issues/new?title=test'),
+  buildCrashReportUrl: vi.fn(() => 'https://github.com/octoagent/octoagent/issues/new?title=test'),
 }))
 
 import { register } from './app'
@@ -47,6 +47,7 @@ describe('app handler register', () => {
       E2E_MOCK_SHELL: undefined,
       FAKE_CLAUDE_SCRIPT: undefined,
     dockerContainers: new Map(),
+    sessionPtyMap: new Map(),
     } as unknown as HandlerContext
   })
 
@@ -192,7 +193,7 @@ describe('app handler register', () => {
     register(mockIpcMain as unknown as IpcMain, mockCtx)
     const call = mockIpcMain.handle.mock.calls.find((c: unknown[]) => c[0] === 'app:getCrashReportUrl')
     const handler = call![1] as () => unknown
-    expect(handler()).toBe('https://github.com/Broomy-AI/broomy/issues/new?title=test')
+    expect(handler()).toBe('https://github.com/octoagent/octoagent/issues/new?title=test')
   })
 
   it('app:getCrashReportUrl returns null in E2E mode', () => {

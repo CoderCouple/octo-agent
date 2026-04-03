@@ -3,19 +3,28 @@
  * to chat store, queue store, etc.
  * Call once in App.tsx on mount.
  */
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useGatewayStore } from '../store/gateway'
 import { useChatStore } from '../store/chat'
+
 import { useQueueStore } from '../store/queue'
 import { randomUUID } from '../shared/utils/ids'
 import type { WSFrame } from '../../shared/types'
 
-export function useGateway(): void {
+export interface AutoRuleSuggestion {
+  toolName: string
+  resolution: string
+}
+
+export function useGateway(): { autoRuleSuggestion: AutoRuleSuggestion | null; clearAutoRuleSuggestion: () => void } {
   const connect = useGatewayStore((s) => s.connect)
   const connected = useGatewayStore((s) => s.connected)
   const on = useGatewayStore((s) => s.on)
   const addMessage = useChatStore((s) => s.addMessage)
   const addAttention = useQueueStore((s) => s.add)
+
+  const [autoRuleSuggestion, setAutoRuleSuggestion] = useState<AutoRuleSuggestion | null>(null)
+  const clearAutoRuleSuggestion = useCallback(() => setAutoRuleSuggestion(null), [])
 
   // Connect on mount
   useEffect(() => {
@@ -72,14 +81,15 @@ export function useGateway(): void {
             text = `${eventType}: ${JSON.stringify(payload.data || {}).slice(0, 100)}`
         }
 
-        addMessage({
+        const chatMsg = {
           id: payload.id as string || randomUUID(),
           sessionId: frame.sessionId,
-          type: eventType === 'message' && (payload.data as Record<string, unknown>)?.from === 'user' ? 'user' : 'agent',
+          type: (eventType === 'message' && (payload.data as Record<string, unknown>)?.from === 'user' ? 'user' : 'agent') as import('../store/chat').ChatMessageType,
           timestamp: (payload.timestamp as number) || Date.now(),
           text,
           data: { eventType, ...(payload.data as Record<string, unknown> || {}) },
-        })
+        }
+        addMessage(chatMsg)
       }),
     )
 
@@ -142,6 +152,35 @@ export function useGateway(): void {
       }),
     )
 
+    // Peer message events → chat
+    unsubs.push(
+      on('peerMessage', (frame: WSFrame) => {
+        if (!frame.sessionId) return
+        const payload = frame.payload as Record<string, unknown> | undefined
+        if (!payload) return
+        addMessage({
+          id: randomUUID(),
+          sessionId: frame.sessionId,
+          type: 'agent',
+          timestamp: Date.now(),
+          text: `[From ${payload.fromName || payload.from || 'peer'}]: ${payload.text || ''}`,
+          data: { eventType: 'peerMessage', from: payload.from },
+        })
+      }),
+    )
+
+    // Auto-rule suggestion events
+    unsubs.push(
+      on('autoRuleSuggestion', (frame: WSFrame) => {
+        const payload = frame.payload as Record<string, unknown> | undefined
+        if (!payload) return
+        setAutoRuleSuggestion({
+          toolName: (payload.toolName as string) || 'unknown',
+          resolution: (payload.resolution as string) || 'yes',
+        })
+      }),
+    )
+
     return () => { unsubs.forEach((u) => u()) }
   }, [on, addMessage, addAttention])
 
@@ -149,4 +188,6 @@ export function useGateway(): void {
   useEffect(() => {
     if (connected) console.log('[useGateway] Gateway connected')
   }, [connected])
+
+  return { autoRuleSuggestion, clearAutoRuleSuggestion }
 }

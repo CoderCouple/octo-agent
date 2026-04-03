@@ -86,7 +86,7 @@ test.describe.serial('Feature: Terminal Stress', () => {
         'After clicking backend-api in the sidebar, its terminal is visible with content intact.',
     })
 
-    await switchToSession(page, 'broomy')
+    await switchToSession(page, 'octoagent')
 
     await screenshotElement(page, terminalArea, path.join(SCREENSHOTS, '03-switched-back.png'))
     steps.push({
@@ -99,7 +99,7 @@ test.describe.serial('Feature: Terminal Stress', () => {
   })
 
   test('Step 3: Rapid session switching — multiple times quickly', async () => {
-    const sessionNames = ['backend-api', 'broomy', 'backend-api', 'broomy']
+    const sessionNames = ['backend-api', 'octoagent', 'backend-api', 'octoagent']
 
     for (const name of sessionNames) {
       const session = page.locator(`.cursor-pointer:has-text("${name}")`)
@@ -220,7 +220,7 @@ test.describe.serial('Feature: Terminal Stress', () => {
   })
 
   test('Step 7: Scroll to top and back', async () => {
-    await switchToSession(page, 'broomy')
+    await switchToSession(page, 'octoagent')
 
     const terminalContainer = page.locator('.xterm:visible').first()
     await terminalContainer.click()
@@ -266,7 +266,7 @@ test.describe.serial('Feature: Terminal Stress', () => {
   })
 
   test('Step 8: Multiple sessions remain stable', async () => {
-    const sessionNames = ['broomy', 'backend-api']
+    const sessionNames = ['octoagent', 'backend-api']
     for (const name of sessionNames) {
       const session = page.locator(`.cursor-pointer:has-text("${name}")`)
       if (await session.isVisible()) {
@@ -275,7 +275,7 @@ test.describe.serial('Feature: Terminal Stress', () => {
       }
     }
 
-    await switchToSession(page, 'broomy')
+    await switchToSession(page, 'octoagent')
 
     const terminalArea = await waitForTerminalReady(page)
     await screenshotElement(page, terminalArea, path.join(SCREENSHOTS, '11-final-stable.png'))

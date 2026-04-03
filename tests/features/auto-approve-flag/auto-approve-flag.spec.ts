@@ -3,7 +3,7 @@
  *
  * Verifies that when a repo has skipApproval: true and the agent has a
  * skipApprovalFlag, the flag is appended to the command and passed through
- * to the PTY process via BROOMY_ORIGINAL_COMMAND env var.
+ * to the PTY process via OCTOAGENT_ORIGINAL_COMMAND env var.
  *
  * Run with: pnpm test:feature-docs auto-approve-flag
  */
@@ -37,15 +37,15 @@ async function getTerminalContent(p: Page, type: 'agent' | 'user' | 'any' = 'age
 
 test.describe.serial('Feature: Auto-approve flag passed to agent', () => {
   test('session 1 (linked to repo with skipApproval) launches with --dangerously-skip-permissions', async () => {
-    // Session 1 is "broomy" with agentId: 'claude' and repoId: 'repo-1'
+    // Session 1 is "octoagent" with agentId: 'claude' and repoId: 'repo-1'
     // repo-1 has skipApproval: true
     // Claude agent has skipApprovalFlag: '--dangerously-skip-permissions'
 
     // First ensure session 1 is active (it should be by default)
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
 
-    // Wait for terminal to have content (fake-claude outputs BROOMY_COMMAND=...)
+    // Wait for terminal to have content (fake-claude outputs OCTOAGENT_COMMAND=...)
     await expect.poll(
       () => getTerminalContent(page, 'agent'),
       { timeout: 15000, message: 'terminal should have content from fake-claude' },
@@ -53,6 +53,6 @@ test.describe.serial('Feature: Auto-approve flag passed to agent', () => {
 
     // Get terminal content and verify the original command includes the flag
     const content = await getTerminalContent(page, 'agent')
-    expect(content).toContain('BROOMY_COMMAND=claude --dangerously-skip-permissions')
+    expect(content).toContain('OCTOAGENT_COMMAND=claude --dangerously-skip-permissions')
   })
 })

@@ -26,7 +26,6 @@ function renderContentArea(overrides: Record<string, unknown> = {}) {
       fileViewerSize: 300,
       userTerminalHeight: 192,
       diffPanelWidth: 320,
-      tutorialPanelWidth: 320,
     },
     errorMessage: null as string | null,
     settingsPanel: <div data-testid="settings">Settings</div>,

@@ -82,8 +82,8 @@ async function executeAgentAction(
 
   try {
     // Always write context.json so any prompt can reference session data
-    const outputDir = `${ctx.directory}/.broomy/output`
-    await window.fs.mkdir(`${ctx.directory}/.broomy`)
+    const outputDir = `${ctx.directory}/.octoagent/output`
+    await window.fs.mkdir(`${ctx.directory}/.octoagent`)
     await window.fs.mkdir(outputDir)
     await window.fs.writeFile(`${outputDir}/context.json`, JSON.stringify(ctx.templateVars, null, 2))
 

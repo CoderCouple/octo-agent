@@ -1,7 +1,7 @@
 /**
  * Commands configuration system for modular source control actions.
  *
- * Loads action definitions from `.broomy/commands.json` in the repo directory.
+ * Loads action definitions from `.octoagent/commands.json` in the repo directory.
  * Each action defines when it appears (showWhen conditions), how it executes
  * (shell command or agent prompt), and visual style.
  */
@@ -220,7 +220,7 @@ export function validateCommandsConfig(config: unknown): string[] {
 // --- Loading ---
 
 export function commandsConfigPath(directory: string): string {
-  return `${directory}/.broomy/commands.json`
+  return `${directory}/.octoagent/commands.json`
 }
 
 export type LoadResult =
@@ -300,12 +300,12 @@ export function getDefaultCommandsConfig(): CommandsConfig {
 }
 
 
-// --- Legacy .broomy gitignore helpers ---
+// --- Legacy .octoagent gitignore helpers ---
 
 /**
- * Check if .broomy/ itself is in the repo's .gitignore (legacy pattern).
+ * Check if .octoagent/ itself is in the repo's .gitignore (legacy pattern).
  */
-export async function checkLegacyBroomyGitignore(directory: string): Promise<boolean> {
+export async function checkLegacyOctoAgentGitignore(directory: string): Promise<boolean> {
   try {
     const gitignorePath = `${directory}/.gitignore`
     const exists = await window.fs.exists(gitignorePath)
@@ -313,16 +313,16 @@ export async function checkLegacyBroomyGitignore(directory: string): Promise<boo
 
     const content = await window.fs.readFile(gitignorePath)
     const lines = content.split(/\r?\n/).map((l: string) => l.trim())
-    return lines.some((line: string) => line === '.broomy' || line === '.broomy/' || line === '/.broomy' || line === '/.broomy/')
+    return lines.some((line: string) => line === '.octoagent' || line === '.broomy/' || line === '/.octoagent' || line === '/.octoagent/')
   } catch {
     return false
   }
 }
 
 /**
- * Remove .broomy/ from the repo's .gitignore (legacy cleanup).
+ * Remove .octoagent/ from the repo's .gitignore (legacy cleanup).
  */
-export async function removeLegacyBroomyGitignore(directory: string): Promise<void> {
+export async function removeLegacyOctoAgentGitignore(directory: string): Promise<void> {
   try {
     const gitignorePath = `${directory}/.gitignore`
     const exists = await window.fs.exists(gitignorePath)
@@ -332,12 +332,12 @@ export async function removeLegacyBroomyGitignore(directory: string): Promise<vo
     const lines = content.split(/\r?\n/)
     const filtered = lines.filter((line: string) => {
       const trimmed = line.trim()
-      if (trimmed === '.broomy' || trimmed === '.broomy/' || trimmed === '/.broomy' || trimmed === '/.broomy/') return false
+      if (trimmed === '.octoagent' || trimmed === '.broomy/' || trimmed === '/.octoagent' || trimmed === '/.octoagent/') return false
       return true
     })
-    // Also remove "# Broomy review data" comment lines that preceded the entry
+    // Also remove "# OctoAgent review data" comment lines that preceded the entry
     const cleaned = filtered.filter((line: string, i: number) => {
-      if (line.trim() === '# Broomy review data' && (i === filtered.length - 1 || filtered[i + 1]?.trim() === '')) return false
+      if (line.trim() === '# OctoAgent review data' && (i === filtered.length - 1 || filtered[i + 1]?.trim() === '')) return false
       return true
     })
     await window.fs.writeFile(gitignorePath, cleaned.join('\n'))
@@ -346,22 +346,22 @@ export async function removeLegacyBroomyGitignore(directory: string): Promise<vo
   }
 }
 
-// --- Ensure .broomy/.gitignore exists ---
+// --- Ensure .octoagent/.gitignore exists ---
 
 export async function ensureOutputGitignore(directory: string): Promise<void> {
-  const broomyDir = `${directory}/.broomy`
-  const gitignorePath = `${broomyDir}/.gitignore`
+  const octoagentDir = `${directory}/.octoagent`
+  const gitignorePath = `${octoagentDir}/.gitignore`
 
-  await window.fs.mkdir(broomyDir)
+  await window.fs.mkdir(octoagentDir)
 
   try {
-    // If .broomy/ itself is in the repo's .gitignore, output is already ignored
+    // If .octoagent/ itself is in the repo's .gitignore, output is already ignored
     const repoGitignorePath = `${directory}/.gitignore`
     const repoGitignoreExists = await window.fs.exists(repoGitignorePath)
     if (repoGitignoreExists) {
       const repoContent = await window.fs.readFile(repoGitignorePath)
       const repoLines = repoContent.split(/\r?\n/).map((l: string) => l.trim())
-      if (repoLines.some((l: string) => l === '.broomy' || l === '.broomy/' || l === '/.broomy' || l === '/.broomy/')) {
+      if (repoLines.some((l: string) => l === '.octoagent' || l === '.broomy/' || l === '/.octoagent' || l === '/.octoagent/')) {
         return
       }
     }
@@ -374,7 +374,7 @@ export async function ensureOutputGitignore(directory: string): Promise<void> {
         await window.fs.appendFile(gitignorePath, '\n/output/\n')
       }
     } else {
-      await window.fs.writeFile(gitignorePath, '# Broomy generated files\n/output/\n')
+      await window.fs.writeFile(gitignorePath, '# OctoAgent generated files\n/output/\n')
     }
   } catch {
     // Best effort

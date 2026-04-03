@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Cross-platform script to build and open the packaged app.
-// Replaces the macOS-only "open dist/mac-arm64/Broomy.app" command.
+// Replaces the macOS-only "open dist/mac-arm64/OctoAgent.app" command.
 
 const { execSync } = require('child_process')
 const path = require('path')
@@ -44,7 +44,7 @@ if (platform === 'darwin') {
   // Linux - find AppImage or unpacked executable
   const linuxDir = path.join(distDir, 'linux-unpacked')
   if (fs.existsSync(linuxDir)) {
-    const bin = fs.readdirSync(linuxDir).find(f => f.toLowerCase().includes('broomy'))
+    const bin = fs.readdirSync(linuxDir).find(f => f.toLowerCase().includes('octoagent'))
     if (bin) {
       execSync(`"${path.join(linuxDir, bin)}"`, { stdio: 'inherit', shell: true })
       process.exit(0)

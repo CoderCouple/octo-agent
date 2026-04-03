@@ -2,7 +2,7 @@
  * Feature Documentation: Modular Actions (commands.json)
  *
  * Documents the configurable action button system in source control.
- * Actions are defined in .broomy/commands.json and shown based on git state.
+ * Actions are defined in .octoagent/commands.json and shown based on git state.
  * Falls back to built-in defaults when no commands.json exists.
  *
  * Run with: pnpm test:feature-docs modular-actions
@@ -58,7 +58,7 @@ test.afterAll(async () => {
       title: 'Modular Actions: Configurable Source Control Buttons',
       description:
         'Source control action buttons (Sync, Push, Create PR, etc.) are defined in ' +
-        '.broomy/commands.json. Each action has showWhen conditions that control visibility ' +
+        '.octoagent/commands.json. Each action has showWhen conditions that control visibility ' +
         'based on git state (has changes, has tracking branch, branch status). When no ' +
         'commands.json exists, built-in defaults are used and a setup banner offers to ' +
         'create the config files.',
@@ -85,7 +85,7 @@ test.describe.serial('Feature: Modular Actions', () => {
       screenshotPath: 'screenshots/01-source-control-default.png',
       caption: 'Source control view with default action buttons',
       description:
-        'When no .broomy/commands.json exists, the source control panel shows built-in ' +
+        'When no .octoagent/commands.json exists, the source control panel shows built-in ' +
         'default action buttons. A blue banner at the top indicates "No commands.json — ' +
         'actions use built-in defaults" with a "Set up" button. The action buttons are ' +
         'filtered by git state — only actions relevant to the current branch status appear.',
@@ -105,7 +105,7 @@ test.describe.serial('Feature: Modular Actions', () => {
         screenshotPath: 'screenshots/02-setup-banner.png',
         caption: 'Commands setup banner',
         description:
-          'The blue info banner appears when no .broomy/commands.json file exists in the ' +
+          'The blue info banner appears when no .octoagent/commands.json file exists in the ' +
           'repository. It shows "No commands.json — actions use built-in defaults" with ' +
           'a "Set up" button that opens the setup dialog.',
       })
@@ -132,9 +132,9 @@ test.describe.serial('Feature: Modular Actions', () => {
     if (setupVisible) {
       await setupButton.click()
       // Wait for dialog to appear
-      await page.locator('text=Set up Broomy Actions').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
+      await page.locator('text=Set up OctoAgent Actions').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
 
-      const dialog = page.locator('text=Set up Broomy Actions').locator('xpath=ancestor::div[contains(@class, "bg-bg-secondary")]').first()
+      const dialog = page.locator('text=Set up OctoAgent Actions').locator('xpath=ancestor::div[contains(@class, "bg-bg-secondary")]').first()
       const dialogVisible = await dialog.isVisible().catch(() => false)
 
       if (dialogVisible) {
@@ -144,16 +144,16 @@ test.describe.serial('Feature: Modular Actions', () => {
           caption: 'Commands setup dialog',
           description:
             'The setup dialog explains what commands.json does and lists the files that ' +
-            'will be created: .broomy/commands.json (action definitions), .broomy/prompts/ ' +
+            'will be created: .octoagent/commands.json (action definitions), .octoagent/prompts/ ' +
             '(editable prompt templates) and ' +
-            '.broomy/.gitignore (ignores generated output). If the repo has a legacy .broomy/ ' +
+            '.octoagent/.gitignore (ignores generated output). If the repo has a legacy .octoagent/ ' +
             'entry in .gitignore, a warning offers to remove it.',
         })
 
         // Close the dialog
         const cancelButton = page.locator('button:has-text("Cancel")').first()
         await cancelButton.click()
-        await page.locator('text=Set up Broomy Actions').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
+        await page.locator('text=Set up OctoAgent Actions').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
       }
     }
 

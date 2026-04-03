@@ -15,6 +15,7 @@ export const FILE_VIEWER_MIN_HEIGHT = 100
 export const FILE_VIEWER_MIN_WIDTH = 200
 export const TUTORIAL_MIN = 200
 export const TUTORIAL_MAX = 500
+
 export const AGENT_MIN_WIDTH = 200
 
 interface UseDividerResizeParams {
@@ -105,6 +106,7 @@ export function useDividerResize({
           }
           break
         }
+
         case 'tutorial': {
           if (!mainRect) return
           let newWidth = mainRect.right - e.clientX

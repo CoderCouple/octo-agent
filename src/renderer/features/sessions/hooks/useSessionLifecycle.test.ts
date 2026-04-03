@@ -41,7 +41,6 @@ function makeSession(overrides: Partial<Session> = {}): Session {
       fileViewerSize: 300,
       userTerminalHeight: 192,
       diffPanelWidth: 320,
-      tutorialPanelWidth: 320,
     },
     explorerFilter: 'files',
     lastMessage: null,
@@ -185,17 +184,17 @@ describe('useSessionLifecycle', () => {
       const params = makeHookParams()
       renderLifecycleHook(params)
 
-      expect(document.title).toBe('Test Session — Broomy')
+      expect(document.title).toBe('Test Session — OctoAgent')
     })
 
-    it('sets title to just Broomy when there is no active session', () => {
+    it('sets title to just OctoAgent when there is no active session', () => {
       const params = makeHookParams({
         activeSession: undefined,
         activeSessionId: null,
       })
       renderLifecycleHook(params)
 
-      expect(document.title).toBe('Broomy')
+      expect(document.title).toBe('OctoAgent')
     })
 
     it('includes profile name in title when there are multiple profiles', () => {
@@ -207,17 +206,17 @@ describe('useSessionLifecycle', () => {
       })
       renderLifecycleHook(params)
 
-      expect(document.title).toBe('Test Session [Work] — Broomy')
+      expect(document.title).toBe('Test Session [Work] — OctoAgent')
     })
 
     it('does not include profile name when there is only one profile', () => {
       const params = makeHookParams()
       renderLifecycleHook(params)
 
-      expect(document.title).toBe('Test Session — Broomy')
+      expect(document.title).toBe('Test Session — OctoAgent')
     })
 
-    it('includes profile name in Broomy title when no active session and multiple profiles', () => {
+    it('includes profile name in OctoAgent title when no active session and multiple profiles', () => {
       const profile1 = makeProfile({ id: 'p1', name: 'Work' })
       const profile2 = makeProfile({ id: 'p2', name: 'Personal' })
       const params = makeHookParams({
@@ -228,7 +227,7 @@ describe('useSessionLifecycle', () => {
       })
       renderLifecycleHook(params)
 
-      expect(document.title).toBe('Broomy [Work]')
+      expect(document.title).toBe('OctoAgent [Work]')
     })
   })
 

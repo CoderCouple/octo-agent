@@ -63,9 +63,9 @@ async function getTerminalContent(p: Page, type: 'agent' | 'user' | 'any' = 'age
   }, type)
 }
 
-test.describe('Broomy App', () => {
+test.describe('OctoAgent App', () => {
   test('should display the app title', async () => {
-    const title = page.locator('text=Broomy').first()
+    const title = page.locator('text=OctoAgent').first()
     await expect(title).toBeVisible()
   })
 
@@ -76,8 +76,8 @@ test.describe('Broomy App', () => {
 
   test('should display demo sessions in the sidebar', async () => {
     // Check for demo sessions (sessions are now divs, not buttons)
-    const broomySession = page.locator('div:has-text("broomy")').first()
-    await expect(broomySession).toBeVisible()
+    const octoagentSession = page.locator('div:has-text("octoagent")').first()
+    await expect(octoagentSession).toBeVisible()
 
     const backendSession = page.locator('div:has-text("backend-api")').first()
     await expect(backendSession).toBeVisible()
@@ -112,11 +112,11 @@ test.describe('Broomy App', () => {
     // The backend session should now be selected (has bg-accent/15 class)
     await expect(backendSession).toHaveClass(/bg-accent\/15/)
 
-    // Click back to broomy session
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
+    // Click back to octoagent session
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
 
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
   })
 })
 
@@ -180,7 +180,7 @@ test.describe('Terminal Integration', () => {
 test.describe('Layout', () => {
   test('should have correct layout structure', async () => {
     // Title bar - look for the app title text
-    const titleBar = page.locator('text=Broomy').first()
+    const titleBar = page.locator('text=OctoAgent').first()
     await expect(titleBar).toBeVisible()
 
     // Sidebar - contains session list with "+ New Session" button
@@ -251,7 +251,7 @@ test.describe('Explorer Panel', () => {
     await expect(explorerPanel).toBeVisible()
 
     // The demo sessions use /tmp/e2e-* directories - scope to explorer panel
-    const directoryPath = explorerPanel.locator('text=e2e-broomy')
+    const directoryPath = explorerPanel.locator('text=e2e-octoagent')
     await expect(directoryPath).toBeVisible()
 
     // Close the panel
@@ -302,9 +302,9 @@ test.describe('Session Terminal Persistence', () => {
     await expect(backendSession).toHaveClass(/bg-accent\/15/)
 
     // Switch back to the first session
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // Verify the marker is still in the terminal buffer
     await expect.poll(() => getTerminalContent(page, 'agent'), { timeout: 5000 })

@@ -5,7 +5,7 @@
  * scattered if/else branches. Handlers call getScenarioData() and
  * access the relevant field.
  *
- * ⚠️  The 'marketing' scenario generates screenshots used on the Broomy
+ * ⚠️  The 'marketing' scenario generates screenshots used on the OctoAgent
  * marketing website. Edit its data with care — changes affect published content.
  */
 import { join } from 'path'
@@ -313,24 +313,24 @@ const MARKETING_ROOT_LISTING: DirListing[] = [
 
 const MARKETING: ScenarioData = {
   sessions: [
-    { id: '1', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'broomy-e2e-backend-api')), agentId: 'claude' },
-    { id: '2', name: 'web-dashboard', directory: normalizePath(join(tmpdir(), 'broomy-e2e-web-dashboard')), agentId: 'codex' },
-    { id: '3', name: 'mobile-app', directory: normalizePath(join(tmpdir(), 'broomy-e2e-mobile-app')), agentId: 'gemini' },
-    { id: '4', name: 'payments-svc', directory: normalizePath(join(tmpdir(), 'broomy-e2e-payments-svc')), agentId: 'claude' },
-    { id: '5', name: 'search-engine', directory: normalizePath(join(tmpdir(), 'broomy-e2e-search-engine')), agentId: 'claude' },
-    { id: '6', name: 'infra-config', directory: normalizePath(join(tmpdir(), 'broomy-e2e-infra-config')), agentId: 'codex' },
-    { id: '7', name: 'docs-site', directory: normalizePath(join(tmpdir(), 'broomy-e2e-docs-site')), agentId: null },
-    { id: '8', name: 'data-pipeline', directory: normalizePath(join(tmpdir(), 'broomy-e2e-data-pipeline')), agentId: 'claude' },
+    { id: '1', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-backend-api')), agentId: 'claude' },
+    { id: '2', name: 'web-dashboard', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-web-dashboard')), agentId: 'codex' },
+    { id: '3', name: 'mobile-app', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-mobile-app')), agentId: 'gemini' },
+    { id: '4', name: 'payments-svc', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-payments-svc')), agentId: 'claude' },
+    { id: '5', name: 'search-engine', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-search-engine')), agentId: 'claude' },
+    { id: '6', name: 'infra-config', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-infra-config')), agentId: 'codex' },
+    { id: '7', name: 'docs-site', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-docs-site')), agentId: null },
+    { id: '8', name: 'data-pipeline', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-data-pipeline')), agentId: 'claude' },
   ],
   branches: {
-    [normalizePath(join(tmpdir(), 'broomy-e2e-backend-api'))]: 'feature/jwt-auth',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-web-dashboard'))]: 'fix/dashboard-perf',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-mobile-app'))]: 'feature/push-notifs',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-payments-svc'))]: 'feature/stripe-webhooks',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-search-engine'))]: 'feature/vector-search',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-infra-config'))]: 'fix/k8s-scaling',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-docs-site'))]: 'main',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-data-pipeline'))]: 'feature/batch-processing',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-backend-api'))]: 'feature/jwt-auth',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-web-dashboard'))]: 'fix/dashboard-perf',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-mobile-app'))]: 'feature/push-notifs',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-payments-svc'))]: 'feature/stripe-webhooks',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-search-engine'))]: 'feature/vector-search',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-infra-config'))]: 'fix/k8s-scaling',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-docs-site'))]: 'main',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-data-pipeline'))]: 'feature/batch-processing',
   },
   gitStatus: {
     files: [
@@ -380,8 +380,8 @@ const MARKETING: ScenarioData = {
   },
   readFile(filePath: string): string | null {
     if (filePath.includes('auth.ts')) return buildMarketingAuthTs()
-    if (/broomy-review-[^/\\]+[/\\]review\.json$/.exec(filePath)) return buildMarketingReviewJson()
-    if (/\/tmp\/broomy-review-[^/]+\/comments\.json$/.exec(filePath)) return '[]'
+    if (/octoagent-review-[^/\\]+[/\\]review\.json$/.exec(filePath)) return buildMarketingReviewJson()
+    if (/\/tmp\/octoagent-review-[^/]+\/comments\.json$/.exec(filePath)) return '[]'
     return null
   },
   hasMarketingReviewFiles: true,
@@ -396,14 +396,14 @@ const MARKETING: ScenarioData = {
 
 const DEFAULT: ScenarioData = {
   sessions: [
-    { id: '1', name: 'broomy', directory: normalizePath(join(tmpdir(), 'broomy-e2e-broomy')), agentId: 'codex', repoId: 'repo-1', issueNumber: 42, issueTitle: 'Add user authentication', issueUrl: 'https://github.com/user/broomy/issues/42' },
-    { id: '2', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'broomy-e2e-backend-api')), agentId: 'aider', issueNumber: 15, issueTitle: 'Fix API rate limiting', issueUrl: 'https://github.com/user/backend-api/issues/15' },
-    { id: '3', name: 'docs-site', directory: normalizePath(join(tmpdir(), 'broomy-e2e-docs-site')), agentId: null },
+    { id: '1', name: 'octoagent', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-octoagent')), agentId: 'codex', repoId: 'repo-1', issueNumber: 42, issueTitle: 'Add user authentication', issueUrl: 'https://github.com/user/octoagent/issues/42' },
+    { id: '2', name: 'backend-api', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-backend-api')), agentId: 'aider', issueNumber: 15, issueTitle: 'Fix API rate limiting', issueUrl: 'https://github.com/user/backend-api/issues/15' },
+    { id: '3', name: 'docs-site', directory: normalizePath(join(tmpdir(), 'octoagent-e2e-docs-site')), agentId: null },
   ],
   branches: {
-    [normalizePath(join(tmpdir(), 'broomy-e2e-broomy'))]: 'main',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-backend-api'))]: 'feature/auth',
-    [normalizePath(join(tmpdir(), 'broomy-e2e-docs-site'))]: 'main',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-octoagent'))]: 'main',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-backend-api'))]: 'feature/auth',
+    [normalizePath(join(tmpdir(), 'octoagent-e2e-docs-site'))]: 'main',
   },
   gitStatus: {
     files: [
@@ -474,11 +474,11 @@ const DEFAULT: ScenarioData = {
     if (filePath.endsWith('src/utils.ts')) {
       return 'export function add(a: number, b: number): number {\n  return a + b\n}\n\nexport function multiply(a: number, b: number): number {\n  return a * b\n}\n'
     }
-    if (/\.broomy[/\\]commands\.json$/.exec(filePath)) {
+    if (/\.(broomy|octoagent)[/\\]commands\.json$/.exec(filePath)) {
       return JSON.stringify(DEFAULT_COMMANDS_CONFIG)
     }
     // Default scenario markdown review data (dark mode theme)
-    if (/\.broomy[/\\]output[/\\]review\.md$/.exec(filePath)) {
+    if (/\.(broomy|octoagent)[/\\]output[/\\]review\.md$/.exec(filePath)) {
       return [
         '## Overview',
         'Add dark mode theme support with user preference persistence. Uses CSS custom properties for theming with a React context provider. Theme preference persisted in localStorage.',
@@ -513,7 +513,7 @@ const DEFAULT: ScenarioData = {
       ].join('\n')
     }
     // Default scenario review data (dark mode theme) — legacy JSON format
-    if (/\.broomy[/\\]output[/\\]review\.json$/.exec(filePath) || /broomy-review-[^/\\]+[/\\]review\.json$/.exec(filePath)) {
+    if (/\.(broomy|octoagent)[/\\]output[/\\]review\.json$/.exec(filePath) || /octoagent-review-[^/\\]+[/\\]review\.json$/.exec(filePath)) {
       return JSON.stringify({
         generatedAt: '2025-01-15T10:30:00Z',
         headCommit: 'abc123',
@@ -555,7 +555,7 @@ const DEFAULT: ScenarioData = {
         ],
       })
     }
-    if (/\.broomy[/\\]output[/\\]comments\.json$/.exec(filePath) || /\/tmp\/broomy-review-[^/]+\/comments\.json$/.exec(filePath)) {
+    if (/\.(broomy|octoagent)[/\\]output[/\\]comments\.json$/.exec(filePath) || /\/tmp\/octoagent-review-[^/]+\/comments\.json$/.exec(filePath)) {
       return '[]'
     }
     return null

@@ -36,18 +36,18 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
 linux:
-  executableName: broomy
+  executableName: octoagent
   target:
     - AppImage
     - deb
   maintainer: Rob Ennals <rob.ennals@gmail.com>
   category: Utility
 deb:
-  packageName: broomy
+  packageName: octoagent
 appImage:
   artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: true
 publish:
   provider: github
-  owner: Broomy-AI
-  repo: broomy
+  owner: octoagent
+  repo: octoagent

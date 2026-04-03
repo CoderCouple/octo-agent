@@ -1,6 +1,6 @@
 # Terminal Integration Guide
 
-This guide covers how Broomy manages terminal sessions: PTY creation in the main process, xterm.js rendering in the browser, activity detection heuristics, and the multi-tab terminal system.
+This guide covers how OctoAgent manages terminal sessions: PTY creation in the main process, xterm.js rendering in the browser, activity detection heuristics, and the multi-tab terminal system.
 
 ## PTY Creation Flow
 

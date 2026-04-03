@@ -42,7 +42,7 @@ test.afterAll(async () => {
     {
       title: 'Agent Container Isolation',
       description:
-        'Broomy supports optional container isolation configured per repository. ' +
+        'OctoAgent supports optional container isolation configured per repository. ' +
         'Two modes are available: Lightweight Docker (fast, minimal — uses node:22-slim) ' +
         'and Dev Container (uses .devcontainer/devcontainer.json for declarative environment setup). ' +
         'When enabled, agent sessions run inside containers with access only to the repo directory. ' +

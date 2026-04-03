@@ -88,7 +88,7 @@ test.afterAll(async () => {
 
 test.describe.serial('Feature: PR Fixes Issue & Template Variables', () => {
   test('Step 1: Session linked to issue — source control shows issue badge', async () => {
-    // Session 1 (broomy) has issueNumber: 42
+    // Session 1 (octoagent) has issueNumber: 42
     await openSourceControl()
 
     const explorer = page.locator('[data-panel-id="explorer"]')
@@ -102,7 +102,7 @@ test.describe.serial('Feature: PR Fixes Issue & Template Variables', () => {
       screenshotPath: 'screenshots/01-issue-linked-session.png',
       caption: 'Session linked to issue #42 in source control',
       description:
-        'The "broomy" session was created from GitHub issue #42. The source control ' +
+        'The "octoagent" session was created from GitHub issue #42. The source control ' +
         'banner shows an ISSUE badge with the issue number and title. When this session ' +
         'creates a PR, the {issueNumber} template variable resolves to "42".',
     })

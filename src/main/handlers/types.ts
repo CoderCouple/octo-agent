@@ -13,12 +13,12 @@ import { normalizePath } from '../platform'
  *
  * - default: 3 sessions with issue data, used by most feature tests.
  * - marketing: 8 sessions with rich git status and file trees.
- *    ⚠️  This scenario generates the screenshots used on the Broomy marketing
+ *    ⚠️  This scenario generates the screenshots used on the OctoAgent marketing
  *    website. Edit its mock data with care — changes affect published content.
  */
 export enum E2EScenario {
   Default = 'default',
-  /** ⚠️ Used for the Broomy marketing website. Edit mock data with care. */
+  /** ⚠️ Used for the OctoAgent marketing website. Edit mock data with care. */
   Marketing = 'marketing',
 }
 
@@ -44,10 +44,12 @@ export interface HandlerContext {
   E2E_MOCK_SHELL: string | undefined
   FAKE_CLAUDE_SCRIPT: string | undefined
   dockerContainers: Map<string, DockerContainerState>
+  /** Session ID → PTY ID mapping for supervisor PTY bridge. */
+  sessionPtyMap: Map<string, string>
 }
 
 // Config directory and file constants
-export const CONFIG_DIR = join(homedir(), '.broomy')
+export const CONFIG_DIR = join(homedir(), '.octoagent')
 export const PROFILES_DIR = join(CONFIG_DIR, 'profiles')
 export const PROFILES_FILE = join(CONFIG_DIR, 'profiles.json')
 
@@ -101,6 +103,6 @@ export const expandHomePath = (path: string): string => {
 // Only non-scenario-specific data remains here.
 export function getE2EDemoRepos() {
   return [
-    { id: 'repo-1', name: 'demo-project', remoteUrl: 'git@github.com:user/demo-project.git', rootDir: normalizePath(join(tmpdir(), 'broomy-e2e-repos/demo-project')), defaultBranch: 'main', skipApproval: true },
+    { id: 'repo-1', name: 'demo-project', remoteUrl: 'git@github.com:user/demo-project.git', rootDir: normalizePath(join(tmpdir(), 'octoagent-e2e-repos/demo-project')), defaultBranch: 'main', skipApproval: true },
   ]
 }

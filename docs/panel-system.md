@@ -1,6 +1,6 @@
 # Panel System Guide
 
-Broomy uses a registry-based panel system that manages which UI panels are visible, where they appear in the layout, and how their state is persisted.
+OctoAgent uses a registry-based panel system that manages which UI panels are visible, where they appear in the layout, and how their state is persisted.
 
 ## Overview
 

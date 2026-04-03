@@ -127,7 +127,7 @@ test.describe.serial('Feature: File Viewer Session Switch', () => {
 
   test('Step 4: Switch back — edits preserved', async () => {
     // Switch back to the original session
-    const originalSession = page.locator('.cursor-pointer:has-text("broomy")').first()
+    const originalSession = page.locator('.cursor-pointer:has-text("octoagent")').first()
     await originalSession.click()
     await expect(originalSession).toHaveClass(/bg-accent\/15/)
 

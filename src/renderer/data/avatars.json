@@ -1,0 +1,14 @@
+[
+  { "id": "naruto", "name": "Naruto Uzumaki", "shortName": "Naruto", "color": "#FF6B00", "initials": "NU", "trait": "Energetic, never gives up", "image": "" },
+  { "id": "sasuke", "name": "Sasuke Uchiha", "shortName": "Sasuke", "color": "#1A237E", "initials": "SU", "trait": "Precise, focused", "image": "" },
+  { "id": "sakura", "name": "Sakura Haruno", "shortName": "Sakura", "color": "#E91E63", "initials": "SH", "trait": "Determined, analytical", "image": "" },
+  { "id": "kakashi", "name": "Kakashi Hatake", "shortName": "Kakashi", "color": "#78909C", "initials": "KH", "trait": "Cool, experienced", "image": "" },
+  { "id": "hinata", "name": "Hinata Hyuga", "shortName": "Hinata", "color": "#7E57C2", "initials": "HH", "trait": "Gentle, thorough", "image": "" },
+  { "id": "shikamaru", "name": "Shikamaru Nara", "shortName": "Shikamaru", "color": "#558B2F", "initials": "SN", "trait": "Strategic, lazy genius", "image": "" },
+  { "id": "lee", "name": "Rock Lee", "shortName": "Lee", "color": "#2E7D32", "initials": "RL", "trait": "Passionate, hardworking", "image": "" },
+  { "id": "gaara", "name": "Gaara", "shortName": "Gaara", "color": "#B71C1C", "initials": "GA", "trait": "Powerful, independent", "image": "" },
+  { "id": "itachi", "name": "Itachi Uchiha", "shortName": "Itachi", "color": "#880E4F", "initials": "IU", "trait": "Mysterious, efficient", "image": "" },
+  { "id": "jiraiya", "name": "Jiraiya", "shortName": "Jiraiya", "color": "#F44336", "initials": "JR", "trait": "Wise, creative", "image": "" },
+  { "id": "tsunade", "name": "Tsunade", "shortName": "Tsunade", "color": "#FFB300", "initials": "TS", "trait": "Strong, decisive", "image": "" },
+  { "id": "minato", "name": "Minato Namikaze", "shortName": "Minato", "color": "#FDD835", "initials": "MN", "trait": "Fast, brilliant", "image": "" }
+]

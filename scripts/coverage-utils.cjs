@@ -4,7 +4,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const CACHE_PATH = path.join(__dirname, '..', '.broomy', 'output', 'coverage-summary.json')
+const CACHE_PATH = path.join(__dirname, '..', '.octoagent', 'output', 'coverage-summary.json')
 
 function readJSON(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'))

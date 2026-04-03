@@ -1,11 +1,11 @@
 # Testing Guide
 
-Broomy uses Vitest for unit tests and Playwright for end-to-end tests. This guide covers
+OctoAgent uses Vitest for unit tests and Playwright for end-to-end tests. This guide covers
 the testing philosophy, patterns, and practical steps for writing tests in the codebase.
 
 ## Testing Philosophy
 
-**Test pure functions and store actions, not React component rendering.** Broomy's UI
+**Test pure functions and store actions, not React component rendering.** OctoAgent's UI
 components are wired to Zustand stores and IPC calls. Rather than spinning up a full DOM
 to render components, tests focus on:
 
@@ -421,7 +421,7 @@ Feature doc tests are **not** run as part of `pnpm test:e2e`. They are separate,
 
 ## Storybook Visual Regression Testing
 
-Broomy uses Storybook + Playwright + pixelmatch for visual regression testing. Every UI
+OctoAgent uses Storybook + Playwright + pixelmatch for visual regression testing. Every UI
 component has co-located stories (`*.stories.tsx`), and a screenshot pipeline captures,
 compares, and reports pixel-level differences against reference images.
 

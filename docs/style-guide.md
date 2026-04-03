@@ -1,6 +1,6 @@
 # Coding Style Guide
 
-This document formalizes the coding conventions used throughout the Broomy codebase. Follow these patterns when contributing new code or refactoring existing code.
+This document formalizes the coding conventions used throughout the OctoAgent codebase. Follow these patterns when contributing new code or refactoring existing code.
 
 ## TypeScript
 
@@ -300,7 +300,7 @@ const debouncedSave = async (sessions: Session[], ...) => {
 
 ### Profile-Scoped Data
 
-All config files are scoped to profiles at `~/.broomy/profiles/<profileId>/`:
+All config files are scoped to profiles at `~/.octoagent/profiles/<profileId>/`:
 
 ```typescript
 function getProfileConfigFile(profileId: string): string {

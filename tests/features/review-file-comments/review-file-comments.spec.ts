@@ -37,7 +37,7 @@ test.afterAll(async () => {
       description:
         'When viewing files in a review session, both the normal Monaco editor and ' +
         'the diff viewer now support adding comments by clicking the glyph margin. ' +
-        'Comments are saved to .broomy/comments.json (aligned with the review panel) ' +
+        'Comments are saved to .octoagent/comments.json (aligned with the review panel) ' +
         'and show as decorations in the editor.',
       steps,
     },
@@ -149,9 +149,9 @@ test.describe.serial('Feature: File Viewer Review Comments', () => {
     })
     steps.push({
       screenshotPath: 'screenshots/02-review-panel.png',
-      caption: 'Review panel shares .broomy/comments.json with file viewer',
+      caption: 'Review panel shares .octoagent/comments.json with file viewer',
       description:
-        'The file viewer now writes comments to .broomy/comments.json in the session directory, ' +
+        'The file viewer now writes comments to .octoagent/comments.json in the session directory, ' +
         'matching the review panel. Comments added in either the file viewer or the review panel ' +
         'appear in both places and can be pushed as a draft review.',
     })
@@ -217,7 +217,7 @@ test.describe.serial('Feature: File Viewer Review Comments', () => {
       description:
         'When the glyph margin is clicked in the diff viewer, an inline comment input ' +
         'appears above the editor showing the target line number. The comment is saved ' +
-        'to .broomy/comments.json and displayed as a decoration in the editor gutter.',
+        'to .octoagent/comments.json and displayed as a decoration in the editor gutter.',
     })
   })
 })

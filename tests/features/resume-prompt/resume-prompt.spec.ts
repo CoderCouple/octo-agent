@@ -35,7 +35,7 @@ test.afterAll(async () => {
     {
       title: 'Resume Prompt',
       description:
-        'When Broomy restarts, sessions are restored but agent terminals start fresh. ' +
+        'When OctoAgent restarts, sessions are restored but agent terminals start fresh. ' +
         'A dismissible banner appears above any agent terminal suggesting the user resume ' +
         'their previous conversation by running /resume.',
       steps,
@@ -47,7 +47,7 @@ test.afterAll(async () => {
 
 test.describe.serial('Feature: Resume Prompt', () => {
   test('Step 1: Resume banner visible on restored session', async () => {
-    // The first session (broomy) uses Claude Code as agent
+    // The first session (octoagent) uses Claude Code as agent
     // Sessions loaded from config have isRestored: true, so the resume banner should appear
     const banner = page.locator('text=Resume your previous conversation?')
     await expect(banner).toBeVisible({ timeout: 10000 })
@@ -60,7 +60,7 @@ test.describe.serial('Feature: Resume Prompt', () => {
       screenshotPath: 'screenshots/01-resume-banner.png',
       caption: 'Resume banner appears on a restored session',
       description:
-        'When Broomy restarts and loads sessions from config, a blue banner appears above the ' +
+        'When OctoAgent restarts and loads sessions from config, a blue banner appears above the ' +
         'agent terminal. It shows "Resume your previous conversation?" with a clickable link ' +
         'to run /resume.',
     })

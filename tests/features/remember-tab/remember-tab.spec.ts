@@ -139,9 +139,9 @@ test.describe.serial('Feature: Remember Terminal Tab', () => {
 
   test('Step 4: Switch back — user terminal tab is still active', async () => {
     // Switch back to the first session
-    const broomySession = page.locator('.cursor-pointer:has-text("broomy")')
-    await broomySession.click()
-    await expect(broomySession).toHaveClass(/bg-accent\/15/)
+    const octoagentSession = page.locator('.cursor-pointer:has-text("octoagent")')
+    await octoagentSession.click()
+    await expect(octoagentSession).toHaveClass(/bg-accent\/15/)
 
     // The user Terminal tab should still be active, NOT the Agent tab
     const activeTabName = await page.evaluate(() => {

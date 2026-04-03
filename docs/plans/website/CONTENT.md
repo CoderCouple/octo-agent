@@ -6,7 +6,7 @@ All copy for the website, section by section. Written to be concise, specific, a
 
 ## Nav Bar (appears on scroll)
 
-Left: **Broomy**
+Left: **OctoAgent**
 Right: **[Download for macOS]** **[Download for Linux]** **[Download for Windows]** buttons
 
 ---
@@ -73,7 +73,7 @@ are working, which are idle, and which just finished and need your attention.
 **Heading**: `Know what your agents are doing`
 **Body**:
 ```
-Broomy watches terminal output and understands agent state. Working, idle,
+OctoAgent watches terminal output and understands agent state. Working, idle,
 waiting for input — you see it at a glance. When an agent finishes a task,
 you get a notification so nothing slips through.
 ```
@@ -133,7 +133,7 @@ different repos with custom environment variables.
 
 **Body**:
 ```
-Broomy is a native desktop app built on proven technology.
+OctoAgent is a native desktop app built on proven technology.
 No web wrappers. No Electron bloat. Just fast, reliable tooling.
 ```
 
@@ -160,7 +160,7 @@ Electron    React    TypeScript    Zustand    xterm.js    Monaco Editor    node-
 **Body**:
 ```
 Every line of code is on GitHub. Read the source, open an issue,
-or submit a pull request. Broomy is built in the open.
+or submit a pull request. OctoAgent is built in the open.
 ```
 
 **GitHub CTA**:
@@ -170,7 +170,7 @@ or submit a pull request. Broomy is built in the open.
 
 With the repo URL prominently displayed below the button:
 ```
-github.com/broomy-ai/broomy
+github.com/octoagent-ai/octoagent
 ```
 
 **Stats** (fetched at build time, displayed as small metrics):
@@ -202,7 +202,7 @@ Or build from source:
 ```
 
 ```bash
-git clone https://github.com/broomy-ai/broomy.git
+git clone https://github.com/octoagent-ai/octoagent.git
 cd broomer/main
 pnpm install
 pnpm dev
@@ -220,7 +220,7 @@ Requires macOS and pnpm. See the README for full setup instructions.
 ## Footer
 
 ```
-Broomy — Open source desktop app for managing AI coding agents.
+OctoAgent — Open source desktop app for managing AI coding agents.
 MIT License · GitHub · Built with Electron, React, and TypeScript.
 ```
 
@@ -232,7 +232,7 @@ Single line, centered, small text, generous top padding.
 
 ### Page Title
 ```
-Broomy — Command center for AI coding agents
+OctoAgent — Command center for AI coding agents
 ```
 
 ### Meta Description
@@ -242,7 +242,7 @@ Manage multiple AI coding sessions across repositories. Open source desktop app 
 
 ### Open Graph
 ```
-og:title       — Broomy — Command center for AI coding agents
+og:title       — OctoAgent — Command center for AI coding agents
 og:description — Manage multiple AI coding sessions across repositories. Open source desktop app for developers.
 og:image       — /screenshots/hero.png
 og:type        — website
@@ -253,7 +253,7 @@ og:type        — website
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Broomy",
+  "name": "OctoAgent",
   "operatingSystem": "macOS",
   "applicationCategory": "DeveloperApplication",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -268,6 +268,6 @@ og:type        — website
 - **No superlatives.** No "revolutionary", "game-changing", "powerful". Let the product speak.
 - **No buzzwords.** No "leverage", "empower", "seamless". Just describe what it does.
 - **Specific > vague.** "See which agents are working" > "Improve your workflow."
-- **Active voice.** "Broomy watches terminal output" > "Terminal output is monitored."
+- **Active voice.** "OctoAgent watches terminal output" > "Terminal output is monitored."
 - **Short sentences.** If a sentence has a comma, consider splitting it.
 - **Technical accuracy.** Don't oversell. If it's Electron, say Electron. Developers appreciate honesty.

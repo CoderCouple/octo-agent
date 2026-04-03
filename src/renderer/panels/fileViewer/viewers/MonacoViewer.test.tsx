@@ -198,7 +198,7 @@ describe('MonacoViewerComponent', () => {
       <MonacoViewerComponent
         filePath="/test/file.ts"
         content=""
-        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.broomy/comments.json' }}
+        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.octoagent/comments.json' }}
       />
     )
     expect(container.querySelector('input[placeholder="Type your comment..."]')).toBeTruthy()
@@ -220,7 +220,7 @@ describe('MonacoViewerComponent', () => {
       <MonacoViewerComponent
         filePath="/test/file.ts"
         content=""
-        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.broomy/comments.json' }}
+        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.octoagent/comments.json' }}
       />
     )
     expect(mockEditor).toHaveBeenCalledWith(
@@ -237,7 +237,7 @@ describe('MonacoViewerComponent', () => {
       <MonacoViewerComponent
         filePath="/test/file.ts"
         content=""
-        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.broomy/comments.json' }}
+        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.octoagent/comments.json' }}
       />
     )
     const style = container.querySelector('style')
@@ -372,7 +372,7 @@ describe('MonacoViewerComponent onMount lifecycle', () => {
       <MonacoViewerComponent
         filePath="/test/file.ts"
         content=""
-        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.broomy/comments.json' }}
+        reviewContext={{ sessionDirectory: '/test', commentsFilePath: '/test/.octoagent/comments.json' }}
       />
     )
     const props = getLastEditorProps()

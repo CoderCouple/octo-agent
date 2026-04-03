@@ -47,6 +47,37 @@ interface ActiveSession {
 // Module-local state
 const activeSessions = new Map<string, ActiveSession>()
 
+/**
+ * Send a message to an active SDK agent session from the main process.
+ * Used by the supervisor PTY/SDK bridge for API-mode agents.
+ * Returns true if the message was sent, false if no active session exists.
+ */
+export function sendToSdkAgent(sessionId: string, text: string): boolean {
+  const session = activeSessions.get(sessionId)
+  if (!session) return false
+
+  console.log(`[agentSdk] sendToSdkAgent: sending to ${sessionId}: "${text.substring(0, 80)}"`)
+
+  // Fire-and-forget: send then stream the response turn
+  void (async () => {
+    try {
+      await session.sdkSession.send(text)
+      await streamTurn(sessionId, session, session.ownerWindow)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('[agentSdk] sendToSdkAgent error:', errorMessage)
+      session.ownerWindow.webContents.send(`agentSdk:error:${sessionId}`, errorMessage)
+      activeSessions.delete(sessionId)
+    }
+  })()
+
+  return true
+}
+
+/** Check if a session has an active SDK agent. */
+export function hasSdkSession(sessionId: string): boolean {
+  return activeSessions.has(sessionId)
+}
 
 function processSystemMessage(sessionId: string, sdkMessage: Record<string, unknown>, win: BrowserWindow): void {
   const session = activeSessions.get(sessionId)

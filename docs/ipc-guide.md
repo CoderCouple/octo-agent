@@ -1,10 +1,10 @@
 # IPC Communication Guide
 
-This guide explains how the renderer communicates with the main process in Broomy through Electron's IPC system, mediated by a preload script that exposes typed APIs on the `window` object.
+This guide explains how the renderer communicates with the main process in OctoAgent through Electron's IPC system, mediated by a preload script that exposes typed APIs on the `window` object.
 
 ## Architecture Overview
 
-Broomy uses Electron's context-isolated IPC with three layers:
+OctoAgent uses Electron's context-isolated IPC with three layers:
 
 1. **Main process** (`src/main/handlers/`) -- handlers are organized into domain-specific modules (e.g., `gitBasic.ts`, `pty.ts`, `config.ts`) with a central registration entry point (`src/main/handlers/index.ts`).
 2. **Preload script** (`src/preload/index.ts`) -- re-exports types and wires API implementations from `src/preload/apis/` (separate modules for each domain: `pty.ts`, `fs.ts`, `git.ts`, `gh.ts`, `config.ts`, `shell.ts`, `menu.ts`) to `contextBridge.exposeInMainWorld()`.
@@ -225,7 +225,7 @@ const result = await window.myNamespace.myAction('hello')
 const mockMyNamespace = {
   myAction: vi.fn().mockResolvedValue({ success: true, data: 'mock-value' }),
 }
-// Add to broomyMocks object
+// Add to octoagentMocks object
 ```
 
 ### Step 5: Test

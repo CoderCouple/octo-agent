@@ -3,6 +3,7 @@
  */
 import { basename } from 'path-browserify'
 import { PANEL_IDS, DEFAULT_TOOLBAR_PANELS } from '../panels/system/types'
+import { getNextCharacter } from '../data/narutoCharacters'
 import type { Session, PanelVisibility, TerminalTabsState, PrState } from './sessions'
 import {
   debouncedSave,
@@ -143,6 +144,7 @@ export function createInstantSetupActions(get: StoreGet, set: StoreSet) {
       const id = generateId()
       const name = extra?.name || basename(directory)
       const panelVisibility = { ...DEFAULT_PANEL_VISIBILITY }
+      const narutoCharacter = getNextCharacter(get().sessions.length)
 
       const newSession: Session = {
         id,
@@ -152,6 +154,7 @@ export function createInstantSetupActions(get: StoreGet, set: StoreSet) {
         status: 'initializing',
         agentId,
         ...extra,
+        characterId: narutoCharacter.id,
         panelVisibility,
         showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
         showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,
@@ -217,15 +220,20 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         const sessions: Session[] = []
 
         for (const sessionData of config.sessions) {
+          // Group sessions have no directory — skip git branch fetch
           let branch: string
-          try {
-            branch = await window.git.getBranch(sessionData.directory)
-          } catch {
-            console.warn(
-              `[sessions] Failed to get branch for session "${sessionData.name}" ` +
-              `(${sessionData.directory}), using "unknown"`
-            )
-            branch = 'unknown'
+          if (sessionData.sessionType === 'group') {
+            branch = ''
+          } else {
+            try {
+              branch = await window.git.getBranch(sessionData.directory)
+            } catch {
+              console.warn(
+                `[sessions] Failed to get branch for session "${sessionData.name}" ` +
+                `(${sessionData.directory}), using "unknown"`
+              )
+              branch = 'unknown'
+            }
           }
           const panelVisibility = createPanelVisibilityFromLegacy(sessionData)
 
@@ -241,6 +249,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             issueTitle: sessionData.issueTitle,
             issueUrl: sessionData.issueUrl,
             sessionType: sessionData.sessionType,
+            memberSessionIds: sessionData.memberSessionIds,
             reviewStatus: sessionData.reviewStatus,
             prNumber: sessionData.prNumber,
             prTitle: sessionData.prTitle,
@@ -271,6 +280,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
             lastKnownPrUrl: sessionData.lastKnownPrUrl,
             isArchived: sessionData.isArchived ?? false,
             sdkSessionId: sessionData.sdkSessionId,
+            characterId: sessionData.characterId ?? sessionData.narutoCharacterId ?? getNextCharacter(sessions.length).id,
             isRestored: true,
           }
           sessions.push(session)
@@ -332,6 +342,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
 
       const isReview = extra?.sessionType === 'review'
       const panelVisibility = isReview ? { ...REVIEW_PANEL_VISIBILITY } : { ...DEFAULT_PANEL_VISIBILITY }
+      const narutoCharacter = getNextCharacter(get().sessions.length)
       const newSession: Session = {
         id,
         name,
@@ -340,6 +351,7 @@ export function createCoreActions(get: StoreGet, set: StoreSet) {
         status: 'idle',
         agentId,
         ...extra,
+        characterId: narutoCharacter.id,
         panelVisibility,
         showExplorer: panelVisibility[PANEL_IDS.EXPLORER] ?? false,
         showFileViewer: panelVisibility[PANEL_IDS.FILE_VIEWER] ?? false,

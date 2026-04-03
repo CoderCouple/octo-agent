@@ -122,7 +122,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
             {
               label: 'Report Issue...',
               click: () => {
-                void shell.openExternal('https://github.com/Broomy-AI/broomy/issues')
+                void shell.openExternal('https://github.com/octoagent/octoagent/issues')
                 resolve(null)
               },
             },
@@ -130,7 +130,7 @@ export function register(ipcMain: IpcMain, ctx: HandlerContext): void {
         },
         { type: 'separator' },
         { label: 'Configure Toolbar...', click: () => resolve('configure-toolbar') },
-        { label: 'About Broomy', click: () => resolve('about') },
+        { label: 'About OctoAgent', click: () => resolve('about') },
       ]
 
       const menu = Menu.buildFromTemplate(template)

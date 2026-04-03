@@ -39,7 +39,7 @@ export function SettingsRepoScreen({
           <div>
             <div className="text-sm text-text-primary">Edit Commands</div>
             <div className="text-xs text-text-secondary">
-              Configure actions shown in the Broomy UI
+              Configure actions shown in the OctoAgent UI
             </div>
           </div>
           <svg

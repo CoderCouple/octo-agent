@@ -1,10 +1,10 @@
 /**
- * Main process entry point for the Broomy Electron app.
+ * Main process entry point for the OctoAgent Electron app.
  *
  * Creates the BrowserWindow, registers every IPC handler the renderer can call,
  * and manages application lifecycle (PTY processes, file watchers, window cleanup).
  * Handlers are organized into groups: PTY management (node-pty), config/profile
- * persistence (~/.broomy/), git operations (simple-git), GitHub CLI wrappers (gh),
+ * persistence (~/.octoagent/), git operations (simple-git), GitHub CLI wrappers (gh),
  * filesystem I/O, shell execution, native context menus, and TypeScript project
  * context collection. Every handler checks the `isE2ETest` flag and returns
  * deterministic mock data during Playwright tests so no real repos, APIs, or
@@ -25,8 +25,10 @@ import { disposePtyListenersForWindow, disposeAllPtyListeners } from './handlers
 import { Gateway } from './gateway'
 import { Supervisor } from './supervisor'
 import { startHookServer } from './gateway/adapters/hookAdapter'
-import { startPhoneServer } from './gateway/adapters/phoneAdapter'
-import type { AgentEvent, Decision } from '../shared/types'
+import { startPhoneServer, stopPhoneServer } from './gateway/adapters/phoneAdapter'
+import { startPeersServer, stopPeersServer, queueMessageForPeer } from './gateway/adapters/peersAdapter'
+import { sendToSdkAgent } from './handlers/agentSdk'
+import type { AgentEvent, Decision, AutoRule } from '../shared/types'
 
 // Ensure app name is correct (in dev mode Electron defaults to "Electron")
 app.name = 'OctoAgent'
@@ -63,6 +65,11 @@ if (isWindows) {
 // Crash handlers — write crash report to disk so the next launch can show recovery UI
 if (!isE2ETest) {
   process.on('uncaughtException', (error) => {
+    // EPIPE is non-fatal — a WebSocket or PTY stream closed mid-write
+    if (error && (error as NodeJS.ErrnoException).code === 'EPIPE') {
+      console.warn('Non-fatal EPIPE (broken pipe) — ignoring:', error.message)
+      return
+    }
     console.error('Uncaught exception:', error)
     try {
       appendErrorLog('main', error instanceof Error ? (error.stack ?? error.message) : String(error))
@@ -75,6 +82,11 @@ if (!isE2ETest) {
   })
 
   process.on('unhandledRejection', (reason) => {
+    // EPIPE is non-fatal
+    if (reason instanceof Error && (reason as NodeJS.ErrnoException).code === 'EPIPE') {
+      console.warn('Non-fatal EPIPE (broken pipe) in rejection — ignoring:', reason.message)
+      return
+    }
     console.error('Unhandled rejection:', reason)
     try {
       appendErrorLog('main', reason instanceof Error ? (reason.stack ?? reason.message) : String(reason))
@@ -89,6 +101,8 @@ if (!isE2ETest) {
 
 // PTY instances map
 const ptyProcesses = new Map<string, pty.IPty>()
+// Session ID → PTY ID mapping (for supervisor PTY bridge)
+const sessionPtyMap = new Map<string, string>()
 // File watchers map
 const fileWatchers = new Map<string, FSWatcher>()
 // Track windows by profileId
@@ -104,6 +118,30 @@ let mainWindow: BrowserWindow | null = null
 // OctoAgent gateway and supervisor
 const gateway = new Gateway()
 const supervisor = new Supervisor()
+
+// Agent bridge: allows supervisor to write text to any agent (PTY or SDK mode)
+supervisor.setPtyBridge((sessionId: string, text: string): boolean => {
+  // Try PTY first (terminal-mode agents: Gemini, Codex, Claude in terminal mode)
+  const ptyId = sessionPtyMap.get(sessionId)
+  if (ptyId) {
+    const proc = ptyProcesses.get(ptyId)
+    if (proc) {
+      console.log(`[Agent Bridge] PTY write to ${sessionId}: ${text.substring(0, 80)}`)
+      proc.write(text)
+      return true
+    }
+  }
+
+  // Try SDK (API-mode agents: Claude in API mode)
+  const sent = sendToSdkAgent(sessionId, text)
+  if (sent) {
+    console.log(`[Agent Bridge] SDK send to ${sessionId}: ${text.substring(0, 80)}`)
+    return true
+  }
+
+  console.warn(`[Agent Bridge] No PTY or SDK session for ${sessionId}. PTY map: [${[...sessionPtyMap.keys()].join(', ')}]`)
+  return false
+})
 
 function createWindow(profileId?: string): BrowserWindow {
   const window = new BrowserWindow({
@@ -235,6 +273,10 @@ function createWindow(profileId?: string): BrowserWindow {
         ptyOwnerWindows.delete(id)
       }
     }
+    // Clean up sessionPtyMap entries for killed PTYs
+    for (const [sessId, ptyId] of sessionPtyMap) {
+      if (!ptyProcesses.has(ptyId)) sessionPtyMap.delete(sessId)
+    }
     for (const [id, owner] of watcherOwnerWindows) {
       if (owner === window) {
         const watcher = fileWatchers.get(id)
@@ -280,6 +322,10 @@ function createWindow(profileId?: string): BrowserWindow {
         ptyOwnerWindows.delete(id)
       }
     }
+    // Clean up sessionPtyMap entries for killed PTYs
+    for (const [sessId, ptyId] of sessionPtyMap) {
+      if (!ptyProcesses.has(ptyId)) sessionPtyMap.delete(sessId)
+    }
     // Close file watchers belonging to this window only
     for (const [id, owner] of watcherOwnerWindows) {
       if (owner === window) {
@@ -315,6 +361,7 @@ const context: HandlerContext & { createWindow: (profileId?: string) => BrowserW
   E2E_MOCK_SHELL: process.env.E2E_MOCK_SHELL,
   FAKE_CLAUDE_SCRIPT: process.env.FAKE_CLAUDE_SCRIPT,
   dockerContainers,
+  sessionPtyMap,
   createWindow,
 }
 
@@ -473,7 +520,7 @@ function buildAppMenu() {
         {
           label: 'Report Issue...',
           click: () => {
-            void shell.openExternal('https://github.com/Broomy-AI/broomy/issues')
+            void shell.openExternal('https://github.com/octoagent/octoagent/issues')
           },
         },
       ],
@@ -513,12 +560,32 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
         gateway.emitSessionEvent(data.sessionIds[0], 'report', { content: data.content, sessionIds: data.sessionIds })
       }
     })
+    supervisor.on('autoRuleSuggestion', (suggestion: {
+      sessionId: string; pattern: string; patternType: AutoRule['patternType']; resolution: string; count: number
+    }) => {
+      gateway.emitSessionEvent(suggestion.sessionId, 'autoRuleSuggestion', suggestion as unknown as Record<string, unknown>)
+    })
+    supervisor.on('peerMessage', (data: { sessionId: string; from: string; fromName?: string; text: string; timestamp: number }) => {
+      gateway.emitSessionEvent(data.sessionId, 'peerMessage', data as unknown as Record<string, unknown>)
+    })
+    // Queue approved peer messages for direct P2P polling (check_messages MCP tool)
+    supervisor.on('peerMessageApproved', (message: import('./gateway/adapters/peersAdapter').PeerMessage) => {
+      queueMessageForPeer(message)
+    })
 
     // Wire gateway → supervisor: route requests
     gateway.setRouteHandlers({
       onSend: (_clientId, frame) => {
         if (frame.sessionId && frame.payload?.text) {
-          supervisor.handleUserMessage(frame.sessionId, frame.payload.text as string)
+          const text = frame.payload.text as string
+          const memberSessionIds = frame.payload.memberSessionIds as string[] | undefined
+          console.log(`[onSend] sessionId=${frame.sessionId}, memberSessionIds=${JSON.stringify(memberSessionIds)}, text="${text.substring(0, 60)}"`)
+          if (memberSessionIds && memberSessionIds.length > 0) {
+            // Group session: dispatch to all member agents
+            supervisor.sendToGroupMembers(memberSessionIds, text, 'user')
+          } else {
+            supervisor.handleUserMessage(frame.sessionId, text)
+          }
         }
       },
       onResolve: (_clientId, frame) => {
@@ -539,6 +606,12 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
           })
         }
       },
+      onSetMode: (_clientId, frame) => {
+        const mode = frame.payload?.mode as string | undefined
+        if (mode === 'focused' || mode === 'away' || mode === 'autonomous') {
+          supervisor.setMode(mode)
+        }
+      },
     })
 
     // Start hook adapter (for Claude Code hooks → supervisor)
@@ -549,6 +622,11 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
     // Start phone adapter (for phone push decisions)
     await startPhoneServer((decisionId, resolution) => {
       supervisor.resolveDecision(decisionId, resolution)
+    })
+
+    // Start peers adapter (for inter-agent peer communication)
+    await startPeersServer((message) => {
+      supervisor.handlePeerMessage(message)
     })
 
     // Build the application menu
@@ -579,8 +657,11 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
 
 
 app.on('window-all-closed', () => {
-  // Stop the gateway
+  // Stop the gateway and adapters
   void gateway.stop()
+  void stopPhoneServer()
+  void stopPeersServer()
+  supervisor.shutdown()
   // Dispose all native PTY event listeners before killing processes
   disposeAllPtyListeners()
   // Kill all PTY processes
@@ -605,9 +686,9 @@ app.on('will-quit', () => {
 })
 
 function stopDockerContainers() {
-  // Stop legacy broomy-managed containers (backward compat — can be removed in a future release)
+  // Stop legacy octoagent-managed containers (backward compat — can be removed in a future release)
   try {
-    const ids = execFileSync('docker', ['ps', '-q', '--filter', 'name=broomy-'], { encoding: 'utf-8' }).trim()
+    const ids = execFileSync('docker', ['ps', '-q', '--filter', 'name=octoagent-'], { encoding: 'utf-8' }).trim()
     if (ids) {
       execFileSync('docker', ['stop', ...ids.split('\n').filter(Boolean)], { timeout: 10000 })
     }

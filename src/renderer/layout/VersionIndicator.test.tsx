@@ -170,7 +170,7 @@ describe('VersionIndicator', () => {
 
     render(<VersionIndicator />)
     fireEvent.click(screen.getByText('View changelog'))
-    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/Broomy-AI/broomy/releases/tag/v1.0.0')
+    expect(window.shell.openExternal).toHaveBeenCalledWith('https://github.com/octoagent/octoagent/releases/tag/v1.0.0')
   })
 
   it('calls handleInstall when Restart clicked', () => {
