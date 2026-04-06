@@ -12,6 +12,7 @@ let onResolve: RequestHandler = () => {}
 let onBrief: RequestHandler = () => {}
 let onSetMode: RequestHandler = () => {}
 let onStatus: RequestHandler = () => {}
+let onSupervisorSend: RequestHandler = () => {}
 
 export function setHandlers(handlers: {
   onSend?: RequestHandler
@@ -19,12 +20,14 @@ export function setHandlers(handlers: {
   onBrief?: RequestHandler
   onSetMode?: RequestHandler
   onStatus?: RequestHandler
+  onSupervisorSend?: RequestHandler
 }): void {
   if (handlers.onSend) onSend = handlers.onSend
   if (handlers.onResolve) onResolve = handlers.onResolve
   if (handlers.onBrief) onBrief = handlers.onBrief
   if (handlers.onSetMode) onSetMode = handlers.onSetMode
   if (handlers.onStatus) onStatus = handlers.onStatus
+  if (handlers.onSupervisorSend) onSupervisorSend = handlers.onSupervisorSend
 }
 
 export function routeRequest(clientId: string, frame: WSFrame): void {
@@ -55,6 +58,9 @@ export function routeRequest(clientId: string, frame: WSFrame): void {
       break
     case 'status':
       onStatus(clientId, frame)
+      break
+    case 'supervisorSend':
+      onSupervisorSend(clientId, frame)
       break
     default:
       sendTo(clientId, {

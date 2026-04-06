@@ -44,6 +44,7 @@ export const PANEL_IDS = {
   CHAT: 'chat',
   SETTINGS: 'settings',
   TUTORIAL: 'tutorial',
+  SUPERVISOR: 'supervisor',
 } as const
 
 export type PanelId = typeof PANEL_IDS[keyof typeof PANEL_IDS]
@@ -55,6 +56,7 @@ export const DEFAULT_TOOLBAR_PANELS: string[] = [
   PANEL_IDS.FILE_VIEWER,
 
   PANEL_IDS.TUTORIAL,
+  PANEL_IDS.SUPERVISOR,
   PANEL_IDS.AGENT,
   PANEL_IDS.SETTINGS,
 ]

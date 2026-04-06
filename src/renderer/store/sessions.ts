@@ -44,6 +44,7 @@ export interface LayoutSizes {
   userTerminalHeight: number
   diffPanelWidth: number
   tutorialPanelWidth: number
+  supervisorPanelWidth: number
 }
 
 export type ExplorerFilter = 'files' | 'source-control' | 'search' | 'recent'
@@ -405,6 +406,7 @@ export const useSessionStore = create<SessionStore>((set, get) => {
         userTerminalHeight: 192,
         diffPanelWidth: 320,
         tutorialPanelWidth: 320,
+        supervisorPanelWidth: 360,
       },
       explorerFilter: 'source-control',
       lastMessage: null,

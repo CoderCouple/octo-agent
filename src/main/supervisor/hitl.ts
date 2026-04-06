@@ -103,6 +103,57 @@ function matchAutoRule(opts: {
   return null
 }
 
+// ─── Layer 0: Risk Assessment ───────────────────────────────────
+
+/** Tools that are always safe to auto-approve (read-only operations). */
+export const SAFE_TOOLS = new Set([
+  'Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch',
+  'list_peers', 'check_messages', 'TaskList', 'TaskGet',
+  'LS', 'View', 'Search', 'Find', 'Cat', 'Head', 'Tail',
+  'git_status', 'git_log', 'git_diff',
+])
+
+/** Patterns in command/prompt text that indicate critical/dangerous operations. */
+export const CRITICAL_PATTERNS = [
+  /rm\s+-rf\b/i,
+  /git\s+push\s+--force\b/i,
+  /git\s+push\s+-f\b/i,
+  /DROP\s+TABLE\b/i,
+  /DROP\s+DATABASE\b/i,
+  /sudo\b/i,
+  /chmod\s+777\b/i,
+  /\bformat\s+[a-z]:/i,
+  /git\s+reset\s+--hard\b/i,
+  /truncate\s+table\b/i,
+  /DELETE\s+FROM\s+\w+\s*;?\s*$/i, // DELETE without WHERE
+  /npm\s+publish\b/i,
+]
+
+export type RiskLevel = 'safe' | 'moderate' | 'critical'
+
+/**
+ * Layer 0: Assess the risk level of an operation.
+ * - Safe tools → auto-approve
+ * - Critical patterns → force hard severity
+ * - Everything else → moderate (falls through to Layer 1-4)
+ */
+export function assessRisk(opts: { toolName?: string; prompt: string }): RiskLevel {
+  // Check if tool is in the safe list
+  if (opts.toolName && SAFE_TOOLS.has(opts.toolName)) {
+    return 'safe'
+  }
+
+  // Check for critical patterns in the prompt text
+  const textToCheck = opts.prompt ?? ''
+  for (const pattern of CRITICAL_PATTERNS) {
+    if (pattern.test(textToCheck)) {
+      return 'critical'
+    }
+  }
+
+  return 'moderate'
+}
+
 // ─── Callbacks ──────────────────────────────────────────────────
 type PushCallback = (decision: Decision) => void
 type AutoRuleSuggestionCallback = (suggestion: {

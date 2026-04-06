@@ -28,6 +28,7 @@ const DEFAULT_LAYOUT_SIZES = {
   userTerminalHeight: 192, // 12rem = 192px
   diffPanelWidth: 320, // 20rem = 320px
   tutorialPanelWidth: 320,
+  supervisorPanelWidth: 360,
 }
 
 // Clamp a value between min and max

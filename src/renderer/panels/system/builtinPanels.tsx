@@ -49,6 +49,15 @@ const SettingsIcon = () => (
   </svg>
 )
 
+const BrainIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a8 8 0 0 0-8 8c0 3.4 2.1 6.3 5 7.4V20h6v-2.6c2.9-1.1 5-4 5-7.4a8 8 0 0 0-8-8Z" />
+    <path d="M10 20v2h4v-2" />
+    <path d="M9 10h.01" />
+    <path d="M15 10h.01" />
+  </svg>
+)
+
 const GuideIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
@@ -106,6 +115,18 @@ export const BUILTIN_PANELS: PanelDefinition[] = [
   },
 
   {
+    id: PANEL_IDS.SUPERVISOR,
+    name: 'Supervisor',
+    icon: <BrainIcon />,
+    position: 'right',
+    defaultVisible: false,
+    defaultInToolbar: true,
+    isGlobal: true,
+    resizable: true,
+    minSize: 320,
+    maxSize: 500,
+  },
+  {
     id: PANEL_IDS.TUTORIAL,
     name: 'Guide',
     icon: <GuideIcon />,
@@ -127,5 +148,6 @@ export const PanelIcons = {
 
   terminal: TerminalIcon,
   settings: SettingsIcon,
+  brain: BrainIcon,
   guide: GuideIcon,
 }

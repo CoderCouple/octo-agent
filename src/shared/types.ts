@@ -54,7 +54,7 @@ export interface Decision {
 // ─── WS Frame Protocol ──────────────────────────────────────────
 export type WSFrameType = 'req' | 'res' | 'event'
 
-export type WSMethod = 'connect' | 'send' | 'resolve' | 'status' | 'brief' | 'setMode'
+export type WSMethod = 'connect' | 'send' | 'resolve' | 'status' | 'brief' | 'setMode' | 'supervisorSend'
 
 export type WSEventName =
   | 'agentEvent'
@@ -65,6 +65,8 @@ export type WSEventName =
   | 'report'
   | 'autoRuleSuggestion'
   | 'peerMessage'
+  | 'supervisorChat'
+  | 'taskUpdate'
 
 export interface WSFrame {
   type: WSFrameType

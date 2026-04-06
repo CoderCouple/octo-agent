@@ -171,6 +171,7 @@ export type LayoutSizesData = {
   userTerminalHeight: number
   diffPanelWidth: number
   tutorialPanelWidth: number
+  supervisorPanelWidth: number
 }
 
 export type PanelVisibility = Record<string, boolean>

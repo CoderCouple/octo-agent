@@ -109,6 +109,7 @@ export default function Layout({
 
   const showSettings = isPanelVisible(PANEL_IDS.SETTINGS)
   const showTutorial = isPanelVisible(PANEL_IDS.TUTORIAL)
+  const showSupervisor = isPanelVisible(PANEL_IDS.SUPERVISOR)
   const handleToggle = useCallback((panelId: string) => {
     const panel = registry.get(panelId)
     if (!panel) return
@@ -249,6 +250,24 @@ export default function Layout({
               draggingDivider={draggingDivider}
               onMouseDown={handleMouseDown}
             />
+
+            {/* Supervisor panel (right side) - hidden when error */}
+            {!errorMessage && showSupervisor && panels[PANEL_IDS.SUPERVISOR] && (
+              <>
+                <Divider type="tutorial" direction="vertical" draggingDivider={draggingDivider} onMouseDown={handleMouseDown} />
+                <div
+                  data-panel-id={PANEL_IDS.SUPERVISOR}
+                  tabIndex={-1}
+                  className="relative flex-shrink-0 bg-bg-secondary overflow-hidden outline-none"
+                  style={{ width: layoutSizes.supervisorPanelWidth }}
+                >
+                  <FlashOverlay flashedPanel={flashedPanel} panelId={PANEL_IDS.SUPERVISOR} />
+                  <PanelErrorBoundary name="Supervisor">
+                    {panels[PANEL_IDS.SUPERVISOR]}
+                  </PanelErrorBoundary>
+                </div>
+              </>
+            )}
 
             {/* Tutorial panel (right side) - hidden when error */}
             {!errorMessage && showTutorial && panels[PANEL_IDS.TUTORIAL] && (

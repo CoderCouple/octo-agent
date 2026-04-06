@@ -45,6 +45,7 @@ const DEFAULT_LAYOUT_SIZES: LayoutSizes = {
   userTerminalHeight: 192,
   diffPanelWidth: 320,
   tutorialPanelWidth: 320,
+  supervisorPanelWidth: 360,
 }
 
 function UnsavedChangesDialog({ onCancel, onDiscard, onSave }: {

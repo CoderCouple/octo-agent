@@ -568,6 +568,12 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
     supervisor.on('peerMessage', (data: { sessionId: string; from: string; fromName?: string; text: string; timestamp: number }) => {
       gateway.emitSessionEvent(data.sessionId, 'peerMessage', data as unknown as Record<string, unknown>)
     })
+    supervisor.on('supervisorChat', (data: Record<string, unknown>) => {
+      gateway.emitGlobalEvent('supervisorChat', data)
+    })
+    supervisor.on('taskUpdate', (data: Record<string, unknown>) => {
+      gateway.emitGlobalEvent('taskUpdate', data)
+    })
     // Queue approved peer messages for direct P2P polling (check_messages MCP tool)
     supervisor.on('peerMessageApproved', (message: import('./gateway/adapters/peersAdapter').PeerMessage) => {
       queueMessageForPeer(message)
@@ -610,6 +616,15 @@ ipcMain.handle('octoagent:getGatewayPort', () => gateway.getPort())
         const mode = frame.payload?.mode as string | undefined
         if (mode === 'focused' || mode === 'away' || mode === 'autonomous') {
           supervisor.setMode(mode)
+        }
+      },
+      onSupervisorSend: (_clientId, frame) => {
+        const text = frame.payload?.text as string | undefined
+        if (text) {
+          console.log(`[onSupervisorSend] Received: "${text.substring(0, 80)}"`)
+          supervisor.handleSupervisorChat(text).catch((err) => {
+            console.error('[onSupervisorSend] Error:', err)
+          })
         }
       },
     })

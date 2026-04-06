@@ -12,6 +12,7 @@ import AgentSettings from '../panels/settings/AgentSettings'
 import SessionList from '../panels/sidebar/SessionList'
 import WelcomeScreen from '../panels/agent/WelcomeScreen'
 import TutorialPanel from '../panels/tutorial/TutorialPanel'
+import SupervisorChatPanel from '../panels/supervisor/SupervisorChatPanel'
 
 import { AttentionQueue } from '../components/AttentionQueue'
 import { useSessionStore, type Session } from '../store/sessions'
@@ -383,6 +384,9 @@ export function usePanelsMap(config: PanelsMapConfig) {
         toggleGlobalPanel(PANEL_IDS.SETTINGS)
       }} />
     ) : null,
+    [PANEL_IDS.SUPERVISOR]: (
+      <SupervisorChatPanel />
+    ),
     [PANEL_IDS.TUTORIAL]: (
       <TutorialPanel />
     ),

@@ -24,12 +24,15 @@ import {
   loadAutoRules,
   setOnPush,
   setOnAutoRuleSuggestion,
+  assessRisk,
 } from './hitl'
 import { record as recordFile, clearSession as clearConflictSession, getSessionFiles } from './conflictDetector'
 import { generateBriefing } from './briefingEngine'
 import { generateReport } from './reportGenerator'
 import { agentActivated, agentDeactivated, killCaffeinate } from './sleepGuard'
 import { sendPush } from '../notifications/push'
+import { TaskTracker } from './taskTracker'
+import { SupervisorChat } from './supervisorChat'
 
 const PERSONAS_DIR = join(homedir(), '.octoagent', 'personas')
 
@@ -57,6 +60,10 @@ export class Supervisor extends EventEmitter {
   private writeToPty: PtyBridgeFn | null = null
   /** Approved peer communication pairs with 60-min TTL. Key: "from→to" */
   private peerPermissions = new Map<string, PeerPermission>()
+  /** Task lifecycle tracker. */
+  private taskTracker = new TaskTracker()
+  /** Supervisor chat (brain + conversation). */
+  private chat: SupervisorChat
 
   constructor() {
     super()
@@ -77,6 +84,16 @@ export class Supervisor extends EventEmitter {
 
     // Load personas from disk
     this.loadPersonasFromDisk()
+
+    // Initialize supervisor chat (brain + task tracker)
+    this.chat = new SupervisorChat({
+      taskTracker: this.taskTracker,
+      sendDirective: (sessionId, instruction) => this.sendDirective(sessionId, instruction),
+      briefSession: (opts) => this.briefSession(opts),
+      getActiveSessions: () => this.getActiveSessions(),
+      getMode: () => this.getMode(),
+      emit: (event, data) => this.emit(event, data),
+    })
   }
 
   /** Load all persona JSON files from ~/.octoagent/personas/. */
@@ -237,24 +254,67 @@ export class Supervisor extends EventEmitter {
       }
     }
 
-    // Handle waiting for input -> run 4-layer HITL
+    // Handle waiting for input -> Layer 0 risk assessment + 4-layer HITL
     if (event.type === 'waitingForInput') {
       const persona = meta?.personaId ? this.personas.get(meta.personaId) : undefined
+      const prompt = (event.data.prompt as string) ?? 'Permission needed'
+      const toolName = event.data.toolName as string | undefined
 
-      // Determine severity: file conflicts get hard, everything else gets soft
-      // In autonomous mode, auto-approve everything
-      if (this.mode === 'autonomous') {
-        // Auto-resolve without creating a decision
+      // Layer 0: Risk assessment
+      const risk = assessRisk({ toolName, prompt })
+
+      // Safe operations auto-approve regardless of mode
+      if (risk === 'safe') {
         this.emit('decisionResolved', {
           id: randomUUID(),
           sessionId: event.sessionId,
           severity: 'soft',
-          prompt: (event.data.prompt as string) ?? 'Permission needed',
+          prompt,
           timestamp: Date.now(),
           resolved: true,
           resolution: 'yes',
           resolvedAt: Date.now(),
+          toolName,
         } satisfies Decision)
+      } else if (this.mode === 'autonomous' && risk !== 'critical') {
+        // In autonomous mode, auto-approve moderate ops (but NOT critical)
+        this.emit('decisionResolved', {
+          id: randomUUID(),
+          sessionId: event.sessionId,
+          severity: 'soft',
+          prompt,
+          timestamp: Date.now(),
+          resolved: true,
+          resolution: 'yes',
+          resolvedAt: Date.now(),
+          toolName,
+        } satisfies Decision)
+      } else if (risk === 'critical') {
+        // Critical ops always require human approval — force hard severity
+        const severity: Decision['severity'] = 'hard'
+        const result = createDecision({
+          sessionId: event.sessionId,
+          severity,
+          prompt,
+          toolName,
+          filePath: event.data.filePath as string | undefined,
+          persona,
+        })
+        if (result.decision) {
+          this.emit('decision', result.decision)
+        } else if (result.autoResolution) {
+          this.emit('decisionResolved', {
+            id: randomUUID(),
+            sessionId: event.sessionId,
+            severity: 'hard',
+            prompt,
+            timestamp: Date.now(),
+            resolved: true,
+            resolution: result.autoResolution,
+            resolvedAt: Date.now(),
+            toolName,
+          } satisfies Decision)
+        }
       } else {
         const severity: Decision['severity'] = event.data.isConflict ? 'hard' : 'soft'
         const result = createDecision({
@@ -286,7 +346,7 @@ export class Supervisor extends EventEmitter {
       }
     }
 
-    // Handle session done -> flush memory, check for all-done
+    // Handle session done -> flush memory, let brain analyze, check for all-done
     if (event.type === 'done') {
       void this.queue.enqueue(event.sessionId, async () => {
         // Invariant #3: Flush before discard
@@ -298,6 +358,16 @@ export class Supervisor extends EventEmitter {
           sessionId: event.sessionId,
           summary: readMemory(event.sessionId) ?? 'Memory saved',
         })
+
+        // Let the brain analyze completion and decide next steps
+        const completedMeta = this.sessions.get(event.sessionId)
+        if (completedMeta) {
+          try {
+            await this.chat.checkTaskProgress(event.sessionId, completedMeta)
+          } catch (err) {
+            console.error('[Supervisor] Brain task progress check failed:', err)
+          }
+        }
 
         // Check if ALL sessions are done -> generate report
         const activeSessions = this.getActiveSessions()
@@ -418,16 +488,27 @@ export class Supervisor extends EventEmitter {
     if (perm && Date.now() < perm.expiresAt) {
       // Already approved and not expired — deliver immediately
       this.deliverPeerMessage(message)
+      // Track for brain monitoring
+      void this.chat.trackPeerMessage(from, to, message.text)
       return
     }
 
     // Permission expired or never granted — clean up and request approval
     if (perm) this.peerPermissions.delete(permKey)
 
+    // Task affinity: auto-grant if both agents share a task
+    if (this.taskTracker.shareTask(from, to)) {
+      this.grantPeerPermission(from, to)
+      this.deliverPeerMessage(message)
+      void this.chat.trackPeerMessage(from, to, message.text)
+      return
+    }
+
     // In autonomous mode, auto-approve
     if (this.mode === 'autonomous') {
       this.grantPeerPermission(from, to)
       this.deliverPeerMessage(message)
+      void this.chat.trackPeerMessage(from, to, message.text)
       return
     }
 
@@ -563,9 +644,27 @@ export class Supervisor extends EventEmitter {
   }
 
   /**
+   * Handle a message sent to the supervisor brain (from supervisor chat UI).
+   */
+  async handleSupervisorChat(text: string): Promise<void> {
+    await this.chat.handleMessage(text)
+  }
+
+  /** Get the task tracker (for external access). */
+  getTaskTracker(): TaskTracker {
+    return this.taskTracker
+  }
+
+  /** Get the supervisor chat (for external access). */
+  getSupervisorChat(): SupervisorChat {
+    return this.chat
+  }
+
+  /**
    * Shutdown: kill caffeinate, cleanup.
    */
   shutdown(): void {
     killCaffeinate()
+    this.chat.shutdown()
   }
 }

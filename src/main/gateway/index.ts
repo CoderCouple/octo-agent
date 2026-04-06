@@ -82,6 +82,7 @@ export class Gateway {
     onBrief?: RequestHandler
     onSetMode?: RequestHandler
     onStatus?: RequestHandler
+    onSupervisorSend?: RequestHandler
   }): void {
     setHandlers(handlers)
   }
